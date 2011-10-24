@@ -15,3 +15,5 @@
 
 #define BUFSIZE    0x200
 #define STRINGSIZE 64
+
+void init_registermap(void);

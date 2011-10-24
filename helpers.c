@@ -97,7 +97,7 @@ void fill_slv(char *l, int nbits, unsigned char val)
 	
 void sim_set_ptr(handle_t_ghdl p)
 {
-	printf("Got ptr: %p\n", *p);
+	printf("Got ptr: %lx\n", p);
 }
 
 handle_t_ghdl sim_get_ptr(netpphandle_t_ghdl i)

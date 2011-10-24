@@ -12,6 +12,7 @@
 #include "devlib.h"
 #include "devlib_error.h"
 #include "example.h"
+#include "registermap.h"
 #include "property_protocol.h"
 #include "fifo.h"
 
@@ -107,9 +108,14 @@ int set_fifo(DEVICE d, DCValue *in)
  * This is accessed by sim_regmap_read()/sim_regmap_write()
  */
 
-static unsigned char _dummy_registers[256] = {
+static unsigned char _registermap[256] = {
 	0xaa, 0x55, 
 };
+
+void init_registermap(void)
+{
+	_registermap[R_FPGA_Registermap_Control] = THROTTLE;
+}
 
 int device_write(RemoteDevice *d,
 		uint32_t addr, const unsigned char *buf,
@@ -120,7 +126,7 @@ int device_write(RemoteDevice *d,
 		return DCERR_PROPERTY_RANGE;
 	}
 	printf("Write to register %04x:", addr);
-	memcpy(&_dummy_registers[addr & 0xff], buf, size);
+	memcpy(&_registermap[addr & 0xff], buf, size);
 	while (size--) {
 		printf(" %02x", *buf++);
 	}
@@ -141,7 +147,7 @@ int device_read(RemoteDevice *d,
 		return DCERR_PROPERTY_RANGE;
 	}
 	printf("Read from register %04x (%lu bytes)\n", addr, size);
-	memcpy(buf, &_dummy_registers[addr & 0xff], size);
+	memcpy(buf, &_registermap[addr & 0xff], size);
 	return 0;
 }
 
@@ -151,7 +157,7 @@ void sim_regmap_read(regaddr_t_ghdl address, byte_t_ghdl data)
 	logic_to_uint(address, sizeof(address), &addr);
 	addr &= 0xff;
 	
-	val = _dummy_registers[addr];
+	val = _registermap[addr];
 	uint_to_logic(data, sizeof(data), val);
 }
 
@@ -162,5 +168,5 @@ void sim_regmap_write(regaddr_t_ghdl address, byte_t_ghdl data)
 	addr &= 0xff;
 	logic_to_uint(data, sizeof(data), &val);
 	
-	_dummy_registers[addr] = val;
+	_registermap[addr] = val;
 }

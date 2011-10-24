@@ -7,10 +7,9 @@
 
 VERSION = 0.03eval
 
-
 CSRCS = pipe.c fifo.c thread.c helpers.c
 
-DUTIES = simfifo simpipe
+DUTIES = simpipe simfifo 
 
 # Not really needed for "sane" VHDL code. Use only for deprecated
 # VDHL code. Some Xilinx simulation libraries might need it.
@@ -18,13 +17,14 @@ DUTIES = simfifo simpipe
 # GHDLFLAGS = --ieee=synopsys
 
 # Set to NETPP location, if you want to use NETPP
-NETPP = $(HOME)/src/netpp
+# NETPP = $(HOME)/src/netpp
 # Run "make netpp_build" to fetch and build the source
 #
 NETPP_VER = netpp_src-0.31-svn315
 NETPP_TAR = $(NETPP_VER).tgz 
 NETPP_WEB = http://section5.ch/src/$(NETPP_TAR)
 NETPP_EXISTS = $(shell [ -e $(NETPP)/xml ] && echo yes )
+CURDIR = $(shell pwd)
 
 CFLAGS = -g -Wall
 
@@ -32,7 +32,7 @@ LDFLAGS = -Wl,-L. -Wl,-lmysim -Wl,-lpthread
 
 ifeq ($(NETPP_EXISTS),yes)
 	DUTIES += simnetpp simfb
-	NETPP_DEPS = $(NETPP)/include/devlib_error.h
+	NETPP_DEPS = $(NETPP)/include/devlib_error.h registermap.h
 	DEVICEFILE = ghdlsim.xml
 	LIBSLAVE = $(NETPP)/devices/libslave/Debug
 	CSRCS += proplist.c handler.c netpp.c
@@ -45,9 +45,13 @@ OBJS = $(CSRCS:%.c=%.o)
 
 VHDL = $(HOME)/src/vhdl
 VHDLFILES = txt_util.vhdl
-VHDLFILES += registermap_pkg.vhdl
-VHDLFILES += libpipe.vhdl libfifo.vhdl libnetpp.vhdl
-VHDLFILES += simfifo.vhdl simnetpp.vhdl simfb.vhdl
+VHDLFILES += libpipe.vhdl libfifo.vhdl
+VHDLFILES += simfifo.vhdl 
+ifdef NETPP
+VHDLFILES += registermap_pkg.vhdl libnetpp.vhdl
+VHDLFILES += simnetpp.vhdl 
+VHDLFILES += simfb.vhdl
+endif
 VHDLFILES += simpipe.vhdl
 
 all: $(NETPP_DEPS) $(DUTIES)
@@ -71,6 +75,9 @@ work-obj93.cf: $(VHDLFILES)
 registermap_pkg.vhdl: ghdlsim.xml $(XSLT)/vhdlpkg.xsl
 	$(XP) -o $@ $(XSLT)/vhdlpkg.xsl $<
 
+regprops.xml: ghdlsim.xml $(XSLT)/regwrap.xsl
+	$(XP) -o $@ $(XSLT)/regwrap.xsl $<
+
 simpipe: work-obj93.cf libmysim.a
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
@@ -87,6 +94,9 @@ clean::
 	rm -f work-obj93.cf
 	rm -f *.o *.a
 	rm -f simfifo
+	$(MAKE) NETPP=$(CURDIR)/netpp clean_duties
+
+clean_duties:
 	rm -f $(DUTIES) h2vhdl
 
 FILES = $(VHDLFILES) $(CSRCS) Makefile LICENSE.txt README
@@ -105,16 +115,21 @@ dist:
 netpp:
 	wget $(NETPP_WEB)
 	tar xfz $(NETPP_TAR)
-	# ln -s $(NETPP_VER) $@
+
+$(LIBSLAVE)/libslave.a: netpp
+	$(MAKE) -C $<
+
+allnetpp: $(LIBSLAVE)/libslave.a
+	$(MAKE) NETPP=$(CURDIR)/netpp
 
 doc_apidef.h: apidef.h
 	cpp -C -E -DRUN_CHEAD $< >$@
 
+registermap.h: $(DEVICEFILE)
+	$(XP) -o $@ $(XSLT)/reg8051.xsl $(DEVICEFILE)
+
 docs: doc_apidef.h Doxyfile
 	doxygen
-
-netpp_build: netpp
-	make -C $<
 
 h2vhdl.o: h2vhdl.c apidef.h
 	$(CC) -o $@ $(CFLAGS) -c $<

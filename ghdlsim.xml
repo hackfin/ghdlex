@@ -106,6 +106,9 @@ Including a header is necessary when implementing access to global variables.-->
         <bitfield lsb="0" msb="0" name="ENABLE">
            <info>Enable FPGA engine</info>
         </bitfield>
+        <bitfield lsb="1" msb="1" name="THROTTLE">
+           <info>If set, slow down simulation</info>
+        </bitfield>
         <bitfield lsb="7" msb="7" name="RESET">
            <info>RESET FPGA engine</info>
         </bitfield>
@@ -118,6 +121,9 @@ Including a header is necessary when implementing access to global variables.-->
       </property>
       <property access="RW" name="Reset" type="BOOL">
         <regref ref="Control" bits="ENABLE"/>
+      </property>
+      <property access="RW" name="Throttle" type="BOOL">
+        <regref ref="Control" bits="THROTTLE"/>
       </property>
       <property access="RW" name="Fifo" type="BUFFER">
         <!--A buffer object that is handled via a handler function. See handler.c

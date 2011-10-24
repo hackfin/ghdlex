@@ -16,6 +16,7 @@
 #include "fifo.h"
 
 #ifdef USE_NETPP
+#include "example.h"
 #include "slave.h"
 #include "netpp.h"
 #else
@@ -66,6 +67,7 @@ int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n)
 int init_backend(void)
 {
 	register_proplist(g_devices, g_ndevices);
+	init_registermap();
 	return 0;
 }
 
@@ -148,7 +150,7 @@ int sim_thread_init(struct ghdl_string *str)
 	if (error < 0) return error;
 
 #ifdef USE_NETPP
-	error = pthread_create(&g_thread, NULL, &fifo_thread, str->base);
+	error = pthread_create(&g_thread, NULL, &fifo_thread, NULL);
 #else
 	error = pthread_create(&g_thread, NULL, &fifo_thread, g_fifos);
 #endif

@@ -9,8 +9,6 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
 library work;
-use work.fpga_registers.all;
-use work.ghpi_netpp.all;
 use work.ghpi_fifo.all;
 use work.txt_util.all;
 
@@ -20,7 +18,6 @@ entity simfifo is end simfifo;
 
 architecture behaviour of simfifo is
 	signal clk : std_ulogic := '0';
-	signal enable : std_ulogic := '0';
 	signal reset : std_ulogic := '0';
 	signal count : unsigned(7 downto 0) := x"05";
 	signal data : unsigned(7 downto 0);
@@ -52,18 +49,10 @@ begin
 	end process;
 
 	process (clk)
-		variable reg : unsigned(7 downto 0);
-	begin
-		regmap_read(RegControl, reg);
-		enable <= reg(BIT_ENABLE);
-		reset <= reg(BIT_RESET);
-	end process;
-
-	process (clk)
 		variable val : unsigned(7 downto 0);
 		variable flags : fifoflag_t := "000000";
 	begin
-		if rising_edge(clk) and enable = '1' then
+		if rising_edge(clk) then
 			-- We first probe the fifo state.
 			-- We could get by with one call to fifo_io, but that would
 			-- make the code harder to read.
