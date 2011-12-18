@@ -91,7 +91,6 @@ package body ghpi_pipe is
 		flags : inout pipeflag_t
 	) is
 	begin
-		assert false report "VHPI" severity failure;
 	end pipe_in;
 
 	procedure pipe_out(

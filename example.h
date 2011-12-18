@@ -17,3 +17,5 @@
 #define STRINGSIZE 64
 
 void init_registermap(void);
+
+extern int g_timeout;

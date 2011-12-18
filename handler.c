@@ -26,6 +26,8 @@ int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n);
 extern
 Fifo g_fifos[2];
 
+int g_timeout = 200000;
+
 int get_fifo(DEVICE d, DCValue *out)
 {
 	int warn = 0;

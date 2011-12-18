@@ -26,12 +26,13 @@
     <extension>develop</extension>
   </revision>
 
+  <header language="C">#include "example.h"</header>
+
+  <header language="VHDL">iomap_config</header>
+
   <!--This is a header file specification. Statements in this field will be included
 in handler skeleton code and in the generated property list.
 Including a header is necessary when implementing access to global variables.-->
-
-  <header>#include "example.h"
-#include "device_error.h" </header>
 
   <returncodes>
     <errorspec code="-1024" name="STREAM_START">
@@ -91,40 +92,51 @@ Including a header is necessary when implementing access to global variables.-->
     </errorspec>
   </returncodes>
 
-  <device id="example" name="GHDLSimInterface" protocol="PROPERTY">
+  <device id="ghdlsim" name="GHDLSimInterface" protocol="PROPERTY">
     <revision>
       <major>0</major>
 
       <minor>0</minor>
     </revision>
 
-    <registermap id="fpga_registers" name="FPGA_Registermap" addrsize="8"
-      endian="BIG">
+    <registermap addrsize="8" endian="BIG" id="fpga_registers"
+                 name="FPGA_Registermap">
       <register addr="0x00" id="MagicId"></register>
+
       <register addr="0x02" id="Control">
         <info>Control register</info>
+
         <bitfield lsb="0" msb="0" name="ENABLE">
-           <info>Enable FPGA engine</info>
+          <info>Enable FPGA engine</info>
         </bitfield>
+
         <bitfield lsb="1" msb="1" name="THROTTLE">
-           <info>If set, slow down simulation</info>
+          <info>If set, slow down simulation</info>
         </bitfield>
+
         <bitfield lsb="7" msb="7" name="RESET">
-           <info>RESET FPGA engine</info>
+          <info>RESET FPGA engine</info>
         </bitfield>
       </register>
     </registermap>
 
     <group name="SimulationInterface">
       <property access="RW" name="Enable" type="BOOL">
-        <regref ref="Control" bits="ENABLE"/>
+        <regref bits="ENABLE" ref="Control" />
       </property>
+
       <property access="RW" name="Reset" type="BOOL">
-        <regref ref="Control" bits="ENABLE"/>
+        <regref bits="RESET" ref="Control" />
       </property>
+
+      <property access="RW" name="Timeout" type="INT">
+        <variable>g_timeout</variable>
+      </property>
+
       <property access="RW" name="Throttle" type="BOOL">
-        <regref ref="Control" bits="THROTTLE"/>
+        <regref bits="THROTTLE" ref="Control" />
       </property>
+
       <property access="RW" name="Fifo" type="BUFFER">
         <!--A buffer object that is handled via a handler function. See handler.c
 (Function get_fifo()/set_fifo() for details.)-->

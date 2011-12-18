@@ -32,7 +32,9 @@ int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n)
 
 	while (n > 0) {
 		while (!fifo_fill(f)) {
-			usleep(200000);
+#ifdef USE_NETPP
+			usleep(g_timeout);
+#endif
 			retry--;
 			if (retry == 0) return DCERR_COMM_TIMEOUT;
 		}
@@ -50,7 +52,9 @@ int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n)
 
 	while (n) {
 		while (fifo_fill(f) == f->size ) {
-			usleep(100000);
+#ifdef USE_NETPP
+			usleep(g_timeout);
+#endif
 			retry--;
 			if (retry == 0) return DCERR_COMM_TIMEOUT;
 		}
@@ -123,7 +127,9 @@ void *fifo_thread(void *arg)
 		} else {
 			printf("FIFO to Sim not ready. Skipping.\n");
 		}
-		usleep(200000);
+#ifdef USE_NETPP
+		usleep(g_timeout);
+#endif
 	}
 	// Send TERMINATE command:
 	// This is a bit dirty. We have to send two bytes, because we're

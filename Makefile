@@ -17,7 +17,7 @@ DUTIES = simpipe simfifo
 # GHDLFLAGS = --ieee=synopsys
 
 # Set to NETPP location, if you want to use NETPP
-# NETPP = $(HOME)/src/netpp
+NETPP = $(HOME)/src/netpp
 # Run "make netpp_build" to fetch and build the source
 #
 NETPP_VER = netpp_src-0.31-svn315
@@ -48,7 +48,7 @@ VHDLFILES = txt_util.vhdl
 VHDLFILES += libpipe.vhdl libfifo.vhdl
 VHDLFILES += simfifo.vhdl 
 ifdef NETPP
-VHDLFILES += registermap_pkg.vhdl libnetpp.vhdl
+VHDLFILES += iomap_config.vhdl registermap_pkg.vhdl libnetpp.vhdl
 VHDLFILES += simnetpp.vhdl 
 VHDLFILES += simfb.vhdl
 endif
