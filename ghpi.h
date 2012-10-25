@@ -70,9 +70,15 @@ void uint_to_logic(char *l, int nbits, uint32_t val);
 /** Convert logic to byte sequence. Matches the bit order of the
  * std_logic_vector
  */
-void logic_to_bytes(char *l, int n, unsigned char *b);
+void logic_to_bytes(char *l, int n, void *data);
+/** Convert logic to 16 bit word sequence. Matches the bit order of the
+ * std_logic_vector
+ */
+void logic_to_words(char *l, int n, void *data);
 /** Convert byte sequence to logic. */
-void bytes_to_logic(char *l, int n, const unsigned char *b);
+void bytes_to_logic(char *l, int n, const void *data);
+/** Convert 16 bit word sequence to logic */
+void words_to_logic(char *l, int n, const void *data);
 /** Set all std_logic members of a std_logic_vector to 'val' */
 void fill_slv(char *l, int nbits, unsigned char val);
 

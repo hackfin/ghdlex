@@ -30,7 +30,7 @@ begin
 	process
 		variable err : integer;
 	begin
-		err := thread_init("");
+		err := fifo_thread_init("", 1);
 		if err < 0 then
 			assert false report "Failed to launch thread" severity failure;
 		end if;
@@ -43,7 +43,7 @@ begin
 		end loop clkloop;
 
 		print(output, " -- TERMINATED --");
-		thread_exit;
+		fifo_thread_exit;
 		wait;
 
 	end process;
@@ -81,4 +81,4 @@ begin
 		end if;
 	end process;
 
-end;
+end behaviour;

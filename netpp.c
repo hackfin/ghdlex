@@ -10,45 +10,54 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "netpp.h"
+#include "property_types.h"
+#include "dynprops.h"
 #include "ghpi.h"
-#include "display/display.h"
-
-#include <signal.h>
-
-#define DEVHANDLE uint32_t
-#define FBHANDLE uint32_t
-
-typedef struct {
-	unsigned long size;
-	unsigned short type;
-	unsigned short width, height;
-	void *data;
-	unsigned short bpp;
-	DEVICE device;
-	TOKEN token;
-} FBuffer;
+#include "netppwrap.h"
 
 #define MAX_NUM_DEVICES 8
-#define MAX_NUM_FBS     1
+
+#define GET_DEV(x) s_devices[x]
 
 static
 DEVICE s_devices[MAX_NUM_DEVICES] = {
 	0, 0, 0, 0, 0, 0, 0, 0
 };
 
-static
-FBuffer *s_fbs[MAX_NUM_FBS] = { 0 };
-
-
-#define GET_DEV(x) s_devices[x]
-#define GET_FB(x) s_fbs[x]
-
 ////////////////////////////////////////////////////////////////////////////
 // PROTOS
 
-void sim_releasefb(FBHANDLE handle);
+int buffer_handler(void *p, int write, DCValue *val);
+
+// Templates:
+
+PropertyDesc s_rootprop = {
+	.type = DC_ROOT,
+	.flags = F_RO | F_LINK /* Derived ! */,
+	.access = { .base = 0 }
+};
+
 
 ////////////////////////////////////////////////////////////////////////////
+
+PropertyDesc s_buffer_template = {
+	.type = DC_BUFFER,
+	.flags = F_RW,
+	.where = DC_CUSTOM,
+	.access = { .custom = { buffer_handler, 0 } },
+};
+
+DEVICE get_device(DEVHANDLE dev)
+{
+	return s_devices[dev];
+}
+
+__attribute__((weak))
+TOKEN local_getroot(DEVICE d)
+{
+	int index = 0;
+	return DEVICE_TOKEN(index);
+}
 
 void handleError(int error)
 {
@@ -92,28 +101,6 @@ netpphandle_t_ghdl sim_device_open_wrapped(struct ghdl_string *id)
 	return -1;
 }
 
-FBHANDLE new_fb(void)
-{
-	int i;
-	FBuffer *fb;
-
-	for (i = 0; i < MAX_NUM_FBS; i++) {
-		if (s_fbs[i] == 0) {
-			fb = (FBuffer *) malloc(sizeof(FBuffer));
-			if (!fb) return -1;
-			s_fbs[i] = fb;
-			return i;
-		}
-	}
-	return -1;
-}
-
-void del_fb(FBHANDLE handle)
-{
-	free(s_fbs[handle]);
-	s_fbs[handle] = 0;
-}
-
 void sim_device_close(DEVHANDLE handle)
 {
 	DEVICE d = GET_DEV(handle);
@@ -150,118 +137,6 @@ int sim_device_set_int(DEVHANDLE handle, TOKEN t, int v)
 	
 }
 
-void break_handler(int n)
-{
-	int i;
-	int val = 1;
-	printf("Hit Ctrl-C, cleaning up...\n");
-
-	for (i = 0; i < MAX_NUM_FBS; i++) {
-		if (GET_FB(i)) {
-			printf("Terminating stream %d\n", i);
-			set_property(GET_FB(i)->device, "Stream.Stop", &val, DC_COMMAND);
-			sim_releasefb(i);
-		}
-	}
-	
-	exit(-1);
-}
-
-framebuffer_t_ghdl sim_initfb(DEVHANDLE dev,
-	integer_ghdl w, integer_ghdl h, integer_ghdl type)
-{
-	unsigned long size;
-	void *buf;
-	short bpp = 16;
-	short pixelsize;
-	int error;
-	int i;
-
-	FBHANDLE handle = new_fb();
-	if (handle < 0) return handle;
-
-	FBuffer *fb = GET_FB(handle);
-
-	DEVICE d = GET_DEV(dev);
-	
-	switch (type) {
-		case VIDEOMODE_8BIT: bpp = 8;
-		case VIDEOMODE_INDEXED: break;
-		case VIDEOMODE_UYVY: break;
-		default:
-			return -1;
-	}
-
-	pixelsize = (bpp + 7) / 8;
-	size = w * h * pixelsize;
-	buf = malloc(size);
-	if (!buf) return -1;
-	memset(buf, 0, size);
-	fb->size = size;
-	fb->data = buf;
-	fb->width = w;
-	fb->height = h;
-	fb->type = type;
-	fb->bpp = bpp;
-	fb->device = d;
-
-	error = dcProperty_ParseName(d, "Stream.Data", &fb->token);
-	if (error < 0) {
-		fprintf(stderr,
-			"Doesn't seem to be a netpp display server we're talking to\n");
-		return error;
-	}
-
-	// Configure display:
-	set_property(d, "Stream.X", &w, DC_INT);
-	set_property(d, "Stream.Y", &h, DC_INT);
-	i = bpp; set_property(d, "Stream.BitsPerPixel", &i, DC_MODE);
-	set_property(d, "Mode", &type, DC_MODE);
-	i = 1; set_property(d, "Stream.Start", &i, DC_COMMAND);
-
-	signal(SIGINT, break_handler);
-
-	return 0;
-}
-
-void sim_setpixel(FBHANDLE handle, int x, int y, char *slv)
-{
-	int error;
-	unsigned long offset;
-	unsigned short bits, bytes;
-	uint32_t val;
-	FBuffer *fb = GET_FB(handle);
-
-	bits = fb->bpp;
-	bytes = (bits + 7) / 8;
-
-	offset = y * fb->width + x;
-
-	error = logic_to_uint(slv, bits, &val);
-#ifdef DEBUG
-	if (error < 0) {
-		printf("Undefined pixel value at (%d, %d)\n", x, y);
-		val = 0xffffffff;
-	}
-#endif
-
-	switch (bytes) {
-		case 2:
-			( (uint16_t *) fb->data )[offset] = val;
-			break;
-		case 1:
-			( (uint8_t *) fb->data )[offset] = val;
-			break;
-	}
-}
-
-void sim_releasefb(FBHANDLE handle)
-{
-	FBuffer *fb = GET_FB(handle);
-	free(fb->data);
-	del_fb(handle);
-}
-
 int set_buffer(DEVICE d, TOKEN t, void  *buf, int len)
 {
 	int error;
@@ -275,58 +150,110 @@ int set_buffer(DEVICE d, TOKEN t, void  *buf, int len)
 	return error;
 }
 
-void sim_setfb(FBHANDLE handle, struct ghdl_string *pixdata)
-{
-	FBuffer *fb = GET_FB(handle);
-	unsigned long size;
-	short pixelsize;
-	uint32_t val;
-	uint16_t *dst2;
-	uint8_t  *dst1;
-	short bpp;
-
-	size = pixdata->bounds->len;
-
-	if (size > fb->size) {
-		size = fb->size;
-		fprintf(stderr, "Warning: Size truncated\n");
-	}
-
-	char *data = pixdata->base;
-
-	bpp = fb->bpp;
-	pixelsize = (bpp + 7) / 8;
-
-	switch (pixelsize) {
-		case 2:
-			dst2 = (uint16_t *) fb->data;
-			while (size--) {
-				logic_to_uint(data, bpp, &val);
-				data += bpp;
-				*dst2++ = val;
-			}
-			break;
-		case 1:
-			dst1 = (uint8_t *) fb->data;
-			while (size--) {
-				logic_to_uint(data, bpp, &val);
-				data += bpp;
-				*dst1++ = val;
-			}
-			break;
-		default: return;
-	}
-}
-
-void sim_updatefb(FBHANDLE handle)
-{
-	FBuffer *fb = GET_FB(handle);
-	printf("Updating buffer size %ld\n", fb->size);
-	set_buffer(fb->device, fb->token, fb->data, fb->size);
-}
-
 void sim_usleep(integer_ghdl cycles)
 {
 	usleep(cycles);
 }
 
+
+int ghdlname_to_propname(const char *name, char *propname, int len)
+{
+	char c;
+	
+	const char *word = 0, *at = 0;
+
+	enum {
+		S_NEUTRAL,
+		S_DOT,
+		S_WORD,
+	} state = S_NEUTRAL;
+
+	while ((c = *name++)) {
+		switch (state) {
+			case S_NEUTRAL:
+				switch (c) {
+					case ':': state = S_DOT; break;
+				}
+				break;
+			case S_DOT:
+				word = name - 1;
+				state = S_WORD;
+				break;
+			case S_WORD:
+				switch (c) {
+					case '@': at = name - 1; state = S_NEUTRAL; break;
+					case ':': state = S_DOT; break;
+				}
+		}
+	}
+	len--;
+	if (at && word) {
+		while (len-- && word != at) {
+			*propname++ = *word++;
+		}
+		*propname = '\0';
+		return 0;
+	}
+	return -1;
+}
+
+PropertyDesc *property_desc_new(PropertyDesc *template)
+{
+	PropertyDesc *p;
+	p = (PropertyDesc*) malloc(sizeof(PropertyDesc));
+	if (p) {
+		*p = *template;
+	}
+	return p;
+}
+
+TOKEN property_from_ram(TOKEN parent, void *entity, const char *name)
+{
+	TOKEN t;
+	PropertyDesc *p;
+
+	p = property_desc_new(&s_buffer_template);
+	if (!p) return TOKEN_INVALID;
+	p->access.custom.p = entity; // Story entity handle in custom pointer
+
+	t = new_dynprop(name, p);
+	dynprop_append(parent, t);
+	return t;
+}
+
+
+int register_ram(void *entity, char *name)
+{
+	TOKEN t;
+	TOKEN root;
+	root = local_getroot(NULL);
+	t = property_from_ram(root, entity, name);
+	if (t == TOKEN_INVALID) return -1;
+	printf("Registered RAM property with name '%s'\n", name);
+	return 0;
+}
+
+int buffer_handler(void *p, int write, DCValue *val)
+{
+	// printf("%s (%d)\n", __FUNCTION__, write);
+	if (write) {
+		return set_ram((DEVICE) p, val);
+	} else {
+		return get_ram((DEVICE) p, val);
+	}
+}
+
+char g_initialized = 0;
+
+int netpp_root_init(const char *name)
+{
+	TOKEN t;
+	if (g_initialized) return 1;
+
+	dynprop_init(40);
+
+	t = new_dynprop(name, &s_rootprop);
+	if (t == TOKEN_INVALID) return -1;
+	g_initialized = 1;
+	return 0;
+}

@@ -8,7 +8,9 @@
 #	undef ARG
 #	undef ARGO
 #	undef ARGIO
+#	undef ARGIOP
 #	undef DEFTYPE_EXPLICIT
+#	undef DEFTYPE_PROTOSTRUCT
 #	undef DEFTYPE_SLV
 #else
 
@@ -17,19 +19,25 @@
 #define SHIFT_ARGS(x, ...) __VA_ARGS__
 
 #if defined(RUN_TYPES)
+#	warning "Running Type generation mode"
 #	define _T(t) s_vhdl_type_##t
 #	define TYPE_DEF(nm) \
 	static const char _T(nm)[] = #nm;
 #	define DEFTYPE_EXPLICIT(t, def) \
 	static const char _T(t)[] = #t;
+#	define DEFTYPE_PROTOSTRUCT(t, def) \
+	static const char _T(t)[] = #t;
 #	define DEFTYPE_SLV(t, s) \
 	static const char _T(t)[] = #t;
 #	define API_DEF(t, nm, ret, ...)
 #elif defined(RUN_CHEAD)
+#	warning "Running C header mode"
 #	define _T(t) t##_ghdl
 #	define TYPE_DEF(nm)
 #	define DEFTYPE_EXPLICIT(t, def) \
 	typedef def _T(t);
+#	define DEFTYPE_PROTOSTRUCT(t, def) \
+	def; typedef def * _T(t);
 #	define DEFTYPE_SLV(t, s) \
 	typedef char _T(t)[s];
 #	define API_DEF(t, nm, ret, ...) \
@@ -37,14 +45,18 @@
 #	define ARG(n, t) _T(t) n
 #	define ARGO(n, t) ARG(n, t)
 #	define ARGIO(n, t) ARG(n, t)
+#	define ARGIOP(n, t) ARG(*n, t)
 #else
+#	warning "Running VHDL mode"
 #	define _T(t) s_vhdl_type_##t
 #	define TYPE_DEF(nm)
 #	define DEFTYPE_EXPLICIT(t, def)
+#	define DEFTYPE_PROTOSTRUCT(t, def)
 #	define DEFTYPE_SLV(t, s)
 #	define ARG(n, t) #n, _T(t), 0
 #	define ARGO(n, t) #n, _T(t), "out"
 #	define ARGIO(n, t) #n, _T(t), "inout"
+#	define ARGIOP(n, t) #n, _T(t), "inout"
 #	define API_DEF(t, nm, ret, ...) \
 	{ .type = t, .name = #nm, .retitem = ret, \
 	.parameters = { __VA_ARGS__, NULL }},
@@ -61,7 +73,7 @@ DEFTYPE_EXPLICIT(integer, int32_t)
 /** A GHDL interface 'fat pointer' */
 DEFTYPE_EXPLICIT(string, struct fat_pointer *)
 /** Pointer to constrained unsigned array */
-DEFTYPE_EXPLICIT(unsigned, char *)
+DEFTYPE_EXPLICIT(unsigned, struct fat_pointer *)
 /** Void */
 DEFTYPE_EXPLICIT(void, void)
 

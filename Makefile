@@ -1,24 +1,26 @@
 # Makefile for GHDL threading simulator interface
 #
-# (c) 2011 Martin Strubel <hackfin@section5.ch>
+# (c) 2011,2012 Martin Strubel <hackfin@section5.ch>
 #
 # See LICENSE.txt for usage policies
 #
 
-VERSION = 0.03eval
+VERSION = 0.04
 
-CSRCS = pipe.c fifo.c thread.c helpers.c
+CSRCS = pipe.c fifo.c thread.c helpers.c ram.c
 
-DUTIES = simpipe simfifo 
+DUTIES = simpipe simfifo simram netpp.vpi
+
+LIBMYSIM = libmysim.so
 
 # Not really needed for "sane" VHDL code. Use only for deprecated
 # VDHL code. Some Xilinx simulation libraries might need it.
 #
 # GHDLFLAGS = --ieee=synopsys
 
-# Set to NETPP location, if you want to use NETPP
+# Set to NETPP location, if you want to use specific NETPP dir
 NETPP = $(HOME)/src/netpp
-# Run "make netpp_build" to fetch and build the source
+# Run "make allnetpp" to fetch and build the source
 #
 NETPP_VER = netpp_src-0.31-svn315
 NETPP_TAR = $(NETPP_VER).tgz 
@@ -26,20 +28,22 @@ NETPP_WEB = http://section5.ch/src/$(NETPP_TAR)
 NETPP_EXISTS = $(shell [ -e $(NETPP)/xml ] && echo yes )
 CURDIR = $(shell pwd)
 
-CFLAGS = -g -Wall
+CFLAGS = -g -Wall -fPIC
 
-LDFLAGS = -Wl,-L. -Wl,-lmysim -Wl,-lpthread
+LDFLAGS = -Wl,-export-dynamic # Make sure libslave can use local_getroot()
 
 ifeq ($(NETPP_EXISTS),yes)
 	DUTIES += simnetpp simfb
 	NETPP_DEPS = $(NETPP)/include/devlib_error.h registermap.h
 	DEVICEFILE = ghdlsim.xml
-	LIBSLAVE = $(NETPP)/devices/libslave/Debug
-	CSRCS += proplist.c handler.c netpp.c
+	LIBSLAVE = $(NETPP)/devices/libslave
+	CSRCS += proplist.c handler.c netpp.c framebuf.c
 	CFLAGS += -I$(NETPP)/include -I$(NETPP)/devices
 	CFLAGS += -DUSE_NETPP
 	LDFLAGS += -Wl,-L$(LIBSLAVE) -Wl,-lslave
 endif
+
+LDFLAGS += -Wl,-L. -Wl,-lmysim -Wl,-lpthread
 
 OBJS = $(CSRCS:%.c=%.o)
 
@@ -51,6 +55,8 @@ ifdef NETPP
 VHDLFILES += iomap_config.vhdl registermap_pkg.vhdl libnetpp.vhdl
 VHDLFILES += simnetpp.vhdl 
 VHDLFILES += simfb.vhdl
+VHDLFILES += dpram16.vhdl
+VHDLFILES += simram.vhdl
 endif
 VHDLFILES += simpipe.vhdl
 
@@ -69,30 +75,37 @@ func_decl.chdl: h2vhdl
 libmysim.a: $(OBJS)
 	$(AR) ruv $@ $(OBJS)
 
+libmysim.so: $(OBJS)
+	$(CC) -shared -o $@ $(OBJS)
+
 work-obj93.cf: $(VHDLFILES)
 	ghdl -a $(GHDLFLAGS) $(VHDLFILES)
 
-registermap_pkg.vhdl: ghdlsim.xml $(XSLT)/vhdlpkg.xsl
-	$(XP) -o $@ $(XSLT)/vhdlpkg.xsl $<
+registermap_pkg.vhdl: ghdlsim.xml vhdlregs.xsl
+	$(XP) -o $@ --stringparam srcfile $< \
+	vhdlregs.xsl $<
 
 regprops.xml: ghdlsim.xml $(XSLT)/regwrap.xsl
 	$(XP) -o $@ $(XSLT)/regwrap.xsl $<
 
-simpipe: work-obj93.cf libmysim.a
+simpipe: work-obj93.cf $(LIBMYSIM)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
-simfifo: work-obj93.cf libmysim.a
+simfifo: work-obj93.cf $(LIBMYSIM)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
-simnetpp: work-obj93.cf libmysim.a
+simram: work-obj93.cf $(LIBMYSIM)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
-simfb: work-obj93.cf libmysim.a
+simnetpp: work-obj93.cf $(LIBMYSIM)
+	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
+
+simfb: work-obj93.cf $(LIBMYSIM)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
 clean::
 	rm -f work-obj93.cf
-	rm -f *.o *.a
+	rm -f *.o *.a *.so
 	rm -f simfifo
 	$(MAKE) NETPP=$(CURDIR)/netpp clean_duties
 
@@ -121,6 +134,24 @@ $(LIBSLAVE)/libslave.a: netpp
 
 allnetpp: $(LIBSLAVE)/libslave.a
 	$(MAKE) NETPP=$(CURDIR)/netpp
+
+VPIOBJS = vpiwrapper.o vpiproplist.o vpihandler.o vpinetpp.o
+
+vpiwrapper.o: vpiwrapper.c
+	$(CC) -o $@ -c -fPIC $(CFLAGS) $<
+
+vpihandler.o: vpihandler.c
+	$(CC) -o $@ -c -fPIC $(CFLAGS) $<
+
+vpi%.o: %.c
+	$(CC) -o $@ -c -fPIC $(CFLAGS) $<
+
+thread.o: thread.c
+	$(CC) -o $@ -c -fPIC $(CFLAGS) $<
+
+# Only with netpp > v0.4
+netpp.vpi: $(VPIOBJS)
+	$(CC) --shared -o $@ $(VPIOBJS) -lpthread
 
 doc_apidef.h: apidef.h
 	cpp -C -E -DRUN_CHEAD $< >$@

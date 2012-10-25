@@ -23,6 +23,9 @@ use ieee.numeric_std.all; -- Unsigned
 
 package ghpi_fifo is
 
+	--! Set this variable to true to terminate FIFO thread
+	shared variable fifo_terminate : boolean := false;
+
 	subtype fdata is unsigned;
 	subtype fifoflag_t is unsigned(0 to 5);
 	-- FIFO flag indices:
@@ -34,16 +37,16 @@ package ghpi_fifo is
 	constant UNR : natural := 5; --! out: underrun bit. W1C.
 
 	--! Init the external FIFO thread
-	function thread_init(arg: string) return integer;
+	function fifo_thread_init(arg: string; wsize: integer) return integer;
 
 	-- This is just a wrapper for the above function
-	function sim_thread_init(arg: string) return integer;
-	attribute foreign of sim_thread_init :
-		function is "VHPIDIRECT sim_thread_init";
+	function sim_fifo_thread_init(arg: string; wsize: integer) return integer;
+	attribute foreign of sim_fifo_thread_init :
+		function is "VHPIDIRECT sim_fifo_thread_init";
 
 	--! Shutdown external FIFO thread
-	procedure thread_exit;
-	attribute foreign of thread_exit : procedure is "VHPIDIRECT thread_exit";
+	procedure fifo_thread_exit;
+	attribute foreign of fifo_thread_exit : procedure is "VHPIDIRECT fifo_thread_exit";
 
 	--! The FIFO I/O routine.
 	--! \param data   Pointer to data being written, if TX flag set,
@@ -71,22 +74,42 @@ package ghpi_fifo is
 	attribute foreign of fifo_io : procedure is
 		"VHPIDIRECT sim_fifo_io";
 
+	-- A FIFO emulation for the software FIFO
+	component CFIFO
+		generic (
+			WORDSIZE : natural := 1
+		);
+		port (
+			u_ifclk      : in std_logic; -- USB interface clock
+			u_slwr       : in std_logic;
+			u_slrd       : in std_logic;
+			u_sloe       : in std_logic;
+			u_pktend     : out std_logic;
+			u_flag       : out std_logic_vector(2 downto 0);  -- Status flags
+			u_fifoadr    : in std_logic_vector(1 downto 0);
+			u_fd         : inout std_logic_vector(15 downto 0);
+			throttle     : in std_logic
+		);
+	end component;
+
 end package;
 
 --! \}
 
 package body ghpi_fifo is
-	function thread_init(arg: string) return integer is begin
-		return sim_thread_init(arg & NUL);
-	end thread_init;
+	function fifo_thread_init(arg: string; wsize: integer)
+	return integer is begin
+		return sim_fifo_thread_init(arg & NUL, wsize);
+	end fifo_thread_init;
 
-	function sim_thread_init(arg: string) return integer is begin
+	function sim_fifo_thread_init(arg: string; wsize: integer)
+	return integer is begin
 		assert false report "VHPI" severity failure;
-	end sim_thread_init;
+	end sim_fifo_thread_init;
 
-	procedure thread_exit is begin
+	procedure fifo_thread_exit is begin
 		assert false report "VHPI" severity failure;
-	end thread_exit;
+	end fifo_thread_exit;
 
 	procedure fifo_io(
 		data:  inout fdata;

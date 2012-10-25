@@ -56,6 +56,12 @@
 #undef APIDEF_UNINITIALIZE
 #include "apimacros.h"
 
+/** Type definitions for C<->GHDL interface.
+ *
+ * Note: You have to define these types in libnetpp.chdl
+ *
+ */
+
 /** A netpp device handle */
 DEFTYPE_HANDLE32(netpphandle_t)
 /** Netpp device property token */
@@ -66,12 +72,18 @@ DEFTYPE_HANDLE32(framebuffer_t)
 DEFTYPE_FATP(pixarray_t)
 /** Single pixel type */
 DEFTYPE_SLV(pixel_t, 16)
+/** RAM16 data vector */
+DEFTYPE_SLV(ram16_t, 16)
 /* A generic handle (EXPERIMENTAL) */
 DEFTYPE_EXPLICIT(handle_t, uint32_t *)
+
+/* A RAM buffer handle */
+DEFTYPE_PROTOSTRUCT(rambuf_t, struct RamDesc)
 
 /* Pointer to constrained unsigned array */
 DEFTYPE_SLV(regaddr_t, 8)
 DEFTYPE_SLV(byte_t, 8)
+
 
 /** Open netpp device
  * \param id    A netpp device identifier
@@ -141,6 +153,21 @@ API_DEFPROC( regmap_read, _T(void), ARG(addr, regaddr_t), ARGO(data, byte_t))
 API_DEFPROC( regmap_write, _T(void), ARG(addr, regaddr_t), ARG(data, byte_t))
 
 API_DEFPROC( usleep,       _T(void), ARG(cycles, integer))
+
+
+/** RAM stuff */
+
+/** Allocate new RAM buffer */
+API_DEFFUNC( ram_new_wrapped, _T(rambuf_t), ARG(size, integer),
+	ARG(name, string))
+/** Write to RAM buffer */
+API_DEFPROC( ram_write,       _T(void), ARGIOP(ram, rambuf_t),
+	ARGIO(addr, unsigned), ARGO(data, ram16_t))
+/** Read from RAM buffer */
+API_DEFPROC( ram_read,        _T(void), ARGIOP(ram, rambuf_t),
+	ARGIO(addr, unsigned), ARG(data, ram16_t))
+/** Delete and free RAM buffer */
+API_DEFPROC( ram_del,         _T(void), ARGIOP(ram, rambuf_t))
 
 /** \} */
 

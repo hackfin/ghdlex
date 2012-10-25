@@ -24,8 +24,6 @@ int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n);
 
 // Global variables exposed to property access:
 
-extern
-Fifo g_fifos[2];
 
 int g_timeout = 500000; // FIFO default timeout
 
@@ -50,98 +48,12 @@ int get_uint32(DEVICE d, DCValue *out)
 
 int get_fifo(DEVICE d, DCValue *out)
 {
-	int warn = 0;
-	int n;
-	Fifo *f = &g_fifos[FROM_SIM];
-
-	static unsigned char buf[BUFSIZE];
-
-	switch (out->type) {
-		case DC_COMMAND:  // This is a buffer update action
-			// netpp_log(DCLOG_VERBOSE, "Release buffer");
-			break;
-		case DC_UNDEFINED:
-		case DC_BUFFER:
-			// You must do a buffer size check here:
-			// netpp_log(DCLOG_VERBOSE, "Get buffer, len %d", out->len);
-			if (out->len > BUFSIZE) {
-				out->len = BUFSIZE;
-				warn = DCWARN_PROPERTY_MODIFIED;
-			}
-
-			if (out->len == 0) { // Python handler
-				n = fifo_fill(f);
-				out->len = n;
-				// We must return this to Python for proper buffer
-				// reservation
-				return DCERR_PROPERTY_SIZE_MATCH;
-			} else {
-#ifdef DEBUG
-				printf("----------------------------------------\n");
-				printf("H <- S fill: %d\n", fifo_fill(f));
-				printf("Request %ld bytes\n", out->len);
-#endif
-				n = fifo_blocking_read(f, buf, out->len);
-				if (n < 0) return DCERR_COMM_TIMEOUT;
-				// Set data gathering pointer:
-			}
-			out->value.p = buf; // ONLY BECAUSE IT'S STATIC!!
-			break;
-		default:
-			return DCERR_PROPERTY_TYPE_MATCH;
-	}
-	return warn;
+	return -1;
 }
 
 int set_fifo(DEVICE d, DCValue *in)
 {
-	int error;
-	int warn = 0;
-
-	Fifo *f = &g_fifos[TO_SIM];
-
-	static unsigned char buf[BUFSIZE];
-
-	switch (in->type) {
-		case DC_COMMAND:  // This is a buffer update action
-			// Fill in update code
-			// netpp_log(DCLOG_VERBOSE, "Update buffer len %d", in->len);
-			error = fifo_blocking_write(f, buf, in->len);
-			if (error < 0) return error;
-			break;
-		case DC_UNDEFINED:
-		case DC_BUFFER:
-			// You must do a buffer size check here:
-			// netpp_log(DCLOG_VERBOSE, "Set buffer len %d", in->len);
-			if (in->len > BUFSIZE) {
-				in->len = BUFSIZE;
-				return DCERR_PROPERTY_SIZE_MATCH;
-			}
-
-			// Tell engine where the data will go to:
-			in->value.p = buf; // ONLY BECAUSE IT'S STATIC!
-			break;
-		default:
-			return DCERR_PROPERTY_TYPE_MATCH;
-	}
-
-	return warn;
-}
-
-int get_fifo_infill(DEVICE d, DCValue *out)
-{
-	Fifo *f = &g_fifos[FROM_SIM];
-	
-	out->value.i = fifo_fill(f);
-	return 0;
-}
-
-int get_fifo_outfill(DEVICE d, DCValue *out)
-{
-	Fifo *f = &g_fifos[TO_SIM];
-	
-	out->value.i = fifo_fill(f);
-	return 0;
+	return -1;
 }
 
 /** Dummy register space. Just a RAM.
@@ -210,3 +122,11 @@ void sim_regmap_write(regaddr_t_ghdl address, byte_t_ghdl data)
 	
 	_registermap[addr] = val;
 }
+
+TOKEN local_getroot(DEVICE d)
+{
+	int index = 0;
+	return DYNAMIC_PROPERTY | DEVICE_TOKEN(index);
+}
+
+

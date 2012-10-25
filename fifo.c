@@ -1,6 +1,7 @@
 /** \file fifo.c
  *
  * Stupid software FIFO for test purposes.
+ * Update: not so stupid anymore.
  *
  * (c) 2009 Martin Strubel <hackfin@section5.ch>
  *
@@ -8,6 +9,8 @@
  *  09/2011 Martin Strubel <hackfin@section5.ch>
  *     Implemented a first-fall-through FIFO for the GHDL simulator
  *     interface.
+ *  10/2012 Martin Strubel <hackfin@section5.ch>
+ *     Added 16 bit option (wordsize parameter)
  *
  * The first version of this FIFO exhibited a pitfall: When burst
  * reading, the FIFO empty condition can not be handled in time.
@@ -28,13 +31,27 @@
 
 extern Fifo g_fifos[2];
 
-int fifo_init(Fifo *f, unsigned short size)
+int fifo_init(Fifo *f, unsigned short size, unsigned short wordsize)
 {
 	int error;
 	f->size = size;
+	switch (wordsize) {
+		case 1:
+			f->tologic = bytes_to_logic;
+			f->fromlogic = logic_to_bytes;
+			break;
+		case 2:
+			f->tologic = words_to_logic;
+			f->fromlogic = logic_to_words;
+			break;
+		default:
+			fprintf(stderr, "Unsupported word size\n");
+			return -1;
+	}
+	printf("Initialize FIFO with word width of %d bits\n", wordsize * 8);
 	error = pthread_mutex_init(&f->mutex, NULL);
 	if (error < 0) return error;
-	f->buf = (unsigned char*) malloc(size);
+	f->buf = (unsigned char*) malloc(size * wordsize);
 	if (!f->buf) return -1;
 	f->head = 0;
 	f->tail = 0;
@@ -203,9 +220,11 @@ int fifo_write(Fifo *f, const unsigned char *byte, unsigned short n)
  *
  */
 
+
 void sim_fifo_io(struct fat_pointer *data, char *flag)
 {
 // 	printf("in: %p, out: %p, flag: %x\n", in, out, flag);
+	static
 	unsigned char valuebytes[32];
 	unsigned char rx, tx;
 	short n;
@@ -229,7 +248,7 @@ void sim_fifo_io(struct fat_pointer *data, char *flag)
 	
 	// Do we write?
 	if (tx) {
-		logic_to_bytes(data->base, nbytes, valuebytes);
+		g_fifos[FROM_SIM].fromlogic(data->base, nbytes, valuebytes);
 		fifo_write(&g_fifos[FROM_SIM], valuebytes, nbytes);
 		// printf("S -> H fill: %d\n", g_fifos[FROM_SIM].fill);
 	}
@@ -247,7 +266,7 @@ void sim_fifo_io(struct fat_pointer *data, char *flag)
 
 	if (flag[RXE] == HIGH) { // We do at least have 'nbytes' bytes in the FIFO
 		n = fifo_get(&g_fifos[TO_SIM], valuebytes, nbytes);
-		bytes_to_logic(data->base, nbytes, valuebytes);
+		g_fifos[TO_SIM].tologic(data->base, nbytes, valuebytes);
 		// printf("n: %d: %02x %02x\n", n, valuebytes[0], valuebytes[1]);
 	} else {
 		fill_slv(data->base, nbits, UNDEFINED);

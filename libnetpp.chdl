@@ -3,7 +3,7 @@
 -- Modifications will be lost, please edit __FILE__
 -- // This is a CPP template to create a VHDL file using the C preprocessor.
 -- // C style comments are stripped from the resulting file.
--- (c) 2011 Martin Strubel <hackfin@section5.ch>
+-- (c) 2011, 2012 Martin Strubel <hackfin@section5.ch>
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -12,6 +12,7 @@ use ieee.numeric_std.all; -- Unsigned
 package ghpi_netpp is
 	constant RAMBUF_SIZE       : natural := (1024 * 512);
 
+	subtype ram16_t       is unsigned(15 downto 0);
 	subtype byte_t        is unsigned(7 downto 0);
 	subtype regaddr_t     is unsigned(7 downto 0);
 	subtype token_t       is integer;
@@ -19,6 +20,7 @@ package ghpi_netpp is
 	// know what's the best method to pass anonymous handles (pointers)
 	subtype netpphandle_t is integer;
 	subtype framebuffer_t is integer;
+	type rambuf_t      is access integer;
 	subtype pixel_t is unsigned(15 downto 0);
 	-- type pixarray_t is array(0 to RAMBUF_SIZE-1) of pixel_t;
 	type pixarray_t is array(natural range <>) of pixel_t;
@@ -35,6 +37,7 @@ package ghpi_netpp is
 		return netpphandle_t;
 	function device_gettoken(h: netpphandle_t; id: string)
 		return token_t;
+	function ram_new(size : integer; name : string) return rambuf_t;
 	
 #include "func_decl.chdl"
 
@@ -59,6 +62,11 @@ package body ghpi_netpp is
     begin
 		return device_gettoken_wrapped(h, id & NUL);
 	end device_gettoken;
+
+	function ram_new(size : integer; name : string) return rambuf_t is
+	begin
+		return ram_new_wrapped(size, name & NUL);
+	end function;
 
 #include "func_body.chdl"
 

@@ -7,6 +7,7 @@
  */
 
 #include <stdio.h>
+#include <arpa/inet.h>
 #include "ghpi.h"
 
 /** Dump buffer */
@@ -28,13 +29,13 @@ void hexdump(char *buf, unsigned long n)
 		printf("\r\n");
 }
 
-void dump_bits(unsigned char c)
+char slv_desc(unsigned char c)
 {
 	char *s = "UX01Z???";
 
 	c &= 7;
 
-	putchar(s[c]);
+	return s[c];
 }
 
 int logic_to_uint(const char *l, int nbits, uint32_t *val)
@@ -45,7 +46,11 @@ int logic_to_uint(const char *l, int nbits, uint32_t *val)
 		switch (*l) {
 			case HIGH: v |= 1; break;
 			case LOW: break;
-			default: return -1;
+			default:
+				fprintf(stderr, "Warning: Undefined value('%c') in %s\n",
+					slv_desc(*l), __FUNCTION__);
+				*val = 0xffffffff;
+				return -1;
 		}
 		l++;
 	}
@@ -68,9 +73,10 @@ void uint_to_logic(char *l, int nbits, uint32_t val)
 	}
 }
 
-void logic_to_bytes(char *l, int n, unsigned char *b)
+void logic_to_bytes(char *l, int n, void *data)
 {
 	uint32_t v;
+	uint8_t *b = (uint8_t *) data;
 
 	while (n--) {
 		logic_to_uint(l, 8, &v);
@@ -78,11 +84,33 @@ void logic_to_bytes(char *l, int n, unsigned char *b)
 	}
 }
 
-void bytes_to_logic(char *l, int n, const unsigned char *b)
+void logic_to_words(char *l, int n, void *data)
 {
+	uint16_t *w = (uint16_t *) data;
+	uint32_t v;
+
+	while (n--) {
+		logic_to_uint(l, 16, &v);
+		*w++ = htons(v); l += 16;
+	}
+}
+
+void bytes_to_logic(char *l, int n, const void *data)
+{
+	uint8_t *b = (uint8_t *) data;
 	while (n--) {
 		uint_to_logic(l, 8, *b++);
 		l += 8;
+	}
+}
+
+void words_to_logic(char *l, int n, const void *data)
+{
+	const uint16_t *w = (const uint16_t *) data;
+
+	while (n--) {
+		uint_to_logic(l, 16, ntohs(*w++));
+		l += 16;
 	}
 }
 
@@ -105,3 +133,4 @@ handle_t_ghdl sim_get_ptr(netpphandle_t_ghdl i)
 	printf("Got int: %x\n", i);
 	return (void *) 0xdeadbeef;
 }
+

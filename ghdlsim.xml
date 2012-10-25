@@ -114,6 +114,10 @@ Including a header is necessary when implementing access to global variables.-->
           <info>If set, slow down simulation</info>
         </bitfield>
 
+        <bitfield lsb="6" msb="6" name="IRQ">
+          <info>Virtual IRQ pin, H active</info>
+        </bitfield>
+
         <bitfield lsb="7" msb="7" name="RESET">
           <info>RESET FPGA engine</info>
         </bitfield>
@@ -122,27 +126,53 @@ Including a header is necessary when implementing access to global variables.-->
 
     <group name="SimulationInterface">
       <property access="RW" name="Enable" type="BOOL">
+        <info>Enable bit. Might be not used.</info>
+
         <regref bits="ENABLE" ref="Control" />
       </property>
 
       <property access="RW" name="Reset" type="BOOL">
+        <info>External reset pin. High active.</info>
+
         <regref bits="RESET" ref="Control" />
       </property>
 
       <property access="RW" name="Timeout" type="INT">
+        <info>Timeout value of FIFO in real microseconds</info>
+
         <variable>g_timeout</variable>
       </property>
 
       <property access="RW" name="Throttle" type="BOOL">
+        <info>Throttle bit. If set, simulation will sleep (therefore run slower) while there is no FIFO activity</info>
+
         <regref bits="THROTTLE" ref="Control" />
       </property>
 
-      <property access="RW" name="Fifo" type="BUFFER">
-        <!--A buffer object that is handled via a handler function. See handler.c
+      <property access="RW" name="Irq" type="BOOL">
+        <info>Simulates an IRQ pin. High active. Might not be implemented in all cores.</info>
+
+        <regref bits="IRQ" ref="Control" />
+      </property>
+
+      <struct name="Fifo">
+        <property access="RW" name="Buffer" type="BUFFER">
+          <!--A buffer object that is handled via a handler function. See handler.c
 (Function get_fifo()/set_fifo() for details.)-->
 
-        <handler>fifo</handler>
-      </property>
+          <info>A FIFO buffer for communication between VHDL simulation and external software.</info>
+
+          <handler>fifo</handler>
+        </property>
+
+        <property access="RO" name="InFill" type="INT">
+          <handler>fifo_infill</handler>
+        </property>
+
+        <property access="RO" name="OutFill" type="INT">
+          <handler>fifo_outfill</handler>
+        </property>
+      </struct>
     </group>
   </device>
 </devdesc>

@@ -43,17 +43,23 @@ struct fifo_t {
 	unsigned short head;
 	unsigned short tail;
 	unsigned short fill;
-	unsigned char  ovr;   // Overrun (wrote when full)
-	unsigned char  unr;   // Underrun (read when empty)
+	unsigned char  ovr;    // Overrun (wrote when full)
+	unsigned char  unr;    // Underrun (read when empty)
 	pthread_mutex_t mutex; // FIFO locking for concurrent threads
+	void (*tologic)(char *l, int n, const void *b);
+	void (*fromlogic)(char *l, int n, void *b);
 };
 
 /** Fifo structure, anonymous */
 typedef struct fifo_t Fifo;
 
-/** Initialize a FIFO with given size */
+/** Initialize a FIFO
+ * \param size      Size of the FIFO in data elements (not necessarily bytes)
+ * \param wordsize  1: Bytes, 2: 16 bit words
+ * 
+ * */
 
-int fifo_init(Fifo *f, unsigned short size);
+int fifo_init(Fifo *f, unsigned short size, unsigned short wordsize);
 
 /** Release FIFO resources */
 

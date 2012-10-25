@@ -23,7 +23,7 @@
 #define DCERR_COMM_TIMEOUT -1
 #endif
 
-#define FIFO_SIZE   512
+#define FIFO_SIZE   1024
 
 int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n)
 {
@@ -146,13 +146,13 @@ void *fifo_thread(void *arg)
 pthread_t g_thread;
 Fifo g_fifos[2];
 
-int sim_thread_init(struct ghdl_string *str)
+int sim_fifo_thread_init(struct ghdl_string *str, int wordsize)
 {
 	int error;
 
-	error = fifo_init(&g_fifos[TO_SIM], FIFO_SIZE);
+	error = fifo_init(&g_fifos[TO_SIM], FIFO_SIZE, wordsize);
 	if (error < 0) return error;
-	error = fifo_init(&g_fifos[FROM_SIM], FIFO_SIZE);
+	error = fifo_init(&g_fifos[FROM_SIM], FIFO_SIZE, wordsize);
 	if (error < 0) return error;
 
 #ifdef USE_NETPP
@@ -165,7 +165,7 @@ int sim_thread_init(struct ghdl_string *str)
 }
 
 
-void thread_exit()
+void fifo_thread_exit()
 {
 	int error;
 	error = pthread_cancel(g_thread);
