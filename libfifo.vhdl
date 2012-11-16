@@ -7,17 +7,14 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
 --! \defgroup GHDL_Fifo  VHDL FIFO interface
---! This module implements the interface to the C software FIFO in
---! FIRST-FALL-THROUGH mode. That is, when the TXE/TX flag is asserted
---! high, valid data can be read from the 'data' channel. To advance the
---! internal read pointer, the RX flag must be asserted before
---! calling fifo_io().
+--! Simple virtual FIFO module
+--! Implements a first-fall-through FIFO accessible through network
+--! via the netpp library.
+--! Either the VirtualFIFO component can be integrated into the design,
+--! or the FIFO functions can be called on a lower level.
+--! The data in/out word size is configureable using the WORD_SIZE generic.
+--! (Supported values: 1, 2)
 --!
---! The functionality from the API side is elegant, but not trivial.
---! Have a look at the provided simfifo.vhdl example.
---!
---! \example simfifo.vhdl
-
 --! \addtogroup GHDL_Fifo
 --! \{
 
@@ -37,6 +34,8 @@ package ghpi_fifo is
 	constant UNR : natural := 5; --! out: underrun bit. W1C.
 
 	--! Init the external FIFO thread
+	--! \param arg    Currently an empty string, unused.
+	--! \param wsize  1: Word size 8 bits, 2: 16 bits
 	function fifo_thread_init(arg: string; wsize: integer) return integer;
 
 	-- This is just a wrapper for the above function
@@ -57,6 +56,8 @@ package ghpi_fifo is
 	--!               flags(OVR) and flags(UNR) bits. Clearing this error
 	--!               condition is achieved by setting these error flags to
 	--!               '1'.
+	--!               The word size of the data bit vector is defined by
+	--!               the wsize argument to fifo_thread_init()
 	--! \param flags  The FIFO control (in) and status (out) flags.
 	--!               When calling this function the first time, you should
 	--!               check the status by setting all flags to '0'.
@@ -91,6 +92,22 @@ package ghpi_fifo is
 			throttle     : in std_logic
 		);
 	end component;
+
+	component VirtualFIFO is
+		generic (
+			WORDSIZE : natural := 1
+		);
+		port (
+			signal clk         : in  std_logic;
+			signal wr_ready    : out std_logic;
+			signal rd_ready    : out std_logic;
+			signal wr_enable   : in  std_logic;
+			signal rd_enable   : in  std_logic;
+			signal data_out    : in  std_logic_vector(8*WORDSIZE-1 downto 0);
+			signal data_in     : out std_logic_vector(8*WORDSIZE-1 downto 0)
+		);
+	end component;
+
 
 end package;
 

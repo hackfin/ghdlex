@@ -1,4 +1,13 @@
-/** API generator for VHDL */
+/** API generator for VHDL
+ *
+ * (c) 2011, 2012, Martin Strubel <hackfin@section5.ch>
+ *
+ * This is a somewhat nasty hack to generate API functions for GHDL
+ * in a semi automated way.
+ *
+ * The API definitions are found in apidef.h
+ *
+ */
 
 #include "ghpi.h"
 #include <stdio.h>
@@ -7,16 +16,6 @@
 // The C function prefix
 #define PREFIX "sim_"
 
-#if 0
-#define none "none"
-#define token_t "token_t"
-#define integer "integer"
-#define pixel_t "pixel_t"
-#define pixarray_t "pixarray_t"
-#define framebuffer_t "integer"
-#define netpphandle_t "integer"
-#define string "string"
-#endif
 enum {
 	TYPE_FUNC,
 	TYPE_PROC,

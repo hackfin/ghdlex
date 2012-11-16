@@ -22,21 +22,35 @@ use ghdlex.ghdlsim.all;    -- Register definitions
 library work;
 use work.fifoemu.all;
 
+--! \addtogroup GHDL_Fifo
+--! \{
+
+--! A virtual FIFO component. Just include into your design, upon start
+--! it will create the necessary FIFO thread and terminate when the
+--! fifo_terminate global variable is set to true.
+--! This FIFO component works full duplex, unlike the FX2 emulation.
 entity VirtualFIFO is
 	generic (
-		WORDSIZE : natural := 1
+		WORDSIZE : natural := 1 --! Word size in bytes (supported is 1, 2)
 	);
 	port (
-		signal clk         : in  std_logic;
+		signal clk         : in  std_logic; --! The input master clock
+		--! Signals by '1' when data is ready to be written
 		signal wr_ready    : out std_logic;
+		--! Signals by '1' when data is ready to be read
 		signal rd_ready    : out std_logic;
+		--! When '1', clock one data word into FIFO via data_in
 		signal wr_enable   : in  std_logic;
+		--! When '1', assert next data word from FIFO to data_out
 		signal rd_enable   : in  std_logic;
+		--! Data input
 		signal data_in     : out std_logic_vector(8*WORDSIZE-1 downto 0);
+		--! Data output
 		signal data_out    : in  std_logic_vector(8*WORDSIZE-1 downto 0)
-
 	);
 end entity;
+
+--! \}
 
 architecture behaviour of VirtualFIFO is
 	constant TX_PROG : natural := 0;

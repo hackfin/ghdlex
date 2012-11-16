@@ -24,6 +24,8 @@ DEVICE s_devices[MAX_NUM_DEVICES] = {
 	0, 0, 0, 0, 0, 0, 0, 0
 };
 
+static int g_is_dynamic = 0;
+
 ////////////////////////////////////////////////////////////////////////////
 // PROTOS
 
@@ -52,10 +54,10 @@ DEVICE get_device(DEVHANDLE dev)
 	return s_devices[dev];
 }
 
-__attribute__((weak))
 TOKEN local_getroot(DEVICE d)
 {
 	int index = 0;
+	if (g_is_dynamic) return DYNAMIC_PROPERTY | DEVICE_TOKEN(index);
 	return DEVICE_TOKEN(index);
 }
 
@@ -248,7 +250,12 @@ char g_initialized = 0;
 int netpp_root_init(const char *name)
 {
 	TOKEN t;
-	if (g_initialized) return 1;
+	if (g_initialized) {
+		printf("netpp already initialized, ignoring root %s\n", name);
+		return 1;
+	}
+
+	g_is_dynamic = 1;
 
 	dynprop_init(40);
 

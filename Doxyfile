@@ -394,6 +394,8 @@ WARN_LOGFILE           = output.log
 INPUT                  = doc_apidef.h apimacros.h \
 						 libfifo.vhdl \
 						 libpipe.vhdl \
+						 virtualfifo.vhdl \
+						 vpiwrapper.h \
 						 fifo.h ghpi.h
 
 # If the value of the INPUT tag contains directories, you can use the 

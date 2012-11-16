@@ -11,7 +11,10 @@ CSRCS = pipe.c fifo.c thread.c helpers.c ram.c
 
 DUTIES = simpipe simfifo simram netpp.vpi
 
-LIBMYSIM = libmysim.so
+PLATFORM = $(shell uname)
+
+LIBGHDLEX = libmysim.so
+# LIBGHDLEX = libmysim.a
 
 # Not really needed for "sane" VHDL code. Use only for deprecated
 # VDHL code. Some Xilinx simulation libraries might need it.
@@ -30,7 +33,9 @@ CURDIR = $(shell pwd)
 
 CFLAGS = -g -Wall -fPIC
 
+ifeq ($(PLATFORM),Linux)
 LDFLAGS = -Wl,-export-dynamic # Make sure libslave can use local_getroot()
+endif
 
 ifeq ($(NETPP_EXISTS),yes)
 	DUTIES += simnetpp simfb
@@ -40,10 +45,14 @@ ifeq ($(NETPP_EXISTS),yes)
 	CSRCS += proplist.c handler.c netpp.c framebuf.c
 	CFLAGS += -I$(NETPP)/include -I$(NETPP)/devices
 	CFLAGS += -DUSE_NETPP
+ifeq ($(PLATFORM),Linux)
 	LDFLAGS += -Wl,-L$(LIBSLAVE) -Wl,-lslave
 endif
+endif
 
+ifeq ($(PLATFORM),Linux)
 LDFLAGS += -Wl,-L. -Wl,-lmysim -Wl,-lpthread
+endif
 
 OBJS = $(CSRCS:%.c=%.o)
 
@@ -88,19 +97,19 @@ registermap_pkg.vhdl: ghdlsim.xml vhdlregs.xsl
 regprops.xml: ghdlsim.xml $(XSLT)/regwrap.xsl
 	$(XP) -o $@ $(XSLT)/regwrap.xsl $<
 
-simpipe: work-obj93.cf $(LIBMYSIM)
+simpipe: work-obj93.cf $(LIBGHDLEX)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
-simfifo: work-obj93.cf $(LIBMYSIM)
+simfifo: work-obj93.cf $(LIBGHDLEX)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
-simram: work-obj93.cf $(LIBMYSIM)
+simram: work-obj93.cf $(LIBGHDLEX)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
-simnetpp: work-obj93.cf $(LIBMYSIM)
+simnetpp: work-obj93.cf $(LIBGHDLEX)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
-simfb: work-obj93.cf $(LIBMYSIM)
+simfb: work-obj93.cf $(LIBGHDLEX)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
 clean::

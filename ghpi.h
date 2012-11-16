@@ -91,9 +91,9 @@ void hexdump(char *buf, unsigned long n);
 
 /*!
  * \mainpage GHDLex documentation
- * \version 0.03develop
+ * \version 0.04develop
  * \author Martin Strubel
- * \date 10/2011
+ * \date 10/2012
  *
  * \section Intro     Introduction
  *
@@ -118,6 +118,8 @@ void hexdump(char *buf, unsigned long n);
  * to swap software components or VHDL entities.
  *
  * \section GHDLIntf   GHDL interfacing
+ *
+ * \subsection GHPI The VHPI interface (GHPI)
  *
  * As mentioned, there is no official 'API' for GHDL. There are implementations
  * that seem to conform to the public VHPI specifications, this library
@@ -153,7 +155,7 @@ void hexdump(char *buf, unsigned long n);
  * - \subpage Auxiliary
  * - \subpage FIFO
  *
- * \section Extending Autowrapping
+ * \subsection Extending Autowrapping
  *
  * Because a lot of manual coding needs to be done in order to wrap
  * a C routine by a VHDL call, some highly experimental tricks to abuse
@@ -170,6 +172,19 @@ void hexdump(char *buf, unsigned long n);
  * Files for hackers - please only extend, don't change:
  *
  * - apimacros.h: The dirty stuff under the hood
+ *
+ * \subsection VPI The VPI interface
+ *
+ * The VPI interface originates from the Verilog world and allows simple
+ * signal manipulation from external processes as well.
+ * GHDL implements only a small subset of VPI, however this is sufficient
+ * for interactive manipulation of signals. The difference from GHDLs
+ * VHPI implementation is, that there is support for loading of VPI
+ * extensions (which are simply shared libraries with a specific API).
+ * The ghdlex VPI wrapper for netpp exports top level signals to netpp
+ * properties which can be manipulated remotely through a C interface
+ * or Python scripts.
+ * See \ref VPIwrapper for details.
  *
  * \section Functionality
  *
@@ -195,5 +210,59 @@ void hexdump(char *buf, unsigned long n);
  *
  * These examples can easily be modified to write directly to local devices
  * instead of going through remote handlers.
+ *
+ * \section VPIwrapper Automated netpp interfacing through VPI
+ *
+ * The VPIwrapper for netpp can be added to any existing test bench and
+ * does the following:
+ * - Look for signals in the top level module
+ * - Create and export dynamic properties within netpp according to these
+ *   signals
+ * - Make the signals directly accessible trough netpp
+ *
+ * As an example, a testbench is loaded with the netpp.vpi module:
+ *
+ * \code ./simram --vpi=netpp.vpi \endcode
+ *
+ * and responds with:
+ * \code
+loading VPI module 'netpp.vpi'
+VPI module loaded!
+Reserved RAM 'ram0' with size 0x1000(4096)
+Registered RAM property with name 'ram0'
+ProbeServer listening on UDP Port 7208...
+Reserved RAM 'ram1' with size 0x1000(4096)
+Listening on UDP Port 2008...
+Registered RAM property with name 'ram1'
+Listening on TCP Port 2008...
+\endcode
+ * 
+ * From the client side, the top level properties of this module can be
+ * accessed as follows:
+ * \code netpp localhost \endcode
+ * \code
+Child: [80000001] 'clk'
+Child: [80000002] 'we'
+...
+Child: [00000002] 'Enable'
+Child: [00000005] 'Irq'
+Child: [00000007] 'Reset'
+Child: [00000008] 'Throttle'
+Child: [00000009] 'Timeout'
+Child: [00000003] 'Fifo'
+\endcode
+ *
+ * The properties shown with capitals are static and inherited from a
+ * default GHDL wrapper device. This does not necessarily have to be the
+ * case. It is up to the netpp device implementation, what properties
+ * it exhibits or what device description it inherits from.
+ *
+ * Manipulating a pin means, setting a netpp property:
+ * \code netpp localhost we 1 # Set 'we' to HIGH \endcode
+ *
+ * Note that this manipulation can interfere with internal stimuli.
+ * If you change signals like the 'clk' signal which is typically
+ * generated inside the VHDL test bench, randomly inexplicable behaviour
+ * can occur.
  *
  */

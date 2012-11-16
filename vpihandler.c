@@ -46,6 +46,8 @@ int get_uint32(DEVICE d, DCValue *out)
 }
 */
 
+
+
 int get_fifo(DEVICE d, DCValue *out)
 {
 	return -1;
@@ -121,12 +123,6 @@ void sim_regmap_write(regaddr_t_ghdl address, byte_t_ghdl data)
 	logic_to_uint(data, sizeof(data), &val);
 	
 	_registermap[addr] = val;
-}
-
-TOKEN local_getroot(DEVICE d)
-{
-	int index = 0;
-	return DYNAMIC_PROPERTY | DEVICE_TOKEN(index);
 }
 
 

@@ -8,7 +8,7 @@
  * #define RUN_CHEAD : Define C header table
  * None              : Define VHDL wrapper table
 
- * (c) 10/2011 Martin Strubel <hackfin@section5.ch>
+ * (c) 2011, 2012  Martin Strubel <hackfin@section5.ch>
 
  * Call API macro auxiliaries:
  */
