@@ -6,7 +6,7 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
---! \defgroup GHDL_Pipe  VHDL Unix Pipe interface
+--! \brief VHDL Unix Pipe interface
 --! This module implements a simple Unix pipe interface by using simple
 --! file I/O to externally created names pipes.
 --!
@@ -16,12 +16,12 @@ use ieee.numeric_std.all; -- Unsigned
 --! From the GHDL side, the pipe is read like a non-FIRST-FALL-THROUGH
 --! FIFO. That means, you will have to assert the RX flag prior to calling
 --! pipe_in() to obtain a first valid byte.
-
+--!
 --! \example simpipe.vhdl
-
---! \addtogroup GHDL_Pipe
+--!
+--! \defgroup GHPI_Pipe  Unix Pipe interface
+--! \addtogroup GHPI_Pipe
 --! \{
-
 package ghpi_pipe is
 	subtype pipeflag_t is unsigned(0 to 3); --! Pipe flags array type
 	constant RX  : natural := 0; --! in: Read advance, out: FIFO not empty
@@ -75,7 +75,6 @@ package ghpi_pipe is
 		procedure is "VHPIDIRECT sim_closepipe";
 
 end package;
-
 --! \}
 
 package body ghpi_pipe is

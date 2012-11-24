@@ -117,6 +117,76 @@ void hexdump(char *buf, unsigned long n);
  * Also, it offers a certain level of abstraction which makes it easy
  * to swap software components or VHDL entities.
  *
+ * \section Start      Getting started
+ * 
+ * Currently, ghdlex operates in the following variants:
+ *   -# Quick and dirty enhancement of existing test benches using the
+ *     \c --vpi option
+ *   -# Simple usage of "virtual entity" implementations that automatically
+ *     initialize the netpp interface
+ *   -# Explicit linkage and calling of "ghpi wrappers" (\ref GHDLIntf)
+ *
+ * The first method is the simplest, you just add netpp property
+ * functionality to an existing test bench. The \c netpp.vpi shared library
+ * module scans the top level signals of the test bench and exports them
+ * as dynamic properties.
+ *
+ * The second method is almost as simple. Typically, you add a virtualized
+ * entity to your design or you just flip a configuration statement to
+ * use the simulation architecture of an entity. For example, you instance
+ * the VirtualFifo entity in your design and a separate netpp thread is
+ * automatically started when you run the simulation.
+ *
+ * The third method is the direct access to netpp. This can be tricky, as
+ * netpp can have the role of a master, of a slave, or both.
+ * For example, the simulation would be a master in case it drives a virtual
+ * frame buffer and requires no more interaction. Typically it acts as a
+ * slave when it uses the VirtualFIFO only. 
+ * You'll have to somewhat dig into the netpp internals. Quite a few netpp data
+ * structures can be accessed from VHDL. This method requires you to become
+ * familiar with the \subpage GHPIfuncs module.
+ *
+ * \subsection VirtualEntities Virtual Entities
+ *
+ * There are only a few default virtual entities that come with ghdlex:
+ *
+ *  - VirtualFIFO: A FIFO buffer
+ *  - DualPort16: Dual port RAM simulation
+ *
+ * They all depend on netpp, however, the VirtualFIFO runs its own netpp
+ * server thread, whereas the other modules require to add the netpp.vpi
+ * module to the simulation using the option:
+ * \code --vpi=netpp.vpi  \endcode
+ *
+ * The VirtualFIFO is normally the first thing to implement for testing
+ * a hardware and software design in cooperation. From the host side, it
+ * works like a typical FIFO adapter that is accessed through USB or
+ * a serial interface.
+ *
+ * For example to access the virtual FIFO on the simulation, start
+ * 'simfifo':
+ *
+ * \code
+Initialize FIFO with word width of 8 bits
+Initialize FIFO with word width of 8 bits
+ProbeServer listening on UDP Port 7208...
+Listening on UDP Port 2008...
+Listening on TCP Port 2008...
+\endcode
+ * Then run the python script py/fifo.py from another console:
+ *
+ * \code
+python py/fifo.py
+\endcode
+ *
+ * You will now see a simple loop back of the bytes sent from the
+ * Python script.
+ *
+ * From the slave side, there are a few example implementations for:
+ *  - A virtual frame buffer that can be filled by your VGA timing generator
+ *  - An interface to measurement devices to read a waveform from a
+ *    scope using the TMC protocol
+ * 
  * \section GHDLIntf   GHDL interfacing
  *
  * \subsection GHPI The VHPI interface (GHPI)
@@ -155,7 +225,7 @@ void hexdump(char *buf, unsigned long n);
  * - \subpage Auxiliary
  * - \subpage FIFO
  *
- * \subsection Extending Autowrapping
+ * \subsection Extending Extending Autowrapping
  *
  * Because a lot of manual coding needs to be done in order to wrap
  * a C routine by a VHDL call, some highly experimental tricks to abuse
@@ -185,6 +255,14 @@ void hexdump(char *buf, unsigned long n);
  * properties which can be manipulated remotely through a C interface
  * or Python scripts.
  * See \ref VPIwrapper for details.
+ *
+ * Note that this way of pin manipulation is <b>not real time</b> in
+ * terms of simulation. The "now" on the software side is not defined
+ * on the simulation side. Therefore you could miss a signal, when it
+ * is pulsed from the software side too fast. However, this can be a good
+ * test for your design, although we would recommend to use the VPI
+ * interface only for rather static signals. If you try to mimick a
+ * clock signal, it will likely go wrong.
  *
  * \section Functionality
  *
@@ -264,5 +342,11 @@ Child: [00000003] 'Fifo'
  * If you change signals like the 'clk' signal which is typically
  * generated inside the VHDL test bench, randomly inexplicable behaviour
  * can occur.
+ *
+ * \bug ghdlex is not endian safe! For all buffer properties, it is assumed
+ *      that the host the simulation is running on has the same endianness
+ *      as the client (tested is little endian only). Endian safety is only
+ *      given with netpp integers and of course byte wide buffers.
+ *
  *
  */

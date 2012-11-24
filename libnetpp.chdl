@@ -9,6 +9,12 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
+--! GHPI netpp wrapper package
+--! Provides a few functions to access netpp master functionality from
+--! the simulation.
+--! \example dpram16.vhdl
+--! \addtogroup GHPIfuncs
+--! \{
 package ghpi_netpp is
 	constant RAMBUF_SIZE       : natural := (1024 * 512);
 
@@ -33,18 +39,25 @@ package ghpi_netpp is
 
 	-- Some wrapper functions:
 
+   	-- The function wrapper appends a \000 character
+	--! Opens a netpp target somewhere on the network
 	function device_open(id: string)
 		return netpphandle_t;
+	--! Retrieves the netpp token by name
 	function device_gettoken(h: netpphandle_t; id: string)
 		return token_t;
+	--! Allocates a new virtual RAM
+	--! @param size  Size in words (not bytes)
+	--! @param name  A unique name, used for netpp export
 	function ram_new(size : integer; name : string) return rambuf_t;
 	
 #include "func_decl.chdl"
 
 end package;
 
+--! \}
+
 package body ghpi_netpp is
-   	-- The function wrapper appends a \000 character
 	function device_open(id: string)
 		return netpphandle_t is
 		variable dev : netpphandle_t;

@@ -1,7 +1,9 @@
 // Experimental code to implement GHDL <-> C API
 //
 
+
 #ifdef APIDEF_UNINITIALIZE
+#	undef VHDL_COMMENT
 #	undef _T
 #	undef TYPE_DEF
 #	undef API_DEF
@@ -19,6 +21,7 @@
 #define SHIFT_ARGS(x, ...) __VA_ARGS__
 
 #if defined(RUN_TYPES)
+#	define VHDL_COMMENT(x)
 #	warning "Running Type generation mode"
 #	define _T(t) s_vhdl_type_##t
 #	define TYPE_DEF(nm) \
@@ -31,6 +34,7 @@
 	static const char _T(t)[] = #t;
 #	define API_DEF(t, nm, ret, ...)
 #elif defined(RUN_CHEAD)
+#	define VHDL_COMMENT(x)
 #	warning "Running C header mode"
 #	define _T(t) t##_ghdl
 #	define TYPE_DEF(nm)
@@ -48,6 +52,7 @@
 #	define ARGIOP(n, t) ARG(*n, t)
 #else
 #	warning "Running VHDL mode"
+#	define VHDL_COMMENT(x) { .type = TYPE_COMMENT, .name = x },
 #	define _T(t) s_vhdl_type_##t
 #	define TYPE_DEF(nm)
 #	define DEFTYPE_EXPLICIT(t, def)

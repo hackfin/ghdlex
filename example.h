@@ -13,7 +13,7 @@
 #	define DEVICE_INDEX 0
 #endif
 
-#define BUFSIZE    0x200
+#define BUFSIZE    0x400
 #define STRINGSIZE 64
 
 void init_registermap(void);

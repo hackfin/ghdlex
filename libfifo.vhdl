@@ -6,7 +6,8 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
---! \defgroup GHDL_Fifo  VHDL FIFO interface
+--! \brief VHDL FIFO interface
+--!
 --! Simple virtual FIFO module
 --! Implements a first-fall-through FIFO accessible through network
 --! via the netpp library.
@@ -15,9 +16,11 @@ use ieee.numeric_std.all; -- Unsigned
 --! The data in/out word size is configureable using the WORD_SIZE generic.
 --! (Supported values: 1, 2)
 --!
---! \addtogroup GHDL_Fifo
+--! \example virtualfifo.vhdl
+--!
+--! \defgroup GHPI_Fifo   VHDL FIFO interface
+--! \addtogroup GHPI_Fifo
 --! \{
-
 package ghpi_fifo is
 
 	--! Set this variable to true to terminate FIFO thread
@@ -107,7 +110,6 @@ package ghpi_fifo is
 			signal data_in     : out std_logic_vector(8*WORDSIZE-1 downto 0)
 		);
 	end component;
-
 
 end package;
 

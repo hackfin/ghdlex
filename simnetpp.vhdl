@@ -39,12 +39,8 @@ architecture behaviour of simnetpp is
 begin
 
 	process
-		variable handle : handle_t; -- XXX
-		variable ival : integer; -- XXX
 	begin
 		-- Open device. When failing to connect, function will bail out.
-		handle := get_ptr(0);
-		set_ptr(handle);
 		device := device_open(ServerPort);
 		print(output, "Got device handle: " & str(device));
 		-- Obtain TOKEN for 'ControlReg' property

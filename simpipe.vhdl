@@ -1,4 +1,3 @@
---
 -- Simulator <-> C interfacing example via linux pipes
 -- (c) 2011 Martin Strubel <hackfin@section5.ch>
 --

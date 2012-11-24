@@ -6,6 +6,8 @@
  */
 
 /** \defgroup VPIwrapper   Dynamic entity exporting
+ *
+ * \example vpiwrapper.c
  */
 
 /** \addtogroup VPIwrapper

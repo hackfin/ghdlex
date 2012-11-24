@@ -1,3 +1,8 @@
+/** Virtual Framebuffer implementation via netpp display server
+ *
+ * (c) 2011, Martin Strubel <hackfin@section5.ch>
+ *
+ */
 #include <stdio.h>
 #include <stdlib.h>
 #include "netpp.h"

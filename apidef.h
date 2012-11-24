@@ -92,10 +92,9 @@ DEFTYPE_SLV(byte_t, 8)
 API_DEFFUNC( device_open_wrapped,     _T(netpphandle_t),
 	ARG(id, string))
 
-/** Set integer value on netpp remote device
- * \param t   The property token, obtained by device_gettoken()
- * \param v   A 32 bit integer
- */
+VHDL_COMMENT("Set integer value on netpp remote device")
+VHDL_COMMENT("@param t   The property token, obtained by device_gettoken()")
+VHDL_COMMENT("@param v   A 32 bit integer")
 API_DEFFUNC( device_set_int,  _T(integer),
 	ARG(h, netpphandle_t), ARG(t, token_t), ARG(v, integer))
 
@@ -110,63 +109,75 @@ API_DEFFUNC( device_set_int,  _T(integer),
 API_DEFFUNC( device_gettoken_wrapped, _T(token_t),
 	ARG(h, netpphandle_t), ARG(id, string))
 
-/** Close connection to remote device */
+VHDL_COMMENT("Close connection to remote device")
 API_DEFPROC( device_close,     _T(void),
 	ARG(h, netpphandle_t))
 
-/** Initialize remote frame buffer device
- * \param dev      A netpp framebuffer capable device handle
- * \param w        Width of the framebuffer
- * \param h        Height of the frame buffer
- * \param buftype  One of VIDEOMODE_8BIT, VIDEOMODE_UYVY, VIDEOMODE_INDEXED
- *                 For supported video modes, see display/videomodes.h
- * */
+VHDL_COMMENT("Initialize remote frame buffer device")
+VHDL_COMMENT("@param dev      A netpp framebuffer capable device handle")
+VHDL_COMMENT("@param w        Width of the framebuffer")
+VHDL_COMMENT("@param h        Height of the frame buffer")
+VHDL_COMMENT("@param buftype  One of VIDEOMODE_8BIT, VIDEOMODE_UYVY, VIDEOMODE_INDEXED")
+VHDL_COMMENT("               For supported video modes, see display/videomodes.h")
 API_DEFFUNC( initfb,          _T(framebuffer_t),
 	ARG(dev, netpphandle_t),
 	ARG(w, integer), ARG(h, integer), ARG(buftype, integer) )
 
-/** Set pixel on remote framebuffer
- * \param x      X coordinate
- * \param y      Y coordinate
- * \param pixel  Pixel value
- */
+VHDL_COMMENT("Set pixel on remote frame buffer")
+VHDL_COMMENT(" @param x      X coordinate")
+VHDL_COMMENT(" @param y      Y coordinate")
+VHDL_COMMENT(" @param pixel  Pixel value")
 API_DEFPROC( setpixel,        _T(void),
 	ARG(fb, framebuffer_t),
 		ARG(x, integer), ARG(y, integer), ARG(pixel, pixel_t) )
 
-/** Write entire remote frame buffer
- * \param data   Pointer to VHDL frame buffer type
- */
+VHDL_COMMENT("Write entire remote frame buffer")
+VHDL_COMMENT("@param data   Pointer to VHDL frame buffer type")
 API_DEFPROC( setfb,           _T(void),
 	ARG(fb, framebuffer_t), ARG(data, pixarray_t))
-/** Send update event to framebuffer */
+
+VHDL_COMMENT("Send update event to framebuffer")
 API_DEFPROC( updatefb,        _T(void),
 	ARG(fb, framebuffer_t))
-/** Release remote framebuffer */
+
+VHDL_COMMENT("Release remote framebuffer")
 API_DEFPROC( releasefb,       _T(void),
 	ARG(fb, framebuffer_t))
 
-/** Read from dummy register map. At the moment only 8 bit wide */
+VHDL_COMMENT("Read from dummy register map. At the moment only 8 bit wide")
+VHDL_COMMENT("@param addr  Register map address")
+VHDL_COMMENT("@param data  Register map data")
 API_DEFPROC( regmap_read, _T(void), ARG(addr, regaddr_t), ARGO(data, byte_t))
 
-/** Write to dummy register map. At the moment only 8 bit wide */
+VHDL_COMMENT("Write to dummy register map. At the moment only 8 bit wide")
+VHDL_COMMENT("@param addr  Register map address")
+VHDL_COMMENT("@param data  Register map data")
 API_DEFPROC( regmap_write, _T(void), ARG(addr, regaddr_t), ARG(data, byte_t))
 
+VHDL_COMMENT("Sleep for 'cycles' microseconds")
+VHDL_COMMENT("@param cycles sleep time in us")
 API_DEFPROC( usleep,       _T(void), ARG(cycles, integer))
 
 
 /** RAM stuff */
 
-/** Allocate new RAM buffer */
+/** Allocate new RAM buffer, wrapper */
 API_DEFFUNC( ram_new_wrapped, _T(rambuf_t), ARG(size, integer),
 	ARG(name, string))
-/** Write to RAM buffer */
+
+VHDL_COMMENT("Write to RAM buffer")
+VHDL_COMMENT("@param addr  word address")
+VHDL_COMMENT("@param data  input data")
 API_DEFPROC( ram_write,       _T(void), ARGIOP(ram, rambuf_t),
 	ARGIO(addr, unsigned), ARGO(data, ram16_t))
-/** Read from RAM buffer */
+
+VHDL_COMMENT("Read from RAM buffer")
+VHDL_COMMENT("@param addr  word address")
+VHDL_COMMENT("@param data  output data")
 API_DEFPROC( ram_read,        _T(void), ARGIOP(ram, rambuf_t),
 	ARGIO(addr, unsigned), ARG(data, ram16_t))
-/** Delete and free RAM buffer */
+
+VHDL_COMMENT("Delete and free RAM buffer")
 API_DEFPROC( ram_del,         _T(void), ARGIOP(ram, rambuf_t))
 
 /** \} */

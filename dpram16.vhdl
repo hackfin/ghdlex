@@ -6,7 +6,22 @@ library work;
 -- The RAM functions are generated within the netpp autowrapper
 use work.ghpi_netpp.all;
 
+--! \brief Dual port RAM with simulation interface via netpp
+--!
+--! This RAM registers itself as a netpp property and can be addressed
+--! under its instance name from outside, provided the netpp.vpi module
+--! is loaded or initialized from within the simulation.
+--! Access to a RAM block is easiest done via python, example:
+--! \code
+--! import netpp
+--! dev = netpp.connect("localhost")
+--! root = dev.sync()
 
+--! rambuf0 = root.Ram0.get()  # Get old buffer
+--! a = 256 * chr(0)           # Generate 256 zeros
+--! root.Ram0.set(buffer(a))   # Set RAM
+--! \endcode
+--!
 entity DualPort16 is
 	generic(
 		ADDR_W       : natural := 14

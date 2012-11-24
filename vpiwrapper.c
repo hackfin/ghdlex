@@ -1,4 +1,4 @@
-/** VPI example for access of structures via netpp
+/** \brief VPI example for access of structures via netpp
  *
  * 2012, hackfin@section5.ch
  *
@@ -41,6 +41,7 @@
  * a reference to the static properties (base class).
  *
  */
+
 
 #include <stdlib.h>
 #include <stdio.h>

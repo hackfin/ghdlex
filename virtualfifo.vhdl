@@ -1,6 +1,4 @@
--- Virtual FIFO
---
--- Virtualized FIFO implementation
+--! \file virtualfifo.vhdl Virtualized FIFO implementation
 --
 -- (c) 2011, 2012 Martin Strubel <hackfin@section5.ch>
 --
@@ -19,16 +17,30 @@ use ghdlex.ghpi_fifo.all;
 use ghdlex.ghpi_netpp.all; -- For virtual register I/O (regmap_read())
 use ghdlex.ghdlsim.all;    -- Register definitions
 
-library work;
-use work.fifoemu.all;
-
---! \addtogroup GHDL_Fifo
---! \{
-
---! A virtual FIFO component. Just include into your design, upon start
+--! \brief A virtual FIFO component, accessible via netpp
+--!
+--! Just include into your design, upon start
 --! it will create the necessary FIFO thread and terminate when the
 --! fifo_terminate global variable is set to true.
 --! This FIFO component works full duplex, unlike the FX2 emulation.
+--! A FIFO netpp property is simply a buffer that is read out or written
+--! to, just that the internal handling is different from a DualPort16
+--! virtual RAM, for example.
+--! The default implementation of the FIFO property buffer reading is
+--! blocking, that means, the call to dcDevice_GetProperty() will wait
+--! until the requested data is ready. This can timeout under certain
+--! circumstances, for example, when the simulation is very complex and
+--! runs slow, such timeouts occur. In this case - and in general - it is
+--! recommended to read the 'Fifo.InFill' property that contains the
+--! number of available bytes in the FIFO. Likewise, 'Fifo.Outfill' can
+--! be probed to see if there are still bytes left in the FIFO out buffer
+--! to be read out by the simulation.
+--!
+--! A special feature is the throttle bit: Seen as 'Throttle' property
+--! from outside, it will throttle the simulation when set and when no
+--! FIFO activity is occuring. This helps to simulate fast FIFO throughputs
+--! with no or little interruption on the VHDL simulation side.
+
 entity VirtualFIFO is
 	generic (
 		WORDSIZE : natural := 1 --! Word size in bytes (supported is 1, 2)
@@ -50,7 +62,6 @@ entity VirtualFIFO is
 	);
 end entity;
 
---! \}
 
 architecture behaviour of VirtualFIFO is
 	constant TX_PROG : natural := 0;

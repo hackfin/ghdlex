@@ -17,6 +17,7 @@
 #define PREFIX "sim_"
 
 enum {
+	TYPE_COMMENT,
 	TYPE_FUNC,
 	TYPE_PROC,
 };
@@ -64,6 +65,11 @@ int dump_header(FILE *f, char *item, struct ghdl_apidesc *d)
 		p += 3; i++;
 	}
 	return i;
+}
+
+void dump_comment(FILE *f, struct ghdl_apidesc *d)
+{
+	fprintf(f, "--! %s\n", d->name);
 }
 
 void dump_func_decl(FILE *f, struct ghdl_apidesc *d)
@@ -127,8 +133,12 @@ int dump_decl(FILE *f)
 			case TYPE_FUNC:
 				dump_func_decl(f, d);
 				break;
-			default:
+			case TYPE_PROC:
 				dump_proc_decl(f, d);
+				break;
+			default:
+				dump_comment(f, d);
+
 		}
 		d++;
 	}
@@ -144,8 +154,11 @@ int dump_body(FILE *f)
 			case TYPE_FUNC:
 				dump_func_body(f, d);
 				break;
-			default:
+			case TYPE_PROC:
 				dump_proc_body(f, d);
+				break;
+			default:
+				dump_comment(f, d);
 		}
 		d++;
 	}
