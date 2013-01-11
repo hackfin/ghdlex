@@ -15,7 +15,7 @@ use ieee.numeric_std.all;
 library ghdlex;
 use ghdlex.ghpi_fifo.all;
 use ghdlex.ghpi_netpp.all; -- For virtual register I/O (regmap_read())
-use ghdlex.ghdlsim.all;    -- Register definitions
+use ghdlex.fpga_registers.all;    -- Register definitions
 
 --! \brief A virtual FIFO component, accessible via netpp
 --!

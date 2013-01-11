@@ -7,17 +7,10 @@
 	<xsl:output method="text" encoding="ISO-8859-1"/>	
 
 <xsl:param name="srcfile">"-UNKNOWN-"</xsl:param>
+<xsl:param name="selectDevice">1</xsl:param>
 <xsl:param name="regprefix">R_</xsl:param>
 <xsl:param name="msb">7</xsl:param>
 
-<xsl:template match="my:device">
-package <xsl:value-of select="@id"/> is
-	subtype regaddr_t is unsigned(<xsl:value-of select="$msb"/> downto 0);
-	subtype BYTESLICE is integer range 7 downto 0;
-
-<xsl:apply-templates select=".//my:registermap" mode="reg_decl"/>
-end <xsl:value-of select="@id"/>;
-</xsl:template>
 
 <xsl:template match="my:header">
 <xsl:if test="@language = 'VHDL'">
@@ -72,7 +65,15 @@ use ieee.numeric_std.all;
 library work;
 <xsl:apply-templates select=".//my:header"/>
 
-<xsl:apply-templates select=".//my:device" />
+<xsl:variable name="index" select="number($selectDevice)"></xsl:variable>
+
+package <xsl:value-of select="my:devdesc/my:device[$index]/my:registermap/@id"/> is
+	subtype regaddr_t is unsigned(<xsl:value-of select="$msb"/> downto 0);
+	subtype BYTESLICE is integer range 7 downto 0;
+
+<xsl:apply-templates select="my:devdesc/my:device[$index]/my:registermap" mode="reg_decl"/>
+
+end <xsl:value-of select="my:devdesc/my:device[$index]/my:registermap/@id"/>;
 
 <xsl:text>
 </xsl:text>

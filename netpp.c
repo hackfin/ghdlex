@@ -219,7 +219,7 @@ TOKEN property_from_ram(TOKEN parent, void *entity, const char *name)
 	p->access.custom.p = entity; // Story entity handle in custom pointer
 
 	t = new_dynprop(name, p);
-	dynprop_append(parent, t);
+	if (t != TOKEN_INVALID) dynprop_append(parent, t);
 	return t;
 }
 
@@ -230,7 +230,10 @@ int register_ram(void *entity, char *name)
 	TOKEN root;
 	root = local_getroot(NULL);
 	t = property_from_ram(root, entity, name);
-	if (t == TOKEN_INVALID) return -1;
+	if (t == TOKEN_INVALID) {
+		printf("Unable to register ram, out of properties?\n");
+		return -1;
+	}
 	printf("Registered RAM property with name '%s'\n", name);
 	return 0;
 }
@@ -257,7 +260,7 @@ int netpp_root_init(const char *name)
 
 	g_is_dynamic = 1;
 
-	dynprop_init(40);
+	dynprop_init(80);
 
 	t = new_dynprop(name, &s_rootprop);
 	if (t == TOKEN_INVALID) return -1;
