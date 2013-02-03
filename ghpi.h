@@ -24,7 +24,7 @@
 
 // Used for string passing. Stolen from Yanns helpful example.
 
-/** Structure to describe array boundarys. Used by a fat_pointer */
+/* Structure to describe array boundarys. Used by a fat_pointer */
 struct int_bounds
 {
 	int left;
@@ -33,7 +33,7 @@ struct int_bounds
 	unsigned int len;
 };
 
-/** GHDL fat pointer. Fat pointers are enhanced descriptors for
+/* GHDL fat pointer. Fat pointers are enhanced descriptors for
  * unconstrained VHDL arrays. In this extension library, they are exclusively
  * used for strings and unconstrained SLVs.
  */
@@ -150,13 +150,18 @@ void hexdump(char *buf, unsigned long n);
  *
  * There are only a few default virtual entities that come with ghdlex:
  *
- *  - VirtualFIFO: A FIFO buffer
+ *  - VFIFO:       A multiply instanceable virtual FIFO
  *  - DualPort16: Dual port RAM simulation
+ *  - VirtualFIFO: A FIFO buffer (standalone, one instance): DEPRECATED!
  *
  * They all depend on netpp, however, the VirtualFIFO runs its own netpp
  * server thread, whereas the other modules require to add the netpp.vpi
  * module to the simulation using the option:
  * \code --vpi=netpp.vpi  \endcode
+ *
+ * It is not a problem to load the netpp.vpi on top of an already
+ * initialized netpp server, however, you will get a warning on the
+ * console. Future versions may run an extra server on a separate port.
  *
  * The VirtualFIFO is normally the first thing to implement for testing
  * a hardware and software design in cooperation. From the host side, it
@@ -186,6 +191,9 @@ python py/fifo.py
  *  - A virtual frame buffer that can be filled by your VGA timing generator
  *  - An interface to measurement devices to read a waveform from a
  *    scope using the TMC protocol
+ *
+ * If you wish to used more FIFOs and other virtual entities in your design,
+ * you might rather use the VFIFO instead. See also \ref VPIwrapper.
  * 
  * \section GHDLIntf   GHDL interfacing
  *
@@ -218,30 +226,13 @@ python py/fifo.py
  *
  * The following modules provide the API for the GHPI extension:
  * - \subpage GHPIfuncs    
- * - \subpage GHDL_Fifo
- * - \subpage GHDL_Pipe  
+ * - \subpage GHPI_Fifo
+ * - \subpage GHPI_Pipe  
  *
  * From the C API side:
  * - \subpage Auxiliary
  * - \subpage FIFO
  *
- * \subsection Extending Extending Autowrapping
- *
- * Because a lot of manual coding needs to be done in order to wrap
- * a C routine by a VHDL call, some highly experimental tricks to abuse
- * the C preprocessor are used. Basically, a .chdl file will be turned into
- * a .vhdl file. See Makefile for specific rules.
- * This allows to resolve #define and #include statements and makes
- * the API definition somewhat easier, since all can be generated from one
- * header file.
- *
- * The important files:
- * - apidef.h: The API definition
- * - h2vhdl.c: The vhdl package generator
- *
- * Files for hackers - please only extend, don't change:
- *
- * - apimacros.h: The dirty stuff under the hood
  *
  * \subsection VPI The VPI interface
  *
@@ -306,13 +297,13 @@ python py/fifo.py
  * \code
 loading VPI module 'netpp.vpi'
 VPI module loaded!
-Reserved RAM 'ram0' with size 0x1000(4096)
-Registered RAM property with name 'ram0'
+Reserved RAM ':simram:ram0:' with word size 0x1000(8192 bytes)
 ProbeServer listening on UDP Port 7208...
-Reserved RAM 'ram1' with size 0x1000(4096)
+Registered RAM property with name ':simram:ram0:'
 Listening on UDP Port 2008...
-Registered RAM property with name 'ram1'
+Reserved RAM ':simram:ram1:' with word size 0x1000(8192 bytes)
 Listening on TCP Port 2008...
+Registered RAM property with name ':simram:ram1:'
 \endcode
  * 
  * From the client side, the top level properties of this module can be
@@ -335,6 +326,20 @@ Child: [00000003] 'Fifo'
  * case. It is up to the netpp device implementation, what properties
  * it exhibits or what device description it inherits from.
  *
+ * Instances of virtual entities are displayed in the VHDL path name
+ * notation, like
+\code
+:simram:ram0:\endcode
+ *
+ * Accessing these properties from Python raises a little issue with the
+ * Python name space rules, as member names of that sort are not allowed.
+ * Therefore, you have to get the property token by using the getattr()
+ * function, like
+ *
+\code
+ram0 = getattr(root_node, ":simram:ram0:") \endcode
+
+ *
  * Manipulating a pin means, setting a netpp property:
  * \code netpp localhost we 1 # Set 'we' to HIGH \endcode
  *
@@ -343,10 +348,48 @@ Child: [00000003] 'Fifo'
  * generated inside the VHDL test bench, randomly inexplicable behaviour
  * can occur.
  *
+ * \subsection Extending Extending Autowrapping
+ *
+ * Because a lot of manual coding needs to be done in order to wrap
+ * a C routine by a VHDL call, some highly experimental tricks to abuse
+ * the C preprocessor are used. Basically, a .chdl file will be turned into
+ * a .vhdl file. See Makefile for specific rules.
+ * This allows to resolve #define and #include statements and makes
+ * the API definition somewhat easier, since all can be generated from one
+ * header file.
+ *
+ * The important files:
+ * - apidef.h: The API definition
+ * - libnetpp.chdl: The C template for the autowrapped netpp library package
+ *
+ * If you wish to add another virtual entity, you will have to touch 
+ * these files. Typically, the steps are:
+ *
+ * -# Add another access data type (see handle_t in \c libnetpp.chdl)
+ * -# Add another #DEFTYPE_PROTOSTRUCT entry in \c apidef.h
+ * -# Implement netpp side handlers for the defined data structure
+ *    (see also netppwrap.h)
+ * -# Define the property template for this entity: Add a property in
+ *    ghdlsim.xml, and provide it with a named, unique 'id' attribute.
+ * -# For registering the new virtual entity with netpp, see
+ *    register_fifo() for example. The template token is retrieved via
+ *    the external corresponding token variable initialized in the generated
+ *    file proplist.c. It has the form g_t_<id>.
+ *
+ *
+ * Files for hackers - please only extend, don't change:
+ *
+ * - apimacros.h: The dirty stuff under the hood
+ * - h2vhdl.c: The vhdl package generator
+ *
+ * \section Restrictions Restrictions or bugs
+ *
+ *
  * \bug ghdlex is not endian safe! For all buffer properties, it is assumed
  *      that the host the simulation is running on has the same endianness
  *      as the client (tested is little endian only). Endian safety is only
  *      given with netpp integers and of course byte wide buffers.
  *
+ * \bug Not all top level signals can be exported to netpp.
  *
  */

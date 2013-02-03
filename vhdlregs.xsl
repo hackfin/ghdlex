@@ -6,15 +6,21 @@
 
 	<xsl:output method="text" encoding="ISO-8859-1"/>	
 
+<!-- Source file name -->
 <xsl:param name="srcfile">"-UNKNOWN-"</xsl:param>
+<!-- Index of desired device -->
 <xsl:param name="selectDevice">1</xsl:param>
+<!-- If 1, use parent register map's name as prefix -->
+<xsl:param name="useMapPrefix">0</xsl:param>
+<!-- Register prefix -->
 <xsl:param name="regprefix">R_</xsl:param>
+<!-- most significant byte to define address width -->
 <xsl:param name="msb">7</xsl:param>
 
 
 <xsl:template match="my:header">
 <xsl:if test="@language = 'VHDL'">
-use work.<xsl:value-of select="."/>.all;
+<xsl:value-of select="."/>
 </xsl:if>
 </xsl:template>
 
@@ -43,7 +49,8 @@ use work.<xsl:value-of select="."/>.all;
 <!-- register -->
 	<xsl:template match="my:register" mode="reg_decl">
 <xsl:if test="./my:info">-- <xsl:value-of select="./my:info"/></xsl:if>
-	constant <xsl:value-of select="$regprefix"/><xsl:value-of select="substring(concat(@id, '                '), 1, 16)"/><xsl:text> </xsl:text> : regaddr_t := x"<xsl:value-of select="substring(@addr, 3, 4)"/>";
+	constant <xsl:value-of select="$regprefix"/>
+<xsl:if test="$useMapPrefix = 1"><xsl:value-of select="../@name"/>_</xsl:if><xsl:value-of select="substring(concat(@id, '                '), 1, 16)"/><xsl:text> </xsl:text> : regaddr_t := x"<xsl:value-of select="substring(@addr, 3, 4)"/>";
 <xsl:apply-templates select="./my:bitfield" mode="reg_decl"/></xsl:template>
 <xsl:template match="/">--
 -- This is a VHDL package file generated from <xsl:value-of select="$srcfile"/>
@@ -52,7 +59,7 @@ use work.<xsl:value-of select="."/>.all;
 --
 -- Implements a 'msb+1' bit address wide register map as VHDL package
 --
--- Set the msb by specifying the --stringparam msb `number` option to xsltproc
+-- Set the msb by specifying the --param msb `number` option to xsltproc
 --
 -- (c) 2007-2011, Martin Strubel // hackfin@section5.ch
 --
@@ -62,7 +69,6 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
-library work;
 <xsl:apply-templates select=".//my:header"/>
 
 <xsl:variable name="index" select="number($selectDevice)"></xsl:variable>

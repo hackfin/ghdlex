@@ -78,6 +78,11 @@ package ghpi_fifo is
 	attribute foreign of fifo_io : procedure is
 		"VHPIDIRECT sim_fifo_io";
 
+	-- FLAG assignments for FX2 emulation
+	constant TX_PROG  : natural := 0;
+	constant TX_EMPTY : natural := 1;
+	constant RX_FULL  : natural := 2;
+
 	-- A FIFO emulation for the software FIFO
 	component CFIFO
 		generic (

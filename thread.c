@@ -23,48 +23,8 @@
 #define DCERR_COMM_TIMEOUT -1
 #endif
 
-#define FIFO_SIZE   1024
+#define FIFO_SIZE   2*1024
 
-int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n)
-{
-	int i;
-	int retry = 5;
-
-	while (n > 0) {
-		while (!fifo_fill(f)) {
-#ifdef USE_NETPP
-			usleep(g_timeout);
-#endif
-			retry--;
-			if (retry == 0) return DCERR_COMM_TIMEOUT;
-		}
-		i = fifo_read(f, buf, n);
-		buf += i; n -= i;
-		// printf("Read %d from FIFO (%d left)\n", i, n);
-	}
-	return n;
-}
-
-int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n)
-{
-	int i;
-	int retry = 5;
-
-	while (n) {
-		while (fifo_fill(f) == f->size ) {
-#ifdef USE_NETPP
-			usleep(g_timeout);
-#endif
-			retry--;
-			if (retry == 0) return DCERR_COMM_TIMEOUT;
-		}
-
-		i = fifo_write(f, buf, n);
-		// printf("Wrote %d to FIFO\n", i);
-		buf += i; n -= i;
-	}
-	return n;
-}
 
 #ifdef USE_NETPP
 
@@ -75,21 +35,46 @@ int init_backend(void)
 	return 0;
 }
 
+extern TOKEN g_t_fifobuf;
+extern TOKEN g_t_fifo_infill;
+extern TOKEN g_t_fifo_outfill;
+/** Legacy global FIFO */
+struct duplexfifo_t g_dfifo;
 
 void *fifo_thread(void *arg)
 {
+	PropertyDesc *fifo;
 	int error;
 	char *argv[] = {
 		"", (char *) arg
 	};
 	error = init_backend();
 	if (error < 0) return 0;
+
+	// HACK:
+	// The FIFO buffer is using CUSTOM handlers. For the global FIFO,
+	// we need to pre-initialize them:
+	fifo = getProperty_ByToken(g_t_fifobuf); // Obtain descriptor
+	fifo->access.custom.p = &g_dfifo;      // Store FIFO handle
+
+	fifo = getProperty_ByToken(g_t_fifo_infill); // Obtain descriptor
+	fifo->access.custom.p = &g_dfifo;      // Store FIFO handle
+
+	fifo = getProperty_ByToken(g_t_fifo_outfill); // Obtain descriptor
+	fifo->access.custom.p = &g_dfifo;      // Store FIFO handle
+
+
 	error = start_server(1, argv);
 	if (error < 0) return 0;
 	return (void *) 1;
 }
 
 #else
+
+enum {
+	FROM_SIM,
+	TO_SIM
+};
 
 void *fifo_thread(void *arg)
 {
@@ -144,21 +129,22 @@ void *fifo_thread(void *arg)
 #endif
 
 pthread_t g_thread;
-Fifo g_fifos[2];
+
+/* XXX Legacy. Will leave in future */
 
 int sim_fifo_thread_init(struct ghdl_string *str, int wordsize)
 {
 	int error;
 
-	error = fifo_init(&g_fifos[TO_SIM], FIFO_SIZE, wordsize);
+	error = fifo_init(&g_dfifo.out, FIFO_SIZE, wordsize);
 	if (error < 0) return error;
-	error = fifo_init(&g_fifos[FROM_SIM], FIFO_SIZE, wordsize);
+	error = fifo_init(&g_dfifo.in, FIFO_SIZE, wordsize);
 	if (error < 0) return error;
 
 #ifdef USE_NETPP
 	error = pthread_create(&g_thread, NULL, &fifo_thread, NULL);
 #else
-	error = pthread_create(&g_thread, NULL, &fifo_thread, g_fifos);
+	error = pthread_create(&g_thread, NULL, &fifo_thread, &g_dfifo);
 #endif
 	if (error < 0) return error;
 	return 0;
@@ -169,6 +155,6 @@ void fifo_thread_exit()
 {
 	int error;
 	error = pthread_cancel(g_thread);
-	fifo_exit(&g_fifos[0]);
-	fifo_exit(&g_fifos[1]);
+	fifo_exit(&g_dfifo.out);
+	fifo_exit(&g_dfifo.in);
 }

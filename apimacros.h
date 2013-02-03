@@ -1,11 +1,14 @@
-// Experimental code to implement GHDL <-> C API
-//
-
+/** \file apimacros.h
+ *
+ * \brief Nasty macros for multiple path definition expansion between
+ *        C and GHDL interface
+ *
+ * (c) 2011-2013, Martin Strubel <hackfin@section5.ch>
+ */
 
 #ifdef APIDEF_UNINITIALIZE
 #	undef VHDL_COMMENT
 #	undef _T
-#	undef TYPE_DEF
 #	undef API_DEF
 #	undef ARG
 #	undef ARGO
@@ -24,24 +27,43 @@
 #	define VHDL_COMMENT(x)
 #	warning "Running Type generation mode"
 #	define _T(t) s_vhdl_type_##t
-#	define TYPE_DEF(nm) \
-	static const char _T(nm)[] = #nm;
 #	define DEFTYPE_EXPLICIT(t, def) \
 	static const char _T(t)[] = #t;
-#	define DEFTYPE_PROTOSTRUCT(t, def) \
+
+#define DEFTYPE_PROTOSTRUCT(t, def) \
 	static const char _T(t)[] = #t;
 #	define DEFTYPE_SLV(t, s) \
 	static const char _T(t)[] = #t;
 #	define API_DEF(t, nm, ret, ...)
 #elif defined(RUN_CHEAD)
-#	define VHDL_COMMENT(x)
 #	warning "Running C header mode"
+
+// This section contains the generated Doxygen documentation
+
+/** Add VHDL comment. This is translated into the VHDL sources
+ * run through doxygen
+ */
+#	define VHDL_COMMENT(x)
 #	define _T(t) t##_ghdl
-#	define TYPE_DEF(nm)
+/* Creates an explicit typedef for the specified VHDL data type.
+ * The VHDL data type has a '_ghdl' suffix on the C side. See also
+ * \ref GHPIfuncs
+ * \param t      Type name
+ * \param def    C definition
+ */
 #	define DEFTYPE_EXPLICIT(t, def) \
 	typedef def _T(t);
+/** Macro to define another data proxy type for both C and VHDL side
+ * \param t      The VHDL data type (must be defined in libnetpp.chdl
+ *               or elsewhere
+ * \param def    The corresponding C data type (defined externally)
+ */
 #	define DEFTYPE_PROTOSTRUCT(t, def) \
 	def; typedef def * _T(t);
+/** Creates VHDL typedef for a std_logic_vector
+ * \param t      Type name
+ * \param s      Size of vector in bits
+ */
 #	define DEFTYPE_SLV(t, s) \
 	typedef char _T(t)[s];
 #	define API_DEF(t, nm, ret, ...) \
@@ -54,7 +76,6 @@
 #	warning "Running VHDL mode"
 #	define VHDL_COMMENT(x) { .type = TYPE_COMMENT, .name = x },
 #	define _T(t) s_vhdl_type_##t
-#	define TYPE_DEF(nm)
 #	define DEFTYPE_EXPLICIT(t, def)
 #	define DEFTYPE_PROTOSTRUCT(t, def)
 #	define DEFTYPE_SLV(t, s)
@@ -73,13 +94,13 @@
 
 // Standard simple types:
 
-/** A 32 bit signed integer */
+/* A 32 bit signed integer */
 DEFTYPE_EXPLICIT(integer, int32_t)
-/** A GHDL interface 'fat pointer' */
+/* A GHDL interface 'fat pointer' */
 DEFTYPE_EXPLICIT(string, struct fat_pointer *)
-/** Pointer to constrained unsigned array */
+/* Pointer to constrained unsigned array */
 DEFTYPE_EXPLICIT(unsigned, struct fat_pointer *)
-/** Void */
+/* Void */
 DEFTYPE_EXPLICIT(void, void)
 
 #define DEFTYPE_HANDLE32(t) DEFTYPE_EXPLICIT(t, uint32_t)

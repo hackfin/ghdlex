@@ -1,12 +1,12 @@
-/** \file apidef.h
+/** \file
+ * 	\brief  This is the API definition for the GHDL <-> C wrapper.
  *
- * This is the API definition for the GHDL <-> C wrapper.
  * This file is called from the h2vhdl converter several times with
  * the following parametrization
  *
- * #define RUN_TYPES : Define VHDL data type strings
- * #define RUN_CHEAD : Define C header table
- * None              : Define VHDL wrapper table
+ * - #define RUN_TYPES : Define VHDL data type strings
+ * - #define RUN_CHEAD : Define C header table
+ * - None              : Define VHDL wrapper table
 
  * (c) 2011, 2012  Martin Strubel <hackfin@section5.ch>
 
@@ -16,7 +16,8 @@
 /** \defgroup GHPIfuncs    Autowrapped functions callable from GHDL
  * 
  * This module lists the so far semi-automatically wrapped C functions
- * that can be accessed from the GHDL simulation.
+ * that can be accessed from the GHDL simulation. If you want to add more
+ * functionality, edit apidef.h.
  *
  * It includes a number of type definitions for abstraction of data exchange
  * between C and GHDL.
@@ -77,8 +78,16 @@ DEFTYPE_SLV(ram16_t, 16)
 /* A generic handle (EXPERIMENTAL) */
 DEFTYPE_EXPLICIT(handle_t, uint32_t *)
 
+/* Note: If you add a PROTO structure, you have to explicitely define
+ * the access type in libnetpp.chdl for now. */
+
 /* A RAM buffer handle */
 DEFTYPE_PROTOSTRUCT(rambuf_t, struct RamDesc)
+
+/* A FIFO buffer handle */
+DEFTYPE_PROTOSTRUCT(duplexfifo_t, struct duplexfifo_t)
+
+DEFTYPE_SLV(fifoflag_t, 6)
 
 /* Pointer to constrained unsigned array */
 DEFTYPE_SLV(regaddr_t, 8)
@@ -158,12 +167,30 @@ VHDL_COMMENT("Sleep for 'cycles' microseconds")
 VHDL_COMMENT("@param cycles sleep time in us")
 API_DEFPROC( usleep,       _T(void), ARG(cycles, integer))
 
+/* New FIFO API */
 
-/** RAM stuff */
+/* Wrapped function, see fifo_new in libnetpp.chdl */
+API_DEFFUNC( fifo_new_wrapped, _T(duplexfifo_t),
+	ARG(name, string),
+	ARG(size, integer),
+	ARG(wordsize, integer)
+	)
 
-/** Allocate new RAM buffer, wrapper */
-API_DEFFUNC( ram_new_wrapped, _T(rambuf_t), ARG(size, integer),
-	ARG(name, string))
+/* Wrapped function, see fifo_new in libnetpp.chdl */
+API_DEFPROC( fifo_rxtx, _T(void), ARGIOP(df, duplexfifo_t),
+	ARGIO(data, unsigned),
+	ARGIO(flags, fifoflag_t)
+	)
+
+VHDL_COMMENT("Delete FIFO")
+API_DEFPROC( fifo_del,        _T(void), ARGIOP(fifo, duplexfifo_t))
+
+/* RAM stuff */
+
+/* Allocate new RAM buffer, wrapper */
+API_DEFFUNC( ram_new_wrapped, _T(rambuf_t),
+	ARG(name, string),
+	ARG(size, integer))
 
 VHDL_COMMENT("Write to RAM buffer")
 VHDL_COMMENT("@param addr  word address")

@@ -24,9 +24,6 @@ int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n);
 
 // Global variables exposed to property access:
 
-extern
-Fifo g_fifos[2];
-
 int g_timeout = 500000; // FIFO default timeout
 
 struct vpi_handle_cache {
@@ -48,11 +45,10 @@ int get_uint32(DEVICE d, DCValue *out)
 }
 */
 
-int get_fifo(DEVICE d, DCValue *out)
+int get_fifo(Fifo *f, DCValue *out)
 {
 	int warn = 0;
 	int n;
-	Fifo *f = &g_fifos[FROM_SIM];
 
 	static unsigned char buf[BUFSIZE];
 
@@ -93,12 +89,10 @@ int get_fifo(DEVICE d, DCValue *out)
 	return warn;
 }
 
-int set_fifo(DEVICE d, DCValue *in)
+int set_fifo(Fifo *f, DCValue *in)
 {
 	int error;
 	int warn = 0;
-
-	Fifo *f = &g_fifos[TO_SIM];
 
 	static unsigned char buf[BUFSIZE];
 
@@ -128,21 +122,33 @@ int set_fifo(DEVICE d, DCValue *in)
 	return warn;
 }
 
-int get_fifo_infill(DEVICE d, DCValue *out)
+/* Custom FIFO handler for netpp */
+
+int handle_fifo(void *p, int write, DCValue *val)
 {
-	Fifo *f = &g_fifos[FROM_SIM];
-	
-	out->value.i = fifo_fill(f);
+	// printf("%s (%d)\n", __FUNCTION__, write);
+	DuplexFifo *df = (DuplexFifo *) p;
+	if (write) {
+		return set_fifo(&df->out, val);
+	} else {
+		return get_fifo(&df->in, val);
+	}
+}
+
+int handle_fifo_infill(DuplexFifo *df, int write, DCValue *out)
+{
+	if (write) return DCERR_PROPERTY_ACCESS;
+	out->value.i = fifo_fill(&df->in);
 	return 0;
 }
 
-int get_fifo_outfill(DEVICE d, DCValue *out)
+int handle_fifo_outfill(DuplexFifo *df, int write, DCValue *out)
 {
-	Fifo *f = &g_fifos[TO_SIM];
-	
-	out->value.i = fifo_fill(f);
+	if (write) return DCERR_PROPERTY_ACCESS;
+	out->value.i = fifo_fill(&df->out);
 	return 0;
 }
+
 
 /** Dummy register space. Just a RAM.
  * This is accessed by sim_regmap_read()/sim_regmap_write()

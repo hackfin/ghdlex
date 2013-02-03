@@ -28,8 +28,12 @@
 #include <stdlib.h>
 #include "fifo.h"
 #include "ghpi.h"
+#include "netpp.h"
+#include "netppwrap.h"
+#include "example.h"
 
-extern Fifo g_fifos[2];
+/* Global FIFO struct for legacy support */
+extern struct duplexfifo_t g_dfifo;
 
 int fifo_init(Fifo *f, unsigned short size, unsigned short wordsize)
 {
@@ -89,7 +93,6 @@ int fifo_get(Fifo *f, unsigned char *dst, int n)
 		p %= f->size;
 		n--;
 	} while (p != f->head && n > 0);
-
 
 	return ret;
 }
@@ -153,23 +156,17 @@ int fifo_status(Fifo *f, char which, int width, char *flags)
 	pthread_mutex_lock(&f->mutex);
 
 	if (which == FIFO_WRITE) {
-		if (f->fill == f->size) {
-			flags[TXF] = LOW; flags[TXAF] = LOW;
-		}
-		if (f->fill == f->size - width) {
+		if (f->fill >= f->size - width) {
 			flags[TXF] = HIGH; flags[TXAF] = LOW;
-		}
-		else {
+			if (f->fill == f->size) flags[TXF] = LOW;
+		} else {
 			flags[TXF] = HIGH; flags[TXAF] = HIGH;
 		}
 	} else {
-		if (f->fill == 0) {
-			flags[RXE] = LOW; flags[RXAE] = LOW;
-		} else
-		if (f->fill == width) {
+		if (f->fill <= width) {
 			flags[RXE] = HIGH; flags[RXAE] = LOW;
-		}
-		else {
+			if (f->fill == 0)  flags[RXE] = LOW;
+		} else {
 			flags[RXE] = HIGH; flags[RXAE] = HIGH;
 		}
 	}
@@ -182,7 +179,6 @@ void fifo_reset(Fifo *f)
 	f->unr = LOW;
 	f->ovr = LOW;
 }
-
 
 int fifo_write(Fifo *f, const unsigned char *byte, unsigned short n)
 {
@@ -220,8 +216,7 @@ int fifo_write(Fifo *f, const unsigned char *byte, unsigned short n)
  *
  */
 
-
-void sim_fifo_io(struct fat_pointer *data, char *flag)
+void fifo_pump(struct duplexfifo_t *df, struct fat_pointer *data, char *flag)
 {
 // 	printf("in: %p, out: %p, flag: %x\n", in, out, flag);
 	static
@@ -230,6 +225,10 @@ void sim_fifo_io(struct fat_pointer *data, char *flag)
 	short n;
 	short nbits = data->bounds->len;
 	short nbytes = (nbits + 7) >> 3;
+
+	Fifo *fifo_in, *fifo_out;
+
+	fifo_in = &df->in; fifo_out = &df->out;
 
 	// Guard maximum chunk size:
 	if (nbytes > sizeof(valuebytes)) {
@@ -243,42 +242,117 @@ void sim_fifo_io(struct fat_pointer *data, char *flag)
 	tx = flag[TXF] == HIGH ? 1 : 0;
 
 	// Check W1C error flags:
-	if (flag[OVR] == HIGH) g_fifos[TO_SIM].ovr = LOW;
-	if (flag[UNR] == HIGH) g_fifos[FROM_SIM].unr = LOW;
+	if (flag[OVR] == HIGH) fifo_out->ovr = LOW;
+	if (flag[UNR] == HIGH) fifo_in->unr = LOW;
 	
 	// Do we write?
 	if (tx) {
-		g_fifos[FROM_SIM].fromlogic(data->base, nbytes, valuebytes);
-		fifo_write(&g_fifos[FROM_SIM], valuebytes, nbytes);
-		// printf("S -> H fill: %d\n", g_fifos[FROM_SIM].fill);
+		fifo_in->fromlogic(data->base, nbytes, valuebytes);
+		fifo_write(fifo_in, valuebytes, nbytes);
+		// printf("S -> H fill: %d\n", fifo_in->fill);
 	}
 
 	// Did we read advance?
 	if (rx) {
-		// printf("S <- H fill: %d\n", g_fifos[TO_SIM].fill);
-		fifo_advance(&g_fifos[TO_SIM], nbytes);
+		// printf("S <- H fill: %d\n", fifo_out->fill);
+		fifo_advance(fifo_out, nbytes);
 	}
 
-	
 	// Query status and set flags
-	fifo_status(&g_fifos[FROM_SIM], FIFO_WRITE, nbytes, flag);
-	fifo_status(&g_fifos[TO_SIM], FIFO_READ, nbytes, flag);
+	fifo_status(fifo_in, FIFO_WRITE, nbytes, flag);
+	fifo_status(fifo_out, FIFO_READ, nbytes, flag);
 
 	if (flag[RXE] == HIGH) { // We do at least have 'nbytes' bytes in the FIFO
-		n = fifo_get(&g_fifos[TO_SIM], valuebytes, nbytes);
-		g_fifos[TO_SIM].tologic(data->base, nbytes, valuebytes);
+		n = fifo_get(fifo_out, valuebytes, nbytes);
+		fifo_out->tologic(data->base, nbytes, valuebytes);
 		// printf("n: %d: %02x %02x\n", n, valuebytes[0], valuebytes[1]);
 	} else {
 		fill_slv(data->base, nbits, UNDEFINED);
-		// usleep(10000); // Save some cycles on the GHDL side
-		// This could be potentially dangerous, because it may
-		// block a fifo_write event for too long.
 	}
-	
 
 	// Return OVR/UNR flags
-	flag[OVR] = g_fifos[FROM_SIM].ovr;
-	flag[UNR] = g_fifos[TO_SIM].unr;
+	flag[OVR] = fifo_in->ovr;
+	flag[UNR] = fifo_out->unr;
+}
+
+void sim_fifo_rxtx(duplexfifo_t_ghdl *fifo,
+	struct fat_pointer *data, char *flag)
+{
+	DuplexFifo *f = (DuplexFifo *) fifo[0];
+	fifo_pump(f, data, flag);
+}
+
+void sim_fifo_io(struct fat_pointer *data, char *flag)
+{
+	fifo_pump(&g_dfifo, data, flag);
+}
+
+duplexfifo_t_ghdl sim_fifo_new_wrapped(string_ghdl name, integer_ghdl size,
+	integer_ghdl wordsize)
+{
+	char propname[32];
+	int error;
+	struct duplexfifo_t *df =
+		(struct duplexfifo_t *) malloc(sizeof(struct duplexfifo_t));
+	ghdlname_to_propname(name->base, propname, sizeof(propname));
+	printf("Reserved FIFO '%s' with word size %d, size 0x%x\n", propname,
+		wordsize, size * sizeof(uint16_t));
+
+	error = fifo_init(&df->in, size, wordsize);
+	if (error < 0) return NULL;
+	error = fifo_init(&df->out, size, wordsize);
+	if (error < 0) return NULL;
+
+	netpp_root_init("FIFOwrapper");
+	register_fifo(df, propname);
+	return (duplexfifo_t_ghdl) df;
+}
+
+void_ghdl sim_fifo_del(duplexfifo_t_ghdl *fifo)
+{
+	DuplexFifo *f = fifo[0];
+	fifo_exit(&f->out);
+	fifo_exit(&f->in);
+}
+
+////////////////////////////////////////////////////////////////////////////
+// Auxiliary, blocking reads
+
+int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n)
+{
+	int i;
+	int retry = 5;
+
+	while (n > 0) {
+		while (!fifo_fill(f)) {
+			usleep(g_timeout);
+			retry--;
+			if (retry == 0) return DCERR_COMM_TIMEOUT;
+		}
+		i = fifo_read(f, buf, n);
+		buf += i; n -= i;
+		// printf("Read %d from FIFO (%d left)\n", i, n);
+	}
+	return n;
+}
+
+int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n)
+{
+	int i;
+	int retry = 5;
+
+	while (n) {
+		while (fifo_fill(f) == f->size ) {
+			usleep(g_timeout);
+			retry--;
+			if (retry == 0) return DCERR_COMM_TIMEOUT;
+		}
+
+		i = fifo_write(f, buf, n);
+		// printf("Wrote %d to FIFO\n", i);
+		buf += i; n -= i;
+	}
+	return n;
 }
 
 // not first fall through

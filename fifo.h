@@ -30,11 +30,8 @@
 #define OVR      4  ///< Overrun bit, high active
 #define UNR      5  ///< Underrun bit, high active
 
-#define TO_SIM   0  ///< FIFO C -> Simulator
-#define FROM_SIM 1  ///< FIFO Simulator -> C
-
-#define FIFO_READ  FROM_SIM ///< Select FIFO_READ queue
-#define FIFO_WRITE TO_SIM   ///< Select FIFO_WRITE queue
+#define FIFO_READ  0        ///< Select FIFO_READ queue
+#define FIFO_WRITE 1        ///< Select FIFO_WRITE queue
 
 /* The software FIFO descriptor structure */
 struct fifo_t {
@@ -50,8 +47,16 @@ struct fifo_t {
 	void (*fromlogic)(char *l, int n, void *b);
 };
 
+struct duplexfifo_t {
+	struct fifo_t in;
+	struct fifo_t out;
+};
+
 /** Fifo structure, anonymous */
 typedef struct fifo_t Fifo;
+
+/** DuplexFifo structure, anonymous */
+typedef struct duplexfifo_t DuplexFifo;
 
 /** Initialize a FIFO
  * \param size      Size of the FIFO in data elements (not necessarily bytes)

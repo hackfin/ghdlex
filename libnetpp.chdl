@@ -6,8 +6,11 @@
 -- (c) 2011, 2012 Martin Strubel <hackfin@section5.ch>
 
 library ieee;
-use ieee.std_logic_1164.all;
-use ieee.numeric_std.all; -- Unsigned
+	use ieee.std_logic_1164.all;
+	use ieee.numeric_std.all; -- Unsigned
+
+library work;
+	use work.ghpi_fifo.all;
 
 --! GHPI netpp wrapper package
 --! Provides a few functions to access netpp master functionality from
@@ -18,26 +21,10 @@ use ieee.numeric_std.all; -- Unsigned
 package ghpi_netpp is
 	constant RAMBUF_SIZE       : natural := (1024 * 512);
 
-	subtype ram16_t       is unsigned(15 downto 0);
-	subtype byte_t        is unsigned(7 downto 0);
-	subtype regaddr_t     is unsigned(7 downto 0);
-	subtype token_t       is integer;
-	// These are just handles. We will change the API as soon as we
-	// know what's the best method to pass anonymous handles (pointers)
-	subtype netpphandle_t is integer;
-	subtype framebuffer_t is integer;
-	type rambuf_t      is access integer;
-	subtype pixel_t is unsigned(15 downto 0);
-	-- type pixarray_t is array(0 to RAMBUF_SIZE-1) of pixel_t;
-	type pixarray_t is array(natural range <>) of pixel_t;
-
-	type handle_t is access integer; 
-
-	constant VIDEOMODE_8BIT    : natural := 1; --! 8 Bit grayscale
-	constant VIDEOMODE_UYVY    : natural := 3; --! UYVY 16 bpp mode
-	constant VIDEOMODE_INDEXED : natural := 17; --! Indexed 16bit mode
-
-	-- Some wrapper functions:
+	----- NETPP MASTER API -----
+	subtype  token_t       is integer;
+	subtype  netpphandle_t is integer;
+	type     handle_t      is access integer; 
 
    	-- The function wrapper appends a \000 character
 	--! Opens a netpp target somewhere on the network
@@ -46,11 +33,42 @@ package ghpi_netpp is
 	--! Retrieves the netpp token by name
 	function device_gettoken(h: netpphandle_t; id: string)
 		return token_t;
+
+	----- RAM API -----
+	subtype  ram16_t       is unsigned(15 downto 0);
+	subtype  byte_t        is unsigned(7 downto 0);
+	subtype  regaddr_t     is unsigned(7 downto 0);
+	type     rambuf_t      is access integer;
+
 	--! Allocates a new virtual RAM
 	--! @param size  Size in words (not bytes)
 	--! @param name  A unique name, used for netpp export
-	function ram_new(size : integer; name : string) return rambuf_t;
+	function ram_new(name : string; size : integer) return rambuf_t;
+
+	----- FIFO API -----
+
+	--! Access type. These don't directly map into C struct pointers,
+	--! see functions using duplexfifo_t_ghdl as arguments for example
+	--! on how to access the handle in C.
+	type     duplexfifo_t  is access integer;
+
+	--! Allocates a new virtual FIFO
+	--! @param name      A unique name, used for netpp export
+	--! @param size      Size in words (not bytes)
+	--! @param wordsize  Word size (1 or 2)
+	function fifo_new(name : string; size : integer; wordsize : integer)
+		return duplexfifo_t;
 	
+	----- NETPP REMOTE FRAMEBUFFER API -----
+
+	subtype framebuffer_t is integer;
+	subtype pixel_t is unsigned(15 downto 0);
+	type pixarray_t is array(natural range <>) of pixel_t;
+
+	constant VIDEOMODE_8BIT    : natural := 1; --! 8 Bit grayscale
+	constant VIDEOMODE_UYVY    : natural := 3; --! UYVY 16 bpp mode
+	constant VIDEOMODE_INDEXED : natural := 17; --! Indexed 16bit mode
+
 #include "func_decl.chdl"
 
 end package;
@@ -76,9 +94,18 @@ package body ghpi_netpp is
 		return device_gettoken_wrapped(h, id & NUL);
 	end device_gettoken;
 
-	function ram_new(size : integer; name : string) return rambuf_t is
+	-- Wrap functions with string parameter: Just append a null termination
+	-- to become C standard compatible.
+
+	function ram_new(name : string; size : integer) return rambuf_t is
 	begin
-		return ram_new_wrapped(size, name & NUL);
+		return ram_new_wrapped(name & NUL, size);
+	end function;
+
+	function fifo_new(name : string; size : integer; wordsize : integer )
+		return duplexfifo_t is
+	begin
+		return fifo_new_wrapped(name & NUL, size, wordsize);
 	end function;
 
 #include "func_body.chdl"

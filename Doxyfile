@@ -92,6 +92,7 @@ INPUT                  = doc_apidef.h \
                          libfifo.vhdl \
                          libpipe.vhdl \
                          libnetpp.vhdl \
+                         vfifo.vhdl \
                          virtualfifo.vhdl \
                          simpipe.vhdl \
                          simnetpp.vhdl \
@@ -231,8 +232,8 @@ EXPAND_ONLY_PREDEF     = NO
 SEARCH_INCLUDES        = NO
 INCLUDE_PATH           = include/
 INCLUDE_FILE_PATTERNS  =
-PREDEFINED             =
-EXPAND_AS_DEFINED      =
+PREDEFINED             = RUN_CHEAD
+EXPAND_AS_DEFINED      = 
 SKIP_FUNCTION_MACROS   = YES
 #---------------------------------------------------------------------------
 # Configuration::additions related to external references

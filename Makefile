@@ -9,7 +9,7 @@ VERSION = 0.04
 
 CSRCS = pipe.c fifo.c thread.c helpers.c ram.c
 
-DUTIES = simpipe simfifo simram netpp.vpi
+DUTIES = simpipe simfifo simram simboard netpp.vpi
 
 PLATFORM = $(shell uname)
 
@@ -58,14 +58,16 @@ OBJS = $(CSRCS:%.c=%.o)
 
 VHDL = $(HOME)/src/vhdl
 VHDLFILES = txt_util.vhdl
-VHDLFILES += libpipe.vhdl libfifo.vhdl
+VHDLFILES += libpipe.vhdl libfifo.vhdl libvirtual.vhdl
 VHDLFILES += simfifo.vhdl 
 ifdef NETPP
 VHDLFILES += iomap_config.vhdl registermap_pkg.vhdl libnetpp.vhdl
 VHDLFILES += simnetpp.vhdl 
 VHDLFILES += simfb.vhdl
+VHDLFILES += vfifo.vhdl
 VHDLFILES += dpram16.vhdl
 VHDLFILES += simram.vhdl
+VHDLFILES += simboard.vhdl
 endif
 VHDLFILES += simpipe.vhdl
 
@@ -106,6 +108,9 @@ simfifo: work-obj93.cf $(LIBGHDLEX)
 simram: work-obj93.cf $(LIBGHDLEX)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
+simboard: work-obj93.cf $(LIBGHDLEX)
+	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
+
 simnetpp: work-obj93.cf $(LIBGHDLEX)
 	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
 
@@ -144,23 +149,24 @@ $(LIBSLAVE)/libslave.a: netpp
 allnetpp: $(LIBSLAVE)/libslave.a
 	$(MAKE) NETPP=$(CURDIR)/netpp
 
-VPIOBJS = vpiwrapper.o vpiproplist.o vpihandler.o vpinetpp.o
+VPIOBJS = vpiwrapper.o vpihandler.o 
+VPIOBJS += vpi_proplist.o vpi_netpp.o vpi_ram.o
 
 vpiwrapper.o: vpiwrapper.c
-	$(CC) -o $@ -c -fPIC $(CFLAGS) $<
+	$(CC) -o $@ -c $(CFLAGS) $<
 
 vpihandler.o: vpihandler.c
-	$(CC) -o $@ -c -fPIC $(CFLAGS) $<
+	$(CC) -o $@ -c $(CFLAGS) $<
 
-vpi%.o: %.c
-	$(CC) -o $@ -c -fPIC $(CFLAGS) $<
+vpi_%.o: %.c
+	$(CC) -o $@ -c $(CFLAGS) $<
 
 thread.o: thread.c
-	$(CC) -o $@ -c -fPIC $(CFLAGS) $<
+	$(CC) -o $@ -c $(CFLAGS) $<
 
 # Only with netpp > v0.4
 netpp.vpi: $(VPIOBJS)
-	$(CC) --shared -o $@ $(VPIOBJS) -lpthread
+	$(CC) --shared -o $@ $(VPIOBJS) -lpthread -L$(LIBSLAVE) -lslave
 
 doc_apidef.h: apidef.h
 	cpp -C -E -DRUN_CHEAD $< >$@

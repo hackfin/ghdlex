@@ -53,9 +53,6 @@
 #include <pthread.h>
 #include "netppwrap.h"
 
-extern DeviceDesc g_devices[];
-extern int g_ndevices;
-
 int binstr_to_uint(const char *l, int nbits, uint32_t *val)
 {
 	uint32_t v = 0;
@@ -183,8 +180,6 @@ int scan(struct t_cb_data *cb)
 
 	TOKEN root;
 
-	// first, register static properties:
-	register_proplist(g_devices, g_ndevices);
 
 	root = local_getroot(NULL);
 

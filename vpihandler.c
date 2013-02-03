@@ -31,6 +31,33 @@ struct vpi_handle_cache {
 	vpiHandle emuir;
 };
 
+int handle_fifo(void *p, int write, DCValue *val)
+{
+	// printf("%s (%d)\n", __FUNCTION__, write);
+	DuplexFifo *df = (DuplexFifo *) p;
+	if (write) {
+		return set_fifo(&df->out, val);
+	} else {
+		return get_fifo(&df->in, val);
+	}
+}
+
+int handle_fifo_infill(DuplexFifo *df, int write, DCValue *out)
+{
+	if (write) return DCERR_PROPERTY_ACCESS;
+	out->value.i = fifo_fill(&df->in);
+	return 0;
+}
+
+int handle_fifo_outfill(DuplexFifo *df, int write, DCValue *out)
+{
+	if (write) return DCERR_PROPERTY_ACCESS;
+	out->value.i = fifo_fill(&df->out);
+	return 0;
+}
+
+
+
 /*
 int get_uint32(DEVICE d, DCValue *out)
 {
@@ -46,17 +73,6 @@ int get_uint32(DEVICE d, DCValue *out)
 }
 */
 
-
-
-int get_fifo(DEVICE d, DCValue *out)
-{
-	return -1;
-}
-
-int set_fifo(DEVICE d, DCValue *in)
-{
-	return -1;
-}
 
 /** Dummy register space. Just a RAM.
  * This is accessed by sim_regmap_read()/sim_regmap_write()

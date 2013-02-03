@@ -28,7 +28,7 @@
 
   <header language="C">#include "example.h"</header>
 
-  <header language="VHDL">iomap_config</header>
+  <header language="VHDL">library work; use work.iomap_config.all;</header>
 
   <!--This is a header file specification. Statements in this field will be included
 in handler skeleton code and in the generated property list.
@@ -155,22 +155,22 @@ Including a header is necessary when implementing access to global variables.-->
         <regref bits="IRQ" ref="Control" />
       </property>
 
-      <struct name="Fifo">
-        <property access="RW" name="Buffer" type="BUFFER">
+      <struct name="Fifo" id="fifo">
+        <property id="fifobuf" access="RW" name="Buffer" type="BUFFER">
           <!--A buffer object that is handled via a handler function. See handler.c
 (Function get_fifo()/set_fifo() for details.)-->
 
           <info>A FIFO buffer for communication between VHDL simulation and external software.</info>
 
-          <handler>fifo</handler>
+          <handler type="DYNAMIC">fifo</handler>
         </property>
 
-        <property access="RO" name="InFill" type="INT">
-          <handler>fifo_infill</handler>
+        <property id="fifo_infill" access="RO" name="InFill" type="INT">
+          <handler type="DYNAMIC">fifo_infill</handler>
         </property>
 
-        <property access="RO" name="OutFill" type="INT">
-          <handler>fifo_outfill</handler>
+        <property id="fifo_outfill" access="RO" name="OutFill" type="INT">
+          <handler type="DYNAMIC">fifo_outfill</handler>
         </property>
       </struct>
     </group>

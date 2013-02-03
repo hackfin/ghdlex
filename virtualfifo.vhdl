@@ -7,6 +7,7 @@
 --
 -- Unlike the CFIFO implementation, this allows full duplex (simultaneous) I/O
 --
+-- CAN BE INSTANCED ONLY ONCE!!! Use VFIFO for multiple instances of FIFOs
 
 library ieee;
 use ieee.std_logic_1164.all;
@@ -17,7 +18,10 @@ use ghdlex.ghpi_fifo.all;
 use ghdlex.ghpi_netpp.all; -- For virtual register I/O (regmap_read())
 use ghdlex.fpga_registers.all;    -- Register definitions
 
---! \brief A virtual FIFO component, accessible via netpp
+--! \brief A virtual FIFO component, standalone (one instance)
+--!
+--! \deprecated Do not use for new designs. Can only have one instance.
+--!             Use the VFIFO component instead.
 --!
 --! Just include into your design, upon start
 --! it will create the necessary FIFO thread and terminate when the

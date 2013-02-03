@@ -11,7 +11,9 @@
 #include <stdio.h>
 #include "netpp.h"
 #include "property_types.h"
+#include "property_protocol.h"
 #include "dynprops.h"
+#include "fifo.h"
 #include "ghpi.h"
 #include "netppwrap.h"
 
@@ -25,6 +27,9 @@ DEVICE s_devices[MAX_NUM_DEVICES] = {
 };
 
 static int g_is_dynamic = 0;
+
+// External token in prop list:
+extern TOKEN g_t_fifo;
 
 ////////////////////////////////////////////////////////////////////////////
 // PROTOS
@@ -42,6 +47,7 @@ PropertyDesc s_rootprop = {
 
 ////////////////////////////////////////////////////////////////////////////
 
+/** A buffer Property Description template */
 PropertyDesc s_buffer_template = {
 	.type = DC_BUFFER,
 	.flags = F_RW,
@@ -157,7 +163,16 @@ void sim_usleep(integer_ghdl cycles)
 	usleep(cycles);
 }
 
+int ghdlname_to_propname(const char *name, char *propname, int len)
+{
+	strncpy(propname, name, len-1);
+	propname[len-1] = '\0';
+}
 
+// No longer used, we don't compress the names down anymore, to keep
+// the VHDL hierarchy sane.
+
+#if 0
 int ghdlname_to_propname(const char *name, char *propname, int len)
 {
 	char c;
@@ -184,7 +199,7 @@ int ghdlname_to_propname(const char *name, char *propname, int len)
 			case S_WORD:
 				switch (c) {
 					case '@': at = name - 1; state = S_NEUTRAL; break;
-					case ':': state = S_DOT; break;
+					case ':': at = name - 1; state = S_DOT; break;
 				}
 		}
 	}
@@ -198,6 +213,7 @@ int ghdlname_to_propname(const char *name, char *propname, int len)
 	}
 	return -1;
 }
+#endif
 
 PropertyDesc *property_desc_new(PropertyDesc *template)
 {
@@ -209,12 +225,16 @@ PropertyDesc *property_desc_new(PropertyDesc *template)
 	return p;
 }
 
-TOKEN property_from_ram(TOKEN parent, void *entity, const char *name)
+/** Clone a dynamic property from a simple standalone template without
+ * hierarchy.
+ */
+TOKEN property_from_template(TOKEN parent, void *entity, const char *name,
+	PropertyDesc *template)
 {
 	TOKEN t;
 	PropertyDesc *p;
 
-	p = property_desc_new(&s_buffer_template);
+	p = property_desc_new(template);
 	if (!p) return TOKEN_INVALID;
 	p->access.custom.p = entity; // Story entity handle in custom pointer
 
@@ -223,13 +243,62 @@ TOKEN property_from_ram(TOKEN parent, void *entity, const char *name)
 	return t;
 }
 
+/** Recursively construct dynamic property from property template:
+ * The 'template' must be part of the device property hierarchy,
+ * because all its children will be cloned as well
+ */
+TOKEN property_from_entity(TOKEN parent, void *entity, 
+	TOKEN template, const char *name)
+{
+	TOKEN t, walk;
+	PropertyDesc *p, *child;
+	PropertyDesc *tdesc = getProperty_ByToken(template);
+
+	p = property_desc_new(tdesc);
+	if (!p) return TOKEN_INVALID;
+	p->access.custom.p = entity; // Story entity handle in custom pointer
+
+	t = new_dynprop(name, p);
+	// iterate children:
+
+	if (t != TOKEN_INVALID) {
+		dynprop_append(parent, t);
+		// and create its children:
+		// Select first child from template:
+		walk = property_select(template, template);
+		while (walk != TOKEN_INVALID) {
+			child = getProperty_ByToken(walk);
+			property_from_entity(t, entity, walk, child->name);
+			// Get successor:
+			walk = property_select(template, walk);
+		}
+	}
+	return t;
+}
+
+int register_fifo(void *entity, char *name)
+{
+	TOKEN t;
+	TOKEN root;
+	root = local_getroot(NULL);
+	printf("Registering FIFO..\n");
+	// Retrieve descriptor for FIFO token (defined externally)
+	t = property_from_entity(root, entity, g_t_fifo, name);
+	if (t == TOKEN_INVALID) {
+		printf("Unable to register FIFO, out of properties?\n");
+		return -1;
+	}
+	printf("Registered FIFO property with name '%s'\n", name);
+	return 0;
+}
 
 int register_ram(void *entity, char *name)
 {
 	TOKEN t;
 	TOKEN root;
 	root = local_getroot(NULL);
-	t = property_from_ram(root, entity, name);
+	// Clone a property instance from the buffer template:
+	t = property_from_template(root, entity, name, &s_buffer_template);
 	if (t == TOKEN_INVALID) {
 		printf("Unable to register ram, out of properties?\n");
 		return -1;
@@ -238,25 +307,19 @@ int register_ram(void *entity, char *name)
 	return 0;
 }
 
-int buffer_handler(void *p, int write, DCValue *val)
-{
-	// printf("%s (%d)\n", __FUNCTION__, write);
-	if (write) {
-		return set_ram((DEVICE) p, val);
-	} else {
-		return get_ram((DEVICE) p, val);
-	}
-}
-
 char g_initialized = 0;
+
+extern DeviceDesc g_devices[];
+extern int g_ndevices;
 
 int netpp_root_init(const char *name)
 {
 	TOKEN t;
 	if (g_initialized) {
-		printf("netpp already initialized, ignoring root %s\n", name);
+		fprintf(stderr, "netpp already initialized, ignoring root %s\n", name);
 		return 1;
 	}
+	register_proplist(g_devices, g_ndevices);
 
 	g_is_dynamic = 1;
 

@@ -11,15 +11,16 @@ use work.ghpi_netpp.all;
 --! This RAM registers itself as a netpp property and can be addressed
 --! under its instance name from outside, provided the netpp.vpi module
 --! is loaded or initialized from within the simulation.
---! Access to a RAM block is easiest done via python, example:
+--! Access to a RAM block is easiest done via Python, example:
 --! \code
 --! import netpp
 --! dev = netpp.connect("localhost")
 --! root = dev.sync()
-
---! rambuf0 = root.Ram0.get()  # Get old buffer
---! a = 256 * chr(0)           # Generate 256 zeros
---! root.Ram0.set(buffer(a))   # Set RAM
+--!
+--! Ram0 = getattr(root, ":sim_top:ram:") # Retrieve Ram0 entity token
+--! rambuf0 = Ram0.get()  # Get old buffer
+--! a = 256 * chr(0)      # Generate 256 zeros
+--! Ram0.set(buffer(a))   # Set RAM
 --! \endcode
 --!
 entity DualPort16 is
@@ -48,7 +49,7 @@ begin
 -- Initialization within simulation:
 	process
 	begin
-		ram_handle := ram_new(ADDR_W, simulation'instance_name);
+		ram_handle := ram_new(simulation'path_name, ADDR_W);
 		if ram_handle = null then
 			assert false report "Failed to reserve RAM buffer";
 		end if;

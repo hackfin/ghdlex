@@ -42,11 +42,6 @@ architecture behaviour of CFIFO is
 	constant T_OEON  : time := 10.5 ns;
 	constant T_OEOFF : time := 10.5 ns;
 
-	-- FLAG defines
-	constant TX_PROG : natural := 0;
-	constant TX_EMPTY : natural := 1;
-	constant RX_FULL : natural := 2;
-
 	constant DATA_WIDTH : natural := 8*WORDSIZE;
 
 	signal fifo_flags :  fifoflag_t := "000000";
