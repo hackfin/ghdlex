@@ -51,18 +51,31 @@
 #define _RESOLVE(x,y) _CONCAT(x, y)
 #define COMMENT _RESOLVE(_C1,_C2)
 
-/** \addtogroup GHPIfuncs
- * \{ */
 
 #undef APIDEF_UNINITIALIZE
 #include "apimacros.h"
 
-/** Type definitions for C<->GHDL interface.
+/** \addtogroup GHPIfuncs
+ * \{ */
+
+/* Type definitions for C<->GHDL interface.
  *
  * Note: You have to define these types in libnetpp.chdl
  *
  */
 
+// Standard simple types:
+
+/** A 32 bit signed integer */
+DEFTYPE_EXPLICIT(integer, int32_t)
+/** A GHDL interface 'fat pointer' */
+DEFTYPE_EXPLICIT(string, struct fat_pointer *)
+/** Pointer to constrained unsigned array */
+DEFTYPE_EXPLICIT(unsigned, struct fat_pointer *)
+/** Void */
+DEFTYPE_EXPLICIT(void, void)
+
+// NETPP wrapper types:
 /** A netpp device handle */
 DEFTYPE_HANDLE32(netpphandle_t)
 /** Netpp device property token */
@@ -88,6 +101,11 @@ DEFTYPE_PROTOSTRUCT(rambuf_t, struct RamDesc)
 DEFTYPE_PROTOSTRUCT(duplexfifo_t, struct duplexfifo_t)
 
 DEFTYPE_SLV(fifoflag_t, 6)
+
+/* A Bus type handle */
+DEFTYPE_PROTOSTRUCT(bus_t, struct bus_t)
+
+DEFTYPE_SLV(busflag_t, 3)
 
 /* Pointer to constrained unsigned array */
 DEFTYPE_SLV(regaddr_t, 8)
@@ -156,16 +174,22 @@ API_DEFPROC( releasefb,       _T(void),
 VHDL_COMMENT("Read from dummy register map. At the moment only 8 bit wide")
 VHDL_COMMENT("@param addr  Register map address")
 VHDL_COMMENT("@param data  Register map data")
-API_DEFPROC( regmap_read, _T(void), ARG(addr, regaddr_t), ARGO(data, byte_t))
+API_DEFPROC( regmap_read, _T(void), ARG(addr, regaddr_t), ARGO(data, unsigned))
 
 VHDL_COMMENT("Write to dummy register map. At the moment only 8 bit wide")
 VHDL_COMMENT("@param addr  Register map address")
 VHDL_COMMENT("@param data  Register map data")
-API_DEFPROC( regmap_write, _T(void), ARG(addr, regaddr_t), ARG(data, byte_t))
+API_DEFPROC( regmap_write, _T(void), ARG(addr, regaddr_t), ARG(data, unsigned))
 
 VHDL_COMMENT("Sleep for 'cycles' microseconds")
 VHDL_COMMENT("@param cycles sleep time in us")
 API_DEFPROC( usleep,       _T(void), ARG(cycles, integer))
+
+VHDL_COMMENT("Throttle simulation")
+VHDL_COMMENT("@param activity When toggled, do not sleep")
+VHDL_COMMENT("@param cycles   sleep time in us")
+API_DEFPROC( throttle,     _T(void), ARG(activity, byte_t),
+             ARG(cycles, integer) )
 
 /* New FIFO API */
 
@@ -176,7 +200,6 @@ API_DEFFUNC( fifo_new_wrapped, _T(duplexfifo_t),
 	ARG(wordsize, integer)
 	)
 
-/* Wrapped function, see fifo_new in libnetpp.chdl */
 API_DEFPROC( fifo_rxtx, _T(void), ARGIOP(df, duplexfifo_t),
 	ARGIO(data, unsigned),
 	ARGIO(flags, fifoflag_t)
@@ -184,6 +207,29 @@ API_DEFPROC( fifo_rxtx, _T(void), ARGIOP(df, duplexfifo_t),
 
 VHDL_COMMENT("Delete FIFO")
 API_DEFPROC( fifo_del,        _T(void), ARGIOP(fifo, duplexfifo_t))
+
+/* Virtual Bus API */
+
+/* Wrapped function, see bus_new in libnetpp.chdl */
+API_DEFFUNC( bus_new_wrapped, _T(bus_t),
+	ARG(name, string),
+	ARG(width, integer)
+	)
+
+
+VHDL_COMMENT("Virtual Bus I/O")
+VHDL_COMMENT("@param vbus     Bus handle")
+VHDL_COMMENT("@param addr     Address bus")
+VHDL_COMMENT("@param data     Data bus")
+VHDL_COMMENT("@param flags    Bus flags")
+API_DEFPROC( bus_rxtx, _T(void), ARGIOP(vbus, bus_t),
+	ARGIO(addr, unsigned),
+	ARGIO(data, unsigned),
+	ARGIO(flags, busflag_t)
+	)
+
+VHDL_COMMENT("Delete Bus")
+API_DEFPROC( bus_del,        _T(void), ARGIOP(vbus, bus_t))
 
 /* RAM stuff */
 
@@ -213,7 +259,6 @@ API_DEFPROC( ram_del,         _T(void), ARGIOP(ram, rambuf_t))
 API_DEFFUNC( get_ptr,       _T(handle_t), ARG(dev, netpphandle_t))
 
 API_DEFPROC( set_ptr,       _T(void), ARGIO(h, handle_t))
-
 
 
 // Call API macro auxiliaries:

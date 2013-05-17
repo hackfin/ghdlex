@@ -13,10 +13,10 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
-library work;
+library ghdlex;
 --! Use the ghpi_netpp package
-use work.ghpi_netpp.all;
-use work.txt_util.all;
+	use ghdlex.ghpi_netpp.all;
+	use ghdlex.txt_util.all;
 
 use std.textio.all;
 

@@ -93,6 +93,13 @@ int v_handler(void *p, int write, DCValue *val)
 	char str[32];
 	int size;
 
+	static
+	s_vpi_time time = {
+		.type = vpiSimTime,
+		.high = 0,
+		.low  = 1200,
+	};
+
 	uint32_t uval;
 
 	v.format = vpiBinStrVal;
@@ -104,6 +111,11 @@ int v_handler(void *p, int write, DCValue *val)
 
 	if (write) {
 		switch (val->type) {
+			case DC_COMMAND:
+				uint_to_binstr(str, size, val->value.i);
+				v.value.str = str;
+				vpi_put_value((vpiHandle) p, &v, &time, vpiInertialDelay);
+				return 0;
 			case DC_BOOL:
 				if (val->value.i) {
 					str[0] = '1';
@@ -111,6 +123,8 @@ int v_handler(void *p, int write, DCValue *val)
 					str[0] = '0';
 				}
 				break;
+			case DC_REGISTER:
+			case DC_MODE:
 			case DC_INT:
 				uint_to_binstr(str, size, val->value.i);
 				break;
@@ -121,9 +135,12 @@ int v_handler(void *p, int write, DCValue *val)
 				return DCERR_PROPERTY_TYPE_MATCH;
 		}
 		v.value.str = str;
-		vpi_put_value((vpiHandle) p, &v, NULL, vpiNoDelay);
+		vpi_put_value((vpiHandle) p, &v, &time, vpiInertialDelay);
+		// vpi_put_value((vpiHandle) p, &v, NULL, vpiNoDelay);
 	} else {
-		binstr_to_uint(v.value.str, size, &uval);
+		if (binstr_to_uint(v.value.str, size, &uval) < 1) {
+			fprintf(stderr, "Conversion warning in %s\n", __FUNCTION__);
+		}
 		val->value.i = uval;
 	}
 	return 0;
@@ -147,6 +164,9 @@ TOKEN property_from_signal(TOKEN parent, vpiHandle sig)
 	name = vpi_get_str(vpiName, sig);
 	v.format = vpiBinStrVal;
 	vpi_get_value(sig, &v);
+	if (!v.value.str) {
+		return TOKEN_INVALID;
+	}
 	size = strlen(v.value.str);
 
 	p = property_desc_new(&s_property_template);
@@ -159,7 +179,7 @@ TOKEN property_from_signal(TOKEN parent, vpiHandle sig)
 		if (size == 1)
 			p->type = DC_BOOL;
 		else
-			p->type = DC_INT;
+			p->type = DC_REGISTER;
 	} else {
 		p->type = DC_BUFFER;
 	}
@@ -168,6 +188,8 @@ TOKEN property_from_signal(TOKEN parent, vpiHandle sig)
 	dynprop_append(parent, t);
 	return t;
 }
+
+static vpiHandle s_vpictrl = 0;
 
 int scan(struct t_cb_data *cb)
 {
@@ -179,7 +201,7 @@ int scan(struct t_cb_data *cb)
 	vpiHandle sig;
 
 	TOKEN root;
-
+	TOKEN t;
 
 	root = local_getroot(NULL);
 
@@ -195,7 +217,16 @@ int scan(struct t_cb_data *cb)
 		if (sig_iter) {
 			while ((sig = vpi_scan (sig_iter)) != NULL) {
 				name = vpi_get_str(vpiName, sig);
-				property_from_signal(root, sig);
+				// Don't export when prefixed 'vpi_'
+				if (strncmp(name, "vpi_", 4) == 0) {
+					printf("Setting VPI ctrl signal\n");
+					s_vpictrl = sig_iter; // XXX HACK
+				} else {
+					t = property_from_signal(root, sig);
+					if (t == TOKEN_INVALID) {
+						fprintf(stderr, "Signal '%s' not exported\n", name);
+					}
+				}
 			}
 		}
 	}
@@ -214,27 +245,61 @@ void *netpp_thread(void *arg)
 }
 
 pthread_t g_thread;
+s_cb_data run_cb;
+
+
+int run(struct t_cb_data *cb)
+{
+	s_vpi_time time;
+
+	vpi_get_time(NULL, &time);
+	printf("Run: Cur time: %d %d\n", time.low, time.high);
+
+	return 0;
+}
 
 int initialize(struct t_cb_data *cb)
 {
-	int error;
+	int error = 0;
+
+	s_vpi_time time = {
+		.type = vpiSimTime,
+	};
+
 	// Init for some dynamic properties:
 	netpp_root_init("VPI_GHDLwrapper");
 	scan(cb);
-	
+
+/*
+	vpi_get_time(NULL, &time);
+	printf("Cur time: %d %d\n", time.low, time.high);
+	time.low += 200000;
+
+	run_cb.reason = cbReadOnlySynch;
+	run_cb.cb_rtn = &run;
+	run_cb.obj = 0;
+	run_cb.value = 0;
+	run_cb.time = &time; // &time;
+	run_cb.user_data = 0;
+
+	if (vpi_register_cb(&run_cb) == NULL)
+	vpi_printf("cannot register ReadOnlySync call back\n");
+*/
 	error = pthread_create(&g_thread, NULL, &netpp_thread, NULL);
 
 	return error;
 }
 
+
+s_cb_data init_cb;
+
 void my_handle_register()
 {
-	s_cb_data cb;
+	init_cb.reason = cbEndOfCompile;
+	init_cb.cb_rtn = &initialize;
+	init_cb.user_data = 0;
 
-	cb.reason = cbEndOfCompile;
-	cb.cb_rtn = &initialize;
-	cb.user_data = 0;
-	if (vpi_register_cb(&cb) == NULL)
+	if (vpi_register_cb(&init_cb) == NULL)
 	vpi_printf("cannot register EndOfCompile call back\n");
 }
 

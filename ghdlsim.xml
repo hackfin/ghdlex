@@ -28,7 +28,7 @@
 
   <header language="C">#include "example.h"</header>
 
-  <header language="VHDL">library work; use work.iomap_config.all;</header>
+  <header language="VHDL">-- library work; use work.iomap_config.all;</header>
 
   <!--This is a header file specification. Statements in this field will be included
 in handler skeleton code and in the generated property list.
@@ -99,9 +99,20 @@ Including a header is necessary when implementing access to global variables.-->
       <minor>0</minor>
     </revision>
 
-    <registermap addrsize="8" endian="BIG" id="fpga_registers"
-                 name="FPGA_Registermap">
-      <register addr="0x00" id="MagicId"></register>
+    <!--A (virtual) register map:-->
+
+    <registermap addrsize="16" endian="LITTLE" hidden="true" id="fake"
+                 name="Fake MMR">
+      <register access="RO" addr="0x00" id="decode_dummy">
+        <bitfield lsb="0" msb="6" name="MMR_CFG_fpga_registers"></bitfield>
+
+        <bitfield lsb="0" msb="4" name="MMR_CFG_tap_registers"></bitfield>
+      </register>
+    </registermap>
+
+    <registermap addrsize="16" endian="BIG" id="fpga_registers"
+                 name="FPGA_Registers" offset="0x000">
+      <register access="RO" addr="0x00" id="MagicId"></register>
 
       <register addr="0x02" id="Control">
         <info>Control register</info>
@@ -124,7 +135,115 @@ Including a header is necessary when implementing access to global variables.-->
       </register>
     </registermap>
 
-    <group name="SimulationInterface">
+    <registermap addrsize="4" endian="BIG" id="tap_registers" name="TAP"
+                 offset="0x0200">
+      <register access="RO" addr="0x00" id="TAP_IDCODE" size="4"></register>
+
+      <register access="RO" addr="0x04" id="TAP_EMUDATA" size="4"></register>
+
+      <register addr="0x08" id="TAP_EMUCTRL" size="2">
+        <bitfield lsb="0" msb="0" name="EMUREQ"></bitfield>
+
+        <bitfield lsb="4" msb="6" name="SELECT_REG"></bitfield>
+
+        <bitfield lsb="7" msb="7" name="EMUEXEC"></bitfield>
+
+        <bitfield lsb="15" msb="15" name="CORE_RESET"></bitfield>
+
+        <default>0000000000000000</default>
+      </register>
+
+      <register access="RO" addr="0x0a" id="TAP_EMUSTAT" size="2">
+        <bitfield lsb="0" msb="0" name="EMUACK"></bitfield>
+
+        <bitfield lsb="1" msb="1" name="EMURDY"></bitfield>
+
+        <bitfield lsb="8" msb="15" name="CORE_SPEC"></bitfield>
+      </register>
+
+      <register access="RW" addr="0x0c" id="TAP_EMUIR" size="4"></register>
+
+      <register access="RO" addr="0x10" id="TAP_EMUPC" size="4"></register>
+
+      <register access="RW" addr="0x18" id="TAP_SIMCTRL" size="1">
+        <bitfield lsb="0" msb="0" name="SIM_THROTTLE"></bitfield>
+
+        <default>1</default>
+      </register>
+    </registermap>
+
+    <group name="VirtualTap">
+      <info>The VirtualTAP register set is a direct test access port implemented as virtual Bus in GHDLex.
+It does not require any extra handshake logic.</info>
+
+      <property name="EmuExec" type="BOOL">
+        <info>Toggle this pin to execute command in EmuIR register</info>
+
+        <regref bits="EMUEXEC" ref="TAP_EMUCTRL" />
+      </property>
+
+      <property name="EmuReq" type="BOOL">
+        <info>Setting this bit H asserts the emulation request pin to the core</info>
+
+        <regref bits="EMUREQ" ref="TAP_EMUCTRL" />
+      </property>
+
+      <property name="SimThrottle" type="BOOL">
+        <info>Set 1 to throttle simulation</info>
+
+        <regref bits="SIM_THROTTLE" ref="TAP_SIMCTRL" />
+      </property>
+
+      <property access="RO" name="EmuReady" type="BOOL">
+        <info>'1' when emulation ready</info>
+
+        <regref bits="EMURDY" ref="TAP_EMUSTAT" />
+      </property>
+
+      <property access="RO" name="EmuAck" type="BOOL">
+        <info>'1' when in emulation mode</info>
+
+        <regref bits="EMUACK" ref="TAP_EMUSTAT" />
+      </property>
+
+      <property access="RO" name="EmuStat" type="REGISTER">
+        <info>Emulation status register</info>
+
+        <regref ref="TAP_EMUSTAT" />
+      </property>
+
+      <property name="EmuCtrl" type="REGISTER">
+        <info>Emulation control register</info>
+
+        <regref ref="TAP_EMUCTRL" />
+      </property>
+
+      <property name="EmuIR" type="REGISTER">
+        <info>Instruction to execute on core on next EmuExec bit toggle</info>
+
+        <regref ref="TAP_EMUIR" />
+      </property>
+
+      <property access="RO" name="EmuData" type="REGISTER">
+        <info>Return emulation data from the core</info>
+
+        <regref ref="TAP_EMUDATA" />
+      </property>
+
+      <property access="RO" name="EmuPC" type="REGISTER">
+        <info>Current Program counter of core. Valid only when in emulation.</info>
+
+        <regref ref="TAP_EMUPC" />
+      </property>
+
+      <property access="RO" name="IDCode" type="REGISTER">
+        <info>The IDCODE of the core. Unique to every core architecture.</info>
+
+        <regref ref="TAP_IDCODE" />
+      </property>
+    </group>
+
+    <group name="VirtualPins">
       <property access="RW" name="Enable" type="BOOL">
         <info>Enable bit. Might be not used.</info>
 
@@ -140,7 +259,13 @@ Including a header is necessary when implementing access to global variables.-->
       <property access="RW" name="Timeout" type="INT">
         <info>Timeout value of FIFO in real microseconds</info>
 
-        <variable>g_timeout</variable>
+        <variable>g_fifoconfig.timeout</variable>
+      </property>
+
+      <property access="RW" name="Retry" type="INT">
+        <info>Number of retries after timeout</info>
+
+        <variable>g_fifoconfig.retry</variable>
       </property>
 
       <property access="RW" name="Throttle" type="BOOL">
@@ -154,9 +279,11 @@ Including a header is necessary when implementing access to global variables.-->
 
         <regref bits="IRQ" ref="Control" />
       </property>
+    </group>
 
-      <struct name="Fifo" id="fifo">
-        <property id="fifobuf" access="RW" name="Buffer" type="BUFFER">
+    <group name="VirtualJTAG">
+      <struct id="fifo" name="Fifo">
+        <property access="RW" id="fifobuf" name="Buffer" type="BUFFER">
           <!--A buffer object that is handled via a handler function. See handler.c
 (Function get_fifo()/set_fifo() for details.)-->
 
@@ -165,11 +292,11 @@ Including a header is necessary when implementing access to global variables.-->
           <handler type="DYNAMIC">fifo</handler>
         </property>
 
-        <property id="fifo_infill" access="RO" name="InFill" type="INT">
+        <property access="RO" id="fifo_infill" name="InFill" type="INT">
           <handler type="DYNAMIC">fifo_infill</handler>
         </property>
 
-        <property id="fifo_outfill" access="RO" name="OutFill" type="INT">
+        <property access="RO" id="fifo_outfill" name="OutFill" type="INT">
           <handler type="DYNAMIC">fifo_outfill</handler>
         </property>
       </struct>

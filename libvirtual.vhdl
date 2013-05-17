@@ -47,5 +47,20 @@ package virtual is
 		);
 	end component DualPort16;
 
+	component VirtualBus
+		generic (
+			ADDR_W   : natural := 8;
+			DATA_W   : natural := 32
+		);
+		port (
+			clk         : in  std_logic; --! The input master clock
+			wr          : out std_logic;
+			rd          : out std_logic;
+			addr        : out std_logic_vector(ADDR_W-1 downto 0);
+			data_in     : out std_logic_vector(DATA_W-1 downto 0);
+			data_out    : in  std_logic_vector(DATA_W-1 downto 0)
+		);
+	end component VirtualBus;
+
 end package;
 

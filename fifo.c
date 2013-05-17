@@ -39,14 +39,13 @@ int fifo_init(Fifo *f, unsigned short size, unsigned short wordsize)
 {
 	int error;
 	f->size = size;
+	f->fromlogic = logic_to_bytes;
 	switch (wordsize) {
 		case 1:
 			f->tologic = bytes_to_logic;
-			f->fromlogic = logic_to_bytes;
 			break;
 		case 2:
 			f->tologic = words_to_logic;
-			f->fromlogic = logic_to_words;
 			break;
 		default:
 			fprintf(stderr, "Unsupported word size\n");
@@ -225,6 +224,7 @@ void fifo_pump(struct duplexfifo_t *df, struct fat_pointer *data, char *flag)
 	short n;
 	short nbits = data->bounds->len;
 	short nbytes = (nbits + 7) >> 3;
+	int error;
 
 	Fifo *fifo_in, *fifo_out;
 
@@ -247,9 +247,11 @@ void fifo_pump(struct duplexfifo_t *df, struct fat_pointer *data, char *flag)
 	
 	// Do we write?
 	if (tx) {
-		fifo_in->fromlogic(data->base, nbytes, valuebytes);
+		error = fifo_in->fromlogic(data->base, nbytes, valuebytes);
+		if (error < 0) {
+			printf("%s: Bad FIFO value @%d\n", __FILE__, fifo_in->fill);
+		}
 		fifo_write(fifo_in, valuebytes, nbytes);
-		// printf("S -> H fill: %d\n", fifo_in->fill);
 	}
 
 	// Did we read advance?
@@ -321,11 +323,13 @@ void_ghdl sim_fifo_del(duplexfifo_t_ghdl *fifo)
 int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n)
 {
 	int i;
-	int retry = 5;
+	int retry = g_fifoconfig.retry;
 
 	while (n > 0) {
 		while (!fifo_fill(f)) {
-			usleep(g_timeout);
+			usleep(g_fifoconfig.timeout);
+			//fprintf(stderr,
+				//"%s(): FIFO retry #%d (requested: %d)\n", __FUNCTION__, retry, n);
 			retry--;
 			if (retry == 0) return DCERR_COMM_TIMEOUT;
 		}
@@ -339,11 +343,11 @@ int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n)
 int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n)
 {
 	int i;
-	int retry = 5;
+	int retry = g_fifoconfig.retry;
 
 	while (n) {
 		while (fifo_fill(f) == f->size ) {
-			usleep(g_timeout);
+			usleep(g_fifoconfig.timeout);
 			retry--;
 			if (retry == 0) return DCERR_COMM_TIMEOUT;
 		}

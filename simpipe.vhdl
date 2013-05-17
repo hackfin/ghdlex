@@ -7,9 +7,9 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
-library work;
-use work.ghpi_pipe.all;
-use work.txt_util.all;
+library ghdlex;
+use ghdlex.ghpi_pipe.all;
+use ghdlex.txt_util.all;
 
 use std.textio.all;
 

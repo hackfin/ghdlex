@@ -2,11 +2,12 @@ library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
-library work;
+library ghdlex;
 -- The RAM functions are generated within the netpp autowrapper
-use work.ghpi_netpp.all;
-use work.ghpi_fifo.all;
-use work.txt_util.all;
+	use ghdlex.ghpi_netpp.all;
+	use ghdlex.ghpi_fifo.all;
+	use ghdlex.virtual.all;
+	use ghdlex.txt_util.all;
 use std.textio.all;
 
 
@@ -21,25 +22,6 @@ architecture simulation of simram is
 	signal data0: unsigned(31 downto 0);
 	signal data1: unsigned(15 downto 0);
 	signal data2: unsigned(15 downto 0);
-
-	component DualPort16 is
-		generic(
-			ADDR_W       : natural := 14
-		);
-		port(
-			clk     : in  std_logic;
-			-- Port A
-			a_we    : in  std_logic;
-			a_addr  : in  unsigned(ADDR_W-1 downto 0);
-			a_write : in  unsigned(16-1 downto 0);
-			a_read  : out unsigned(16-1 downto 0);
-			-- Port B
-			b_we    : in  std_logic;
-			b_addr  : in  unsigned(ADDR_W-1 downto 0);
-			b_write : in  unsigned(16-1 downto 0);
-			b_read  : out unsigned(16-1 downto 0)
-		);
-	end component DualPort16;
 
 begin
 

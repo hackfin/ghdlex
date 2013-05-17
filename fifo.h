@@ -44,7 +44,7 @@ struct fifo_t {
 	unsigned char  unr;    // Underrun (read when empty)
 	pthread_mutex_t mutex; // FIFO locking for concurrent threads
 	void (*tologic)(char *l, int n, const void *b);
-	void (*fromlogic)(char *l, int n, void *b);
+	int (*fromlogic)(char *l, int n, void *b);
 };
 
 struct duplexfifo_t {

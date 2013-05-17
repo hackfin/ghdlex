@@ -58,5 +58,6 @@ struct _propertydesc;
 DEVICE get_device(DEVHANDLE dev);
 int set_property(DEVICE d, const char *name, void *val, int type);
 
+int set_buffer(DEVICE d, TOKEN t, void  *buf, int len);
 
 struct _propertydesc *property_desc_new(struct _propertydesc *template);

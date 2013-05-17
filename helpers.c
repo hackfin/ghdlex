@@ -41,21 +41,22 @@ char slv_desc(unsigned char c)
 int logic_to_uint(const char *l, int nbits, uint32_t *val)
 {
 	uint32_t v = 0;
+	int error = 0;
 	while (nbits--) {
 		v <<= 1;
 		switch (*l) {
 			case HIGH: v |= 1; break;
 			case LOW: break;
 			default:
-				fprintf(stderr, "Warning: Undefined value('%c') in %s\n",
-					slv_desc(*l), __FUNCTION__);
+				fprintf(stderr, "Warning: Undefined value('%c')[%d] in %s\n",
+					slv_desc(*l), nbits, __FUNCTION__);
 				*val = 0xffffffff;
-				return -1;
+				error = -1;
 		}
 		l++;
 	}
 	*val = v;
-	return 0;
+	return error;
 }
 
 void uint_to_logic(char *l, int nbits, uint32_t val)
@@ -73,26 +74,37 @@ void uint_to_logic(char *l, int nbits, uint32_t val)
 	}
 }
 
-void logic_to_bytes(char *l, int n, void *data)
+int logic_to_bytes(char *l, int n, void *data)
 {
 	uint32_t v;
 	uint8_t *b = (uint8_t *) data;
+	int err;
 
 	while (n--) {
-		logic_to_uint(l, 8, &v);
+		err = logic_to_uint(l, 8, &v);
+		if (err < 0) {
+			return err;
+		}
 		*b++ = v; l += 8;
 	}
+	return err;
 }
 
-void logic_to_words(char *l, int n, void *data)
+int logic_to_words(char *l, int n, void *data)
 {
 	uint16_t *w = (uint16_t *) data;
 	uint32_t v;
+	int err;
 
 	while (n--) {
-		logic_to_uint(l, 16, &v);
+		err = logic_to_uint(l, 16, &v);
+		if (err < 0) {
+			return err;
+		}
 		*w++ = htons(v); l += 16;
 	}
+
+	return err;
 }
 
 void bytes_to_logic(char *l, int n, const void *data)

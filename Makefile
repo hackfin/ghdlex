@@ -5,7 +5,7 @@
 # See LICENSE.txt for usage policies
 #
 
-VERSION = 0.04
+VERSION = 0.042develop
 
 CSRCS = pipe.c fifo.c thread.c helpers.c ram.c
 
@@ -14,6 +14,9 @@ DUTIES = simpipe simfifo simram simboard netpp.vpi
 PLATFORM = $(shell uname)
 
 LIBGHDLEX = libmysim.so
+
+LIBRARIES = $(LIBGHDLEX) lib/ghdlex-obj93.cf
+
 # LIBGHDLEX = libmysim.a
 
 # Not really needed for "sane" VHDL code. Use only for deprecated
@@ -21,15 +24,37 @@ LIBGHDLEX = libmysim.so
 #
 # GHDLFLAGS = --ieee=synopsys
 
+ifdef DEVELOP
+GHDLDIR = /data/src/ghdl/translate
+GHDL = $(GHDLDIR)/ghdldrv/ghdl_gcc
+GHDL_LIBPREFIX = $(GHDLDIR)/lib
+else
+GHDL = ghdl
+endif
+
+GHDLFLAGS = --work=work -Plib
+
+
+# GHDL_PREFIX = $(HOME)/build/ghdl/debian/ghdl
+# GHDL_LIBPREFIX = $(GHDL_PREFIX)/usr/lib/gcc/x86_64-unknown-linux-gnu/4.7.2/vhdl/lib/
+
+# ACTIVATE THIS when compiling with another GHDL
+XGHDL = $(GHDL_PREFIX)/usr/bin/ghdl
+XGHDLFLAGS = --work=work -Plib --PREFIX=$(GHDL_PREFIX) \
+	--GHDL1=$(GHDL_PREFIX)/usr/libexec/gcc/x86_64-unknown-linux-gnu/4.7.2/ghdl1 \
+	--PREFIX=$(GHDL_LIBPREFIX)
+
 # Set to NETPP location, if you want to use specific NETPP dir
 NETPP = $(HOME)/src/netpp
 # Run "make allnetpp" to fetch and build the source
 #
-NETPP_VER = netpp_src-0.31-svn315
+NETPP_VER = netpp-0.40-svn320
 NETPP_TAR = $(NETPP_VER).tgz 
-NETPP_WEB = http://section5.ch/src/$(NETPP_TAR)
+NETPP_WEB = http://section5.ch/customer/head/$(NETPP_TAR)
 NETPP_EXISTS = $(shell [ -e $(NETPP)/xml ] && echo yes )
 CURDIR = $(shell pwd)
+
+WORK = work/work-obj93.cf
 
 CFLAGS = -g -Wall -fPIC
 
@@ -37,12 +62,19 @@ ifeq ($(PLATFORM),Linux)
 LDFLAGS = -Wl,-export-dynamic # Make sure libslave can use local_getroot()
 endif
 
+ifndef NETPP
+NETPP = $(CURDIR)/netpp
+endif
+
+LIBSLAVE = $(NETPP)/devices/libslave
+
 ifeq ($(NETPP_EXISTS),yes)
 	DUTIES += simnetpp simfb
-	NETPP_DEPS = $(NETPP)/include/devlib_error.h registermap.h
+	NETPP_DEPS = $(NETPP)/common \
+		$(NETPP)/include/devlib_error.h registermap.h
 	DEVICEFILE = ghdlsim.xml
-	LIBSLAVE = $(NETPP)/devices/libslave
-	CSRCS += proplist.c handler.c netpp.c framebuf.c
+	CSRCS += proplist.c netpp.c framebuf.c
+	CSRCS += handler.c 
 	CFLAGS += -I$(NETPP)/include -I$(NETPP)/devices
 	CFLAGS += -DUSE_NETPP
 ifeq ($(PLATFORM),Linux)
@@ -56,22 +88,31 @@ endif
 
 OBJS = $(CSRCS:%.c=%.o)
 
+GHDLEX_VHDL = \
+	libfifo.vhdl \
+	libvirtual.vhdl \
+	libnetpp.vhdl \
+	libpipe.vhdl \
+	txt_util.vhdl \
+	vbus.vhdl \
+	vfifo.vhdl \
+	dpram16.vhdl \
+	vfx2fifo.vhdl \
+	iomap_config.vhdl \
+	registermap_pkg.vhdl \
+	regmap.vhdl
+
 VHDL = $(HOME)/src/vhdl
-VHDLFILES = txt_util.vhdl
-VHDLFILES += libpipe.vhdl libfifo.vhdl libvirtual.vhdl
-VHDLFILES += simfifo.vhdl 
+VHDLFILES = simfifo.vhdl 
 ifdef NETPP
-VHDLFILES += iomap_config.vhdl registermap_pkg.vhdl libnetpp.vhdl
 VHDLFILES += simnetpp.vhdl 
 VHDLFILES += simfb.vhdl
-VHDLFILES += vfifo.vhdl
-VHDLFILES += dpram16.vhdl
 VHDLFILES += simram.vhdl
 VHDLFILES += simboard.vhdl
 endif
 VHDLFILES += simpipe.vhdl
 
-all: $(NETPP_DEPS) $(DUTIES)
+all: $(NETPP_DEPS) $(DUTIES) 
 
 ifeq ($(NETPP_EXISTS),yes)
 include $(NETPP)/xml/prophandler.mk
@@ -89,47 +130,59 @@ libmysim.a: $(OBJS)
 libmysim.so: $(OBJS)
 	$(CC) -shared -o $@ $(OBJS)
 
-work-obj93.cf: $(VHDLFILES)
-	ghdl -a $(GHDLFLAGS) $(VHDLFILES)
+$(WORK): $(VHDLFILES) lib/ghdlex-obj93.cf
+	$(GHDL) -a $(GHDLFLAGS) $(VHDLFILES)
 
 registermap_pkg.vhdl: ghdlsim.xml vhdlregs.xsl
 	$(XP) -o $@ --stringparam srcfile $< \
+	--param msb 7 \
+	--param dwidth 32 \
+	--param output_decoder 1 \
 	vhdlregs.xsl $<
 
 regprops.xml: ghdlsim.xml $(XSLT)/regwrap.xsl
 	$(XP) -o $@ $(XSLT)/regwrap.xsl $<
 
-simpipe: work-obj93.cf $(LIBGHDLEX)
-	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
+simpipe: $(WORK) $(LIBRARIES)
+	$(GHDL) -m $(GHDLFLAGS) $(LDFLAGS) $@
 
-simfifo: work-obj93.cf $(LIBGHDLEX)
-	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
+simfifo: $(WORK) $(LIBRARIES)
+	$(GHDL) -m $(GHDLFLAGS) $(LDFLAGS) $@
 
-simram: work-obj93.cf $(LIBGHDLEX)
-	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
+simram: $(WORK) $(LIBRARIES)
+	$(GHDL) -m $(GHDLFLAGS) $(LDFLAGS) $@
 
-simboard: work-obj93.cf $(LIBGHDLEX)
-	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
+simboard: $(WORK) $(LIBRARIES)
+	$(GHDL) -m $(GHDLFLAGS) $(LDFLAGS) $@
 
-simnetpp: work-obj93.cf $(LIBGHDLEX)
-	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
+simnetpp: $(WORK) $(LIBRARIES)
+	$(GHDL) -m $(GHDLFLAGS) $(LDFLAGS) $@
 
-simfb: work-obj93.cf $(LIBGHDLEX)
-	ghdl -e $(GHDLFLAGS) $(LDFLAGS) $@
+simfb: $(WORK) $(LIBRARIES)
+	$(GHDL) -m $(GHDLFLAGS) $(LDFLAGS) $@
+
+
+# The ghdlex library for external use:
+lib/ghdlex-obj93.cf: $(GHDLEX_VHDL)
+	[ -e lib ] || mkdir lib
+	export GHDL_PREFIX=$(GHDL_LIBPREFIX); \
+	$(GHDL) -i --work=ghdlex --workdir=lib $(GHDLEX_VHDL)
 
 clean::
-	rm -f work-obj93.cf
+	rm -f lib/ghdlex-obj93.cf
+	rm -f $(WORK)
 	rm -f *.o *.a *.so
-	rm -f simfifo
 	$(MAKE) NETPP=$(CURDIR)/netpp clean_duties
 
 clean_duties:
 	rm -f $(DUTIES) h2vhdl
 
-FILES = $(VHDLFILES) $(CSRCS) Makefile LICENSE.txt README
-FILES += fifo.h ghpi.h
+FILES = $(VHDLFILES) $(GHDLEX_VHDL) $(CSRCS) Makefile LICENSE.txt README
+FILES += fifo.h ghpi.h netppwrap.h example.h vpi_user.h bus.h
 FILES += ghdlsim.xml test.py
 FILES += libnetpp.chdl h2vhdl.c apidef.h apimacros.h
+FILES += vhdlregs.xsl
+FILES += vpiwrapper.c
 
 DISTFILES = $(FILES:%=ghdlex/%)
 
@@ -139,23 +192,32 @@ dist:
 
 # netpp unpack rule:
 
-netpp:
+$(NETPP_TAR):
 	wget $(NETPP_WEB)
+
+netpp: $(NETPP_TAR)
 	tar xfz $(NETPP_TAR)
+	ln -s $(NETPP_VER) netpp
 
-$(LIBSLAVE)/libslave.a: netpp
-	$(MAKE) -C $<
+$(LIBSLAVE)/libslave.so: netpp $(LIBSLAVE) 
+	[ -e $@ ] || $(MAKE) -C $<
 
-allnetpp: $(LIBSLAVE)/libslave.a
+allnetpp: $(LIBSLAVE)/libslave.so
 	$(MAKE) NETPP=$(CURDIR)/netpp
 
-VPIOBJS = vpiwrapper.o vpihandler.o 
+$(NETPP)/common: 
+	ln -s $< $(NETPP)/share/netpp/common $@
+
+$(LIBSLAVE): $(NETPP)/devices/slave
+	ln -s $< $@
+
+VPIOBJS = vpiwrapper.o
 VPIOBJS += vpi_proplist.o vpi_netpp.o vpi_ram.o
 
 vpiwrapper.o: vpiwrapper.c
 	$(CC) -o $@ -c $(CFLAGS) $<
 
-vpihandler.o: vpihandler.c
+vpihandler.o: handler.c
 	$(CC) -o $@ -c $(CFLAGS) $<
 
 vpi_%.o: %.c
@@ -169,10 +231,17 @@ netpp.vpi: $(VPIOBJS)
 	$(CC) --shared -o $@ $(VPIOBJS) -lpthread -L$(LIBSLAVE) -lslave
 
 doc_apidef.h: apidef.h
-	cpp -C -E -DRUN_CHEAD $< >$@
+	cpp -C -E -DRUN_CHEAD -DNO_MACRO_DOCS $< >$@
 
 registermap.h: $(DEVICEFILE)
 	$(XP) -o $@ $(XSLT)/reg8051.xsl $(DEVICEFILE)
+
+regmap.vhdl: $(DEVICEFILE) # ../perio/perio.xsl
+	$(XP) -o $@ --stringparam srcfile $< \
+		--param msb 7 \
+		--stringparam regmap tap_registers \
+		--param dwidth 32 \
+		--xinclude ../perio/perio.xsl $<
 
 docs: doc_apidef.h Doxyfile
 	doxygen

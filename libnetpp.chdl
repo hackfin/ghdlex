@@ -3,7 +3,7 @@
 -- Modifications will be lost, please edit __FILE__
 -- // This is a CPP template to create a VHDL file using the C preprocessor.
 -- // C style comments are stripped from the resulting file.
--- (c) 2011, 2012 Martin Strubel <hackfin@section5.ch>
+-- (c) 2011-2013 Martin Strubel <hackfin@section5.ch>
 
 library ieee;
 	use ieee.std_logic_1164.all;
@@ -19,7 +19,6 @@ library work;
 --! \addtogroup GHPIfuncs
 --! \{
 package ghpi_netpp is
-	constant RAMBUF_SIZE       : natural := (1024 * 512);
 
 	----- NETPP MASTER API -----
 	subtype  token_t       is integer;
@@ -58,6 +57,15 @@ package ghpi_netpp is
 	--! @param wordsize  Word size (1 or 2)
 	function fifo_new(name : string; size : integer; wordsize : integer)
 		return duplexfifo_t;
+
+	----- NETPP BUS API -----
+
+	type     bus_t         is access integer;
+	--! Bus flags. 0: read, 1: write, 2: read ready
+	subtype  busflag_t     is unsigned(0 to 2);
+
+	function bus_new(name : string; wordsize : integer)
+		return bus_t;
 	
 	----- NETPP REMOTE FRAMEBUFFER API -----
 
@@ -106,6 +114,12 @@ package body ghpi_netpp is
 		return duplexfifo_t is
 	begin
 		return fifo_new_wrapped(name & NUL, size, wordsize);
+	end function;
+
+	function bus_new(name : string; wordsize : integer )
+		return bus_t is
+	begin
+		return bus_new_wrapped(name & NUL, wordsize);
 	end function;
 
 #include "func_body.chdl"

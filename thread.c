@@ -23,7 +23,7 @@
 #define DCERR_COMM_TIMEOUT -1
 #endif
 
-#define FIFO_SIZE   2*1024
+#define FIFO_SIZE   32*1024
 
 
 #ifdef USE_NETPP

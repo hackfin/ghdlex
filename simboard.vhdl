@@ -6,11 +6,12 @@ library ieee;
 	use ieee.std_logic_1164.all;
 	use ieee.numeric_std.all; -- Unsigned
 
-library work;
-	use work.ghpi_netpp.all;
-	use work.virtual.all;
-	use work.ghpi_fifo.all;
-	use work.txt_util.all;
+library ghdlex;
+	use ghdlex.ghpi_netpp.all;
+	use ghdlex.virtual.all;
+	use ghdlex.ghpi_fifo.all;
+	use ghdlex.ghdlsim.all;
+	use ghdlex.txt_util.all;
 
 use std.textio.all;
 
@@ -26,6 +27,16 @@ architecture simulation of simboard is
 	signal data1: unsigned(15 downto 0);
 	signal data2: unsigned(15 downto 0);
 
+	signal vbus_wr   : std_logic;
+	signal vbus_rd   : std_logic;
+	signal vbus_din  : std_logic_vector(31 downto 0) := (others => '0');
+	signal vbus_dout : std_logic_vector(31 downto 0) := (others => '0');
+	signal vbus_addr : std_logic_vector(ADDR_W-1 downto 0) := (others => '0');
+
+	signal tap_ce    : std_logic;
+	signal tap_ctrl  : tap_registers_WritePort;
+	signal tap_stat  : tap_registers_ReadPort;
+ 
 	type byte_bus_t is array (0 to 2) of std_logic_vector(7 downto 0);
 
 	signal fifo_wready     : std_logic_vector(0 to 2);
@@ -113,6 +124,38 @@ fifo_single: VFIFO
 		rd_enable   => fifo_re(2),
 		data_in     => fifo_dout(2),
 		data_out    => fifo_din(2)
+	);
+
+vbus:
+	VirtualBus
+	generic map ( ADDR_W => ADDR_W)
+	port map (
+		clk         => clk,
+		wr          => vbus_wr,
+		rd          => vbus_rd,
+		addr        => vbus_addr,
+		data_in     => vbus_din,
+		data_out    => vbus_dout
+	);
+
+	tap_ce <= vbus_wr or vbus_rd;
+
+	tap_stat.tap_idcode <= x"deadbeef";
+	tap_stat.emuack <= '0';
+	tap_stat.emurdy <= '0';
+	tap_stat.core_spec <= x"aa";
+
+reg_decode:
+	decode_tap_registers
+	port map (
+		clk      => clk,
+		ce       => tap_ce,
+		ctrl     => tap_ctrl,
+		stat     => tap_stat,
+		data_in  => vbus_din,
+		data_out => vbus_dout,
+		addr     => vbus_addr(BV_MMR_CFG_tap_registers),
+		we       => vbus_wr
 	);
 
 stim:

@@ -163,10 +163,26 @@ void sim_usleep(integer_ghdl cycles)
 	usleep(cycles);
 }
 
+static uint32_t s_prev = 0;
+
+void sim_throttle(byte_t_ghdl activity, integer_ghdl cycles)
+{
+	uint32_t val;
+
+	logic_to_uint(activity, sizeof(activity), &val);
+
+	if (val == s_prev) {
+		usleep(cycles);
+	} else {
+		s_prev = val;
+	}
+}
+
 int ghdlname_to_propname(const char *name, char *propname, int len)
 {
 	strncpy(propname, name, len-1);
 	propname[len-1] = '\0';
+	return 0;
 }
 
 // No longer used, we don't compress the names down anymore, to keep
@@ -316,7 +332,8 @@ int netpp_root_init(const char *name)
 {
 	TOKEN t;
 	if (g_initialized) {
-		fprintf(stderr, "netpp already initialized, ignoring root %s\n", name);
+		fprintf(stderr, "Root node already initialized, ignoring root %s\n",
+			name);
 		return 1;
 	}
 	register_proplist(g_devices, g_ndevices);

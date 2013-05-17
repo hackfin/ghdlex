@@ -50,6 +50,9 @@ struct fat_pointer
 #include "apidef.h"
 #undef RUN_CHEAD
 
+// Standard simple types:
+
+
 ////////////////////////////////////////////////////////////////////////////
 // Functions
 
@@ -70,11 +73,11 @@ void uint_to_logic(char *l, int nbits, uint32_t val);
 /** Convert logic to byte sequence. Matches the bit order of the
  * std_logic_vector
  */
-void logic_to_bytes(char *l, int n, void *data);
+int logic_to_bytes(char *l, int n, void *data);
 /** Convert logic to 16 bit word sequence. Matches the bit order of the
  * std_logic_vector
  */
-void logic_to_words(char *l, int n, void *data);
+int logic_to_words(char *l, int n, void *data);
 /** Convert byte sequence to logic. */
 void bytes_to_logic(char *l, int n, const void *data);
 /** Convert 16 bit word sequence to logic */
@@ -151,7 +154,8 @@ void hexdump(char *buf, unsigned long n);
  * There are only a few default virtual entities that come with ghdlex:
  *
  *  - VFIFO:       A multiply instanceable virtual FIFO
- *  - DualPort16: Dual port RAM simulation
+ *  - DualPort16:  Dual port RAM simulation
+ *  - VirtualBus:  A simple virtual bus master for testing slave devices
  *  - VirtualFIFO: A FIFO buffer (standalone, one instance): DEPRECATED!
  *
  * They all depend on netpp, however, the VirtualFIFO runs its own netpp

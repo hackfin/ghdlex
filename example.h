@@ -18,4 +18,8 @@
 
 void init_registermap(void);
 
-extern int g_timeout;
+extern
+struct fifoconfig {
+	int timeout;
+	int retry;
+} g_fifoconfig;

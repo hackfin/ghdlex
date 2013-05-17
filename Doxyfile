@@ -94,12 +94,14 @@ INPUT                  = doc_apidef.h \
                          libnetpp.vhdl \
                          vfifo.vhdl \
                          virtualfifo.vhdl \
+                         vbus.vhdl \
                          simpipe.vhdl \
                          simnetpp.vhdl \
                          simfb.vhdl \
                          dpram16.vhdl \
                          vpiwrapper.h \
                          fifo.h \
+                         bus.h \
                          ghpi.h
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          =
