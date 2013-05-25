@@ -9,7 +9,8 @@ VERSION = 0.042develop
 
 CSRCS = pipe.c fifo.c thread.c helpers.c ram.c
 
-DUTIES = simpipe simfifo simram simboard netpp.vpi
+DUTIES = simpipe simfifo simram simboard netpp.vpi simfb simnetpp
+DUTIES += regmap.vhdl
 
 PLATFORM = $(shell uname)
 
@@ -32,7 +33,7 @@ else
 GHDL = ghdl
 endif
 
-GHDLFLAGS = --work=work -Plib
+GHDLFLAGS = --workdir=work -Plib
 
 
 # GHDL_PREFIX = $(HOME)/build/ghdl/debian/ghdl
@@ -131,7 +132,8 @@ libmysim.so: $(OBJS)
 	$(CC) -shared -o $@ $(OBJS)
 
 $(WORK): $(VHDLFILES) lib/ghdlex-obj93.cf
-	$(GHDL) -a $(GHDLFLAGS) $(VHDLFILES)
+	[ -e work ] || mkdir work
+	$(GHDL) -i $(GHDLFLAGS) $(VHDLFILES)
 
 registermap_pkg.vhdl: ghdlsim.xml vhdlregs.xsl
 	$(XP) -o $@ --stringparam srcfile $< \
@@ -181,7 +183,7 @@ FILES = $(VHDLFILES) $(GHDLEX_VHDL) $(CSRCS) Makefile LICENSE.txt README
 FILES += fifo.h ghpi.h netppwrap.h example.h vpi_user.h bus.h
 FILES += ghdlsim.xml test.py
 FILES += libnetpp.chdl h2vhdl.c apidef.h apimacros.h
-FILES += vhdlregs.xsl
+FILES += vhdlregs.xsl map.xsl
 FILES += vpiwrapper.c
 
 DISTFILES = $(FILES:%=ghdlex/%)
@@ -236,7 +238,7 @@ doc_apidef.h: apidef.h
 registermap.h: $(DEVICEFILE)
 	$(XP) -o $@ $(XSLT)/reg8051.xsl $(DEVICEFILE)
 
-regmap.vhdl: $(DEVICEFILE) # ../perio/perio.xsl
+regmap.vhdl: $(DEVICEFILE) ../perio/perio.xsl
 	$(XP) -o $@ --stringparam srcfile $< \
 		--param msb 7 \
 		--stringparam regmap tap_registers \
