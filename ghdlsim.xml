@@ -28,7 +28,7 @@
 
   <header language="C">#include "example.h"</header>
 
-  <header language="VHDL">-- library work; use work.iomap_config.all;</header>
+  <header language="VHDL">library work; use work.iomap_config.all;</header>
 
   <!--This is a header file specification. Statements in this field will be included
 in handler skeleton code and in the generated property list.
@@ -104,6 +104,13 @@ Including a header is necessary when implementing access to global variables.-->
     <registermap addrsize="16" endian="LITTLE" hidden="true" id="fake"
                  name="Fake MMR">
       <register access="RO" addr="0x00" id="decode_dummy">
+        <info>The bit fields in this register are dummies with respect to address decoding.
+They are used as bit slice defines within the VHDL top decoder section to
+pick the proper address signals from the top level address bus (or VirtualBus)
+For each I/O unit, a MMR_CFG_ entry is defined.
+Later, these slice defines will be moved to the iomap definitions for the entire SoC
+(see also memmap.xml for memory map)</info>
+
         <bitfield lsb="0" msb="6" name="MMR_CFG_fpga_registers"></bitfield>
 
         <bitfield lsb="0" msb="4" name="MMR_CFG_tap_registers"></bitfield>
@@ -137,36 +144,66 @@ Including a header is necessary when implementing access to global variables.-->
 
     <registermap addrsize="4" endian="BIG" id="tap_registers" name="TAP"
                  offset="0x0200">
-      <register access="RO" addr="0x00" id="TAP_IDCODE" size="4"></register>
+      <register access="RO" addr="0x00" id="TAP_IDCODE" size="4">
+        <info>IDCODE register. Contains IDCODE of attached CPU.</info>
+      </register>
 
-      <register access="RO" addr="0x04" id="TAP_EMUDATA" size="4"></register>
+      <register access="RO" addr="0x04" id="TAP_EMUDATA" size="4">
+        <info>EMUDATA register for data exchange between core/debug coprocessor and TAP</info>
+      </register>
 
       <register addr="0x08" id="TAP_EMUCTRL" size="2">
-        <bitfield lsb="0" msb="0" name="EMUREQ"></bitfield>
+        <info>Emulation control register. This is kept generic and CPU independent</info>
 
-        <bitfield lsb="4" msb="6" name="SELECT_REG"></bitfield>
+        <bitfield lsb="0" msb="0" name="EMUREQ">
+          <info>Set this bit to request CPU to enter emulation</info>
+        </bitfield>
 
-        <bitfield lsb="7" msb="7" name="EMUEXEC"></bitfield>
+        <bitfield lsb="4" msb="6" name="SELECT_REG">
+          <info>CPU specific select field for emudata input. Used on TAPs which require multiplexing of the EMUDATA register.</info>
+        </bitfield>
 
-        <bitfield lsb="15" msb="15" name="CORE_RESET"></bitfield>
+        <bitfield lsb="7" msb="7" name="EMUEXEC">
+          <info>Some CPUs require the EMUEXEC bit to be toggled for executing an instruction. Refer to CPU debug reference section for details.</info>
+        </bitfield>
+
+        <bitfield lsb="15" msb="15" name="CORE_RESET">
+          <info>Reset the CPU core.</info>
+        </bitfield>
 
         <default>0000000000000000</default>
       </register>
 
       <register access="RO" addr="0x0a" id="TAP_EMUSTAT" size="2">
-        <bitfield lsb="0" msb="0" name="EMUACK"></bitfield>
+        <info>Emulation status register. The LSB contains the TAP generic status bis, MSB contains CPU specific bits. Refer to the CPU debug register description for detailed information.</info>
 
-        <bitfield lsb="1" msb="1" name="EMURDY"></bitfield>
+        <bitfield lsb="0" msb="0" name="EMUACK">
+          <info>Emulation acknowledge. When an emureq request has been issued, this bit turns 1 when it is acknowledged by the attached CPU. The EMUACK bit remains high on most implementations when the CPU is in emulation mode.</info>
+        </bitfield>
 
-        <bitfield lsb="8" msb="15" name="CORE_SPEC"></bitfield>
+        <bitfield lsb="1" msb="1" name="EMURDY">
+          <info>Signal that emulation is ready. Poll this bit to see if emulation is busy.</info>
+        </bitfield>
+
+        <bitfield lsb="8" msb="15" name="CORE_SPEC">
+          <info>Core specific status bits. See CPU debug reference.</info>
+        </bitfield>
       </register>
 
-      <register access="RW" addr="0x0c" id="TAP_EMUIR" size="4"></register>
+      <register access="RW" addr="0x0c" id="TAP_EMUIR" size="4">
+        <info>Emulation instruction register, 32 bit wide. This is used to feed instructions to the CPU core when in emulation mode.</info>
+      </register>
 
-      <register access="RO" addr="0x10" id="TAP_EMUPC" size="4"></register>
+      <register access="RO" addr="0x10" id="TAP_EMUPC" size="4">
+        <info>Program counter of attached CPU. Only valid when in emulation. Might be unused on some CPU cores.</info>
+      </register>
 
-      <register access="RW" addr="0x18" id="TAP_SIMCTRL" size="1">
-        <bitfield lsb="0" msb="0" name="SIM_THROTTLE"></bitfield>
+      <register access="RW" addr="0x18" id="TAP_SIMCTRL" size="8">
+        <info>Simulation only control register for Virtual TAP.</info>
+
+        <bitfield lsb="0" msb="0" name="SIM_THROTTLE">
+          <info>Throttle simulation if this bit is set and when no TAP access occurs</info>
+        </bitfield>
 
         <default>1</default>
       </register>

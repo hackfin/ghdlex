@@ -25,7 +25,9 @@
 
 #if defined(RUN_TYPES)
 #	define VHDL_COMMENT(x)
+#	ifdef DEBUG
 #	warning "Running Type generation mode"
+#	endif
 #	define _T(t) s_vhdl_type_##t
 #	define DEFTYPE_EXPLICIT(t, def) \
 	static const char _T(t)[] = #t;
@@ -36,7 +38,9 @@
 	static const char _T(t)[] = #t;
 #	define API_DEF(t, nm, ret, ...)
 #elif defined(RUN_CHEAD)
+#	ifdef DEBUG
 #	warning "Running C header mode"
+#	endif
 
 // This section contains the generated Doxygen documentation
 
@@ -101,7 +105,9 @@
 #endif
 
 #else
+#	ifdef DEBUG
 #	warning "Running VHDL mode"
+#	endif
 #	define VHDL_COMMENT(x) { .type = TYPE_COMMENT, .name = x },
 #	define _T(t) s_vhdl_type_##t
 #	define DEFTYPE_EXPLICIT(t, def)

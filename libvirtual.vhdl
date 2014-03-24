@@ -8,11 +8,14 @@ package virtual is
 
 	component VFIFO is
 		generic (
-			FIFOSIZE : natural := 512; --! FIFO size in number of words
-			WORDSIZE : natural := 1    --! Word size in bytes (supported is 1, 2)
+			FIFOSIZE : natural     := 512;   --! FIFO size in number of words
+			SLEEP_CYCLES : natural := 50000; --! Sleep cycles on no activity
+			WORDSIZE : natural     := 1      --! Word size in bytes [1,2]
 		);
 		port (
 			signal clk         : in  std_logic; --! The input master clock
+			--! Throttle input for simulation (high active)
+			signal throttle    : in  std_logic;
 			--! Signals by '1' when data is ready to be written
 			signal wr_ready    : out std_logic;
 			--! Signals by '1' when data is ready to be read
@@ -27,6 +30,24 @@ package virtual is
 			signal data_out    : in  std_logic_vector(8*WORDSIZE-1 downto 0)
 		);
 	end component;
+
+	-- A FIFO emulation for a Cypress FX2
+	component VirtualFX2Fifo
+		generic (
+			WORDSIZE : natural := 1
+		);
+		port (
+			u_ifclk      : in std_logic; -- USB interface clock
+			u_slwr       : in std_logic;
+			u_slrd       : in std_logic;
+			u_sloe       : in std_logic;
+			u_pktend     : out std_logic;
+			u_flag       : out std_logic_vector(2 downto 0);  -- Status flags
+			u_fifoadr    : in std_logic_vector(1 downto 0);
+			u_fd         : inout std_logic_vector(15 downto 0)
+		);
+	end component;
+
 
 	component DualPort16 is
 		generic(

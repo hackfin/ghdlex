@@ -23,16 +23,17 @@ typedef struct RamDesc {
 rambuf_t_ghdl sim_ram_new_wrapped(string_ghdl name, integer_ghdl size)
 {
 	char propname[64];
+	int error;
 	int n = 1 << size;
 	Ram *r = (Ram *) malloc(n * sizeof(uint16_t) + sizeof(Ram));
 	r->addrsize = size;
 	r->size = n;
 	ghdlname_to_propname(name->base, propname, sizeof(propname));
-	printf("Reserved RAM '%s' with word size 0x%x(%d bytes)\n", propname,
+	printf("Reserved RAM '%s' with word size 0x%x(%ld bytes)\n", propname,
 		r->size, r->size * sizeof(uint16_t));
 
-	netpp_root_init("RAMwrapper");
-	register_ram(r, propname);
+	error = register_ram(r, propname);
+	if (error < 0) return 0;
 	return (rambuf_t_ghdl) r;
 }
 

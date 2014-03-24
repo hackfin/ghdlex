@@ -2,6 +2,9 @@
 -- (c) 2011, Martin Strubel <hackfin@section5.ch>
 --
 
+--! \deprecated DO NOT USE THIS API ANYMORE.
+--! Use the FIFO API from libnetpp.chdl.
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
@@ -82,24 +85,6 @@ package ghpi_fifo is
 	constant TX_PROG  : natural := 0;
 	constant TX_EMPTY : natural := 1;
 	constant RX_FULL  : natural := 2;
-
-	-- A FIFO emulation for the software FIFO
-	component CFIFO
-		generic (
-			WORDSIZE : natural := 1
-		);
-		port (
-			u_ifclk      : in std_logic; -- USB interface clock
-			u_slwr       : in std_logic;
-			u_slrd       : in std_logic;
-			u_sloe       : in std_logic;
-			u_pktend     : out std_logic;
-			u_flag       : out std_logic_vector(2 downto 0);  -- Status flags
-			u_fifoadr    : in std_logic_vector(1 downto 0);
-			u_fd         : inout std_logic_vector(15 downto 0);
-			throttle     : in std_logic
-		);
-	end component;
 
 	component VirtualFIFO is
 		generic (

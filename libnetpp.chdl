@@ -9,9 +9,6 @@ library ieee;
 	use ieee.std_logic_1164.all;
 	use ieee.numeric_std.all; -- Unsigned
 
-library work;
-	use work.ghpi_fifo.all;
-
 --! GHPI netpp wrapper package
 --! Provides a few functions to access netpp master functionality from
 --! the simulation.
@@ -19,6 +16,18 @@ library work;
 --! \addtogroup GHPIfuncs
 --! \{
 package ghpi_netpp is
+	----- GLOBAL SIGNALS -----
+
+	--! Global throttle signal. If high, use as throttle signal
+	--! to virtual FIFO implementations such as VirtualFX2Fifo.
+	signal global_throttle  : std_logic := '1';
+
+	----- NETPP SLAVE API -----
+
+
+	--! Initializes the netpp slave structures for a simulation
+	function netpp_init(name : string)
+		return integer;
 
 	----- NETPP MASTER API -----
 	subtype  token_t       is integer;
@@ -45,6 +54,21 @@ package ghpi_netpp is
 	function ram_new(name : string; size : integer) return rambuf_t;
 
 	----- FIFO API -----
+
+	subtype fifoflag_t is unsigned(0 to 5);
+	-- FIFO flag indices:
+	constant RX  : natural := 0; --! in: Read advance, out: FIFO not empty
+	constant TX  : natural := 1; --! in: Write advance, out: FIFO not full
+	constant RXE : natural := 2; --! out: LOW when FIFO almost not empty
+	constant TXF : natural := 3; --! out: LOW when FIFO almost full
+	constant OVR : natural := 4; --! out: overrun bit. Write 1 to clear.
+	constant UNR : natural := 5; --! out: underrun bit. W1C.
+
+	-- FLAG assignments for FX2 emulation
+	constant TX_PROG  : natural := 0;
+	constant TX_EMPTY : natural := 1;
+	constant RX_FULL  : natural := 2;
+
 
 	--! Access type. These don't directly map into C struct pointers,
 	--! see functions using duplexfifo_t_ghdl as arguments for example
@@ -84,6 +108,13 @@ end package;
 --! \}
 
 package body ghpi_netpp is
+
+	function netpp_init(name : string)
+		return integer is
+	begin
+		return netpp_init_wrapped(name & NUL);
+	end function;
+
 	function device_open(id: string)
 		return netpphandle_t is
 		variable dev : netpphandle_t;

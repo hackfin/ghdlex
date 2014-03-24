@@ -22,7 +22,6 @@
  *
  */
 
-#include <pthread.h>
 #include <unistd.h> // usleep()
 #include <stdio.h>
 #include <stdlib.h>
@@ -32,8 +31,11 @@
 #include "netppwrap.h"
 #include "example.h"
 
-/* Global FIFO struct for legacy support */
+
+#ifdef SUPPORT_LEGACY_FIFO
+#warning "Compiling with legacy FIFO code"
 extern struct duplexfifo_t g_dfifo;
+#endif
 
 int fifo_init(Fifo *f, unsigned short size, unsigned short wordsize)
 {
@@ -51,8 +53,9 @@ int fifo_init(Fifo *f, unsigned short size, unsigned short wordsize)
 			fprintf(stderr, "Unsupported word size\n");
 			return -1;
 	}
+	
 	printf("Initialize FIFO with word width of %d bits\n", wordsize * 8);
-	error = pthread_mutex_init(&f->mutex, NULL);
+	error = MUTEX_INIT(&f->mutex);
 	if (error < 0) return error;
 	f->buf = (unsigned char*) malloc(size * wordsize);
 	if (!f->buf) return -1;
@@ -66,7 +69,7 @@ int fifo_init(Fifo *f, unsigned short size, unsigned short wordsize)
 
 void fifo_exit(Fifo *f)
 {
-	pthread_mutex_destroy(&f->mutex);
+	MUTEX_EXIT(&f->mutex);
 	free(f->buf);
 }
 
@@ -100,7 +103,7 @@ int fifo_advance(Fifo *f, int n)
 {
 	int ret = 0;
 
-	pthread_mutex_lock(&f->mutex);
+	MUTEX_LOCK(&f->mutex);
 
 	if (f->fill == 0) {
 		f->unr = HIGH;
@@ -111,7 +114,7 @@ int fifo_advance(Fifo *f, int n)
 		ret = 1;
 	}
 
-	pthread_mutex_unlock(&f->mutex);
+	MUTEX_UNLOCK(&f->mutex);
 
 	return ret;
 }
@@ -121,7 +124,7 @@ int fifo_read(Fifo *f, unsigned char *byte, unsigned short n)
 	int i = 0;
 	if (n == 0) return 0;
 
-	pthread_mutex_lock(&f->mutex);
+	MUTEX_LOCK(&f->mutex);
 
 	if (f->fill == 0) {
 		f->unr = HIGH;
@@ -136,7 +139,7 @@ int fifo_read(Fifo *f, unsigned char *byte, unsigned short n)
 		f->fill -= i;
 	}
 
-	pthread_mutex_unlock(&f->mutex);
+	MUTEX_UNLOCK(&f->mutex);
 
 	return i;
 }
@@ -144,15 +147,15 @@ int fifo_read(Fifo *f, unsigned char *byte, unsigned short n)
 int fifo_fill(Fifo *f)
 {
 	unsigned short fill;
-	pthread_mutex_lock(&f->mutex);
+	MUTEX_LOCK(&f->mutex);
 	fill = f->fill;
-	pthread_mutex_unlock(&f->mutex);
+	MUTEX_UNLOCK(&f->mutex);
 	return fill;
 }
 
 int fifo_status(Fifo *f, char which, int width, char *flags)
 {
-	pthread_mutex_lock(&f->mutex);
+	MUTEX_LOCK(&f->mutex);
 
 	if (which == FIFO_WRITE) {
 		if (f->fill >= f->size - width) {
@@ -169,7 +172,7 @@ int fifo_status(Fifo *f, char which, int width, char *flags)
 			flags[RXE] = HIGH; flags[RXAE] = HIGH;
 		}
 	}
-	pthread_mutex_unlock(&f->mutex);
+	MUTEX_UNLOCK(&f->mutex);
 	return 1;
 }
 
@@ -185,7 +188,7 @@ int fifo_write(Fifo *f, const unsigned char *byte, unsigned short n)
 
 	if (n == 0) return 0;
 
-	pthread_mutex_lock(&f->mutex);
+	MUTEX_LOCK(&f->mutex);
 
 	if (f->fill == f->size) {
 		f->ovr = HIGH;
@@ -201,7 +204,7 @@ int fifo_write(Fifo *f, const unsigned char *byte, unsigned short n)
 		f->fill += i;
 	}
 
-	pthread_mutex_unlock(&f->mutex);
+	MUTEX_UNLOCK(&f->mutex);
 
 	return i;
 }
@@ -284,10 +287,13 @@ void sim_fifo_rxtx(duplexfifo_t_ghdl *fifo,
 	fifo_pump(f, data, flag);
 }
 
+
+#ifdef SUPPORT_LEGACY_FIFO
 void sim_fifo_io(struct fat_pointer *data, char *flag)
 {
 	fifo_pump(&g_dfifo, data, flag);
 }
+#endif
 
 duplexfifo_t_ghdl sim_fifo_new_wrapped(string_ghdl name, integer_ghdl size,
 	integer_ghdl wordsize)
@@ -305,8 +311,8 @@ duplexfifo_t_ghdl sim_fifo_new_wrapped(string_ghdl name, integer_ghdl size,
 	error = fifo_init(&df->out, size, wordsize);
 	if (error < 0) return NULL;
 
-	netpp_root_init("FIFOwrapper");
-	register_fifo(df, propname);
+	error = register_fifo(df, propname);
+	if (error < 0) return 0;
 	return (duplexfifo_t_ghdl) df;
 }
 

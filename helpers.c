@@ -7,7 +7,13 @@
  */
 
 #include <stdio.h>
+#ifdef __WIN32__
+#include <winsock2.h> // abuse htons/ntohs
+#endif
+
+#ifdef __linux__
 #include <arpa/inet.h>
+#endif
 #include "ghpi.h"
 
 /** Dump buffer */

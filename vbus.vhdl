@@ -85,11 +85,12 @@ bus_handler:
 	begin
 		if rising_edge(clk) then
 			d_data := unsigned(data_out);
-			-- No RTXT when we just got a read request, because the result
+			-- No RXTX when we just got a read request, because the result
 			-- is one cycle delayed.
 --			if flags(2) = '1' then
 --				print(output, "Wback: " & hstr(d_data));
 --			end if;
+
 
 			dval <= flags(2);
 			bus_rxtx(bus_handle, d_addr, d_data, flags);

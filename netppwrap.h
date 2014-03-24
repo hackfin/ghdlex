@@ -15,6 +15,7 @@
 /** \addtogroup VPIwrapper
  * \{ */
 
+int netpp_is_initialized(void);
 
 /** Netpp root node initialization. Call before registering any
  * properties.

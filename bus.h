@@ -19,7 +19,7 @@ struct bus_t {
 	uint32_t addr;             ///< Address
 	uint32_t data;             ///< Data
 	volatile char flags;       ///< RX/TX software flags
-	pthread_mutex_t mutex;     // I/O locking for concurrent threads
+	MUTEX         mutex;     // I/O locking for concurrent threads
 } Bus;
 
 #define RX_BUSY 0x01

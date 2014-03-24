@@ -125,6 +125,11 @@ VHDL_COMMENT("@param v   A 32 bit integer")
 API_DEFFUNC( device_set_int,  _T(integer),
 	ARG(h, netpphandle_t), ARG(t, token_t), ARG(v, integer))
 
+API_DEFFUNC( device_set_register,  _T(integer),
+	ARG(h, netpphandle_t), ARG(t, token_t), ARG(v, integer))
+
+
+
 /** Get property token from device by name
  * \param h    The netpp device handle
  * \param id   The property name
@@ -252,6 +257,12 @@ API_DEFPROC( ram_read,        _T(void), ARGIOP(ram, rambuf_t),
 
 VHDL_COMMENT("Delete and free RAM buffer")
 API_DEFPROC( ram_del,         _T(void), ARGIOP(ram, rambuf_t))
+
+/** Explicit netpp initialization. Apply this when not using --vpi=netpp.vpi
+ */
+VHDL_COMMENT("Initialize netpp root node")
+API_DEFFUNC( netpp_init_wrapped, _T(integer),
+	ARG(name, string) )
 
 /** \} */
 

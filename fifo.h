@@ -9,6 +9,8 @@
  *
  */
 
+#include "threadaux.h"
+
 /** \defgroup FIFO     Internal software FIFO
  *
  * This module implements a software FIFO in first fall through mode
@@ -42,7 +44,7 @@ struct fifo_t {
 	unsigned short fill;
 	unsigned char  ovr;    // Overrun (wrote when full)
 	unsigned char  unr;    // Underrun (read when empty)
-	pthread_mutex_t mutex; // FIFO locking for concurrent threads
+	MUTEX          mutex; // FIFO locking for concurrent threads
 	void (*tologic)(char *l, int n, const void *b);
 	int (*fromlogic)(char *l, int n, void *b);
 };

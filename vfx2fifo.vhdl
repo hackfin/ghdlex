@@ -13,10 +13,10 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 library work;
-use work.ghpi_fifo.all;
+use work.virtual.all;
 use work.ghpi_netpp.all;
 
-entity CFIFO is
+entity VirtualFX2Fifo is
 	generic (
 		WORDSIZE : natural := 1
 	);
@@ -28,12 +28,11 @@ entity CFIFO is
 		u_pktend     : out std_logic;
 		u_flag       : out std_logic_vector(2 downto 0);  -- Status flags
 		u_fifoadr    : in std_logic_vector(1 downto 0);
-		u_fd         : inout std_logic_vector(15 downto 0);
-		throttle     : in std_logic
+		u_fd         : inout std_logic_vector(15 downto 0)
 	);
-end CFIFO;
+end VirtualFX2Fifo;
 
-architecture behaviour of CFIFO is
+architecture behaviour of VirtualFX2Fifo is
 	-- FIFO timings:
 -- FX2 compatible timings:
 	constant T_SRD	 : time := 18.7 ns;
@@ -54,9 +53,10 @@ architecture behaviour of CFIFO is
 	signal slwr   :  std_logic := '1';
 	signal sloe   :  std_logic := '1';
 
-	signal r_data	  :  std_logic_vector(DATA_WIDTH-1 downto 0)
-		:= (others => '0');
-	signal data		  :  unsigned(DATA_WIDTH-1 downto 0)
+	signal re     :  std_logic;
+	signal we     :  std_logic;
+
+	signal data	  :  std_logic_vector(DATA_WIDTH-1 downto 0)
 		:= (others => '0');
 
 begin
@@ -67,43 +67,30 @@ oectrl:
 	begin
 		if u_sloe = '0' then
 			u_fd <= (others => 'Z');
-			u_fd <= std_logic_vector(resize(data, u_fd'length)) after T_OEON;
+			u_fd <= std_logic_vector(
+				resize(unsigned(data), u_fd'length)) after T_OEON;
 		else
 			u_fd <= (others => 'Z') after T_OEOFF;
 		end if;
 	end process;
 
+	virtual_fifo: VFIFO
+	generic map (
+		WORDSIZE => WORDSIZE
+	)
+	port map (
+		clk         => u_ifclk,
+		throttle    => global_throttle,
+		wr_ready    => can_tx,
+		rd_ready    => can_rx,
+		wr_enable   => we,
+		rd_enable   => re,
+		data_in     => u_fd(8*WORDSIZE-1 downto 0),
+		data_out    => data
+	);
 
--- External C fifo simulation:
-fifo_handler:
-	process (u_ifclk)
-	variable flags : fifoflag_t;
-	variable d_data :  unsigned(DATA_WIDTH-1 downto 0);
-	begin
-		if rising_edge(u_ifclk) then
-			if slrd = '0' then
-				flags := "100000"; -- advance read pointer
-			elsif slwr = '0' then
-				flags := "010000"; -- advance write pointer
-			else
-				flags := "000000";
-			end if;
-
-			d_data := unsigned(u_fd(DATA_WIDTH-1 downto 0));
-			fifo_io(d_data, flags);
-			data <= d_data;
-			-- Throttle simulation when FIFO is not active and Throttle
-			-- bit set
-			if flags(RXE) = '0' and throttle = '1' then
-				usleep(50000);
-			end if;
-
-			can_rx <= flags(RXE);
-			can_tx <= flags(TXF);
-
-			fifo_flags <= flags;
-		end if;
-	end process;
+	we <= not slwr;
+	re <= not slrd;
 
 	u_flag(TX_EMPTY) <= can_rx after T_XFLG;
 	u_flag(RX_FULL)  <= can_tx after T_XFLG;

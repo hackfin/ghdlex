@@ -5,7 +5,6 @@ use ieee.numeric_std.all; -- Unsigned
 library ghdlex;
 -- The RAM functions are generated within the netpp autowrapper
 	use ghdlex.ghpi_netpp.all;
-	use ghdlex.ghpi_fifo.all;
 	use ghdlex.virtual.all;
 	use ghdlex.txt_util.all;
 use std.textio.all;

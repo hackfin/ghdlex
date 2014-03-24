@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="ISO-8859-1"?>
+<!-- (c) 2007-2014 Martin Strubel <hackfin@section5.ch>
+     This file converts a XML device description into VHDL.
 
+     This file is under GPLv2 license. Dual licensing models are possible, as
+     long as no third party is involved.
+-->
 <xsl:stylesheet version="1.0" 
 	xmlns:my="http://www.section5.ch/dclib/schema/devdesc"
 	xmlns:xsl="http://www.w3.org/1999/XSL/Transform" >
@@ -34,7 +39,7 @@
 
 <xsl:template match="my:registermap" mode="reg_record">
 <!-- HACK: If registermap has id soc_mmr, do not emit -->
-<xsl:if test="not(@id='soc_mmr')">
+<xsl:if test="not(@id='soc_mmr') and not(@nodecode='true')">
 <xsl:if test="./my:register[@access='RO']">
 	type <xsl:value-of select="@id"/>_ReadPort is record
 <xsl:apply-templates select=".//my:register[@access='RO']" mode="reg_record"/>
@@ -154,7 +159,7 @@ end component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id" />;
 			<xsl:choose>
 				<xsl:when test="@size">
 					<xsl:text>		</xsl:text>
-					<xsl:value-of select="$regid"/> : std_logic_vector(REG_SIZE<xsl:value-of select="@size"/>);
+					<xsl:value-of select="$regid"/> : std_logic_vector(REG_SIZE<xsl:value-of select="@size"/>B);
 </xsl:when>
 				<xsl:otherwise>
 					<xsl:text>		</xsl:text>
@@ -196,7 +201,7 @@ end component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id" />;
 --
 -- Set the msb by specifying the --param msb `number` option to xsltproc
 --
--- (c) 2007-2011, Martin Strubel // hackfin@section5.ch
+-- (c) 2007-2014, Martin Strubel // hackfin@section5.ch
 --
 --
 
@@ -210,12 +215,11 @@ use ieee.numeric_std.all;
 
 package <xsl:value-of select="my:devdesc/my:device[$index]/@id"/> is
 	subtype  regaddr_t is unsigned(<xsl:value-of select="$msb"/> downto 0);
-	subtype  BYTESLICE is integer range 7 downto 0;
 
-	subtype  REG_SIZE1 is integer range 7 downto 0;
-	subtype  REG_SIZE2 is integer range 15 downto 0;
-	subtype  REG_SIZE4 is integer range 31 downto 0;
-	subtype  REG_SIZE  is integer range 15 downto 0;
+	subtype  REG_SIZE1B is integer range 7 downto 0;
+	subtype  REG_SIZE2B is integer range 15 downto 0;
+	subtype  REG_SIZE3B is integer range 23 downto 0;
+	subtype  REG_SIZE4B is integer range 31 downto 0;
 
 
 <xsl:apply-templates select="my:devdesc/my:device[$index]/my:registermap" mode="reg_decl"/>

@@ -26,10 +26,20 @@ DEVICE s_devices[MAX_NUM_DEVICES] = {
 	0, 0, 0, 0, 0, 0, 0, 0
 };
 
+char g_initialized = 0;
+
 static int g_is_dynamic = 0;
 
 // External token in prop list:
 extern TOKEN g_t_fifo;
+
+#ifdef __WIN32__
+#define THREAD_RETURN DWORD
+#define THREAD_DECO   WINAPI
+#else
+#define THREAD_RETURN void *
+#define THREAD_DECO
+#endif
 
 ////////////////////////////////////////////////////////////////////////////
 // PROTOS
@@ -63,6 +73,11 @@ DEVICE get_device(DEVHANDLE dev)
 TOKEN local_getroot(DEVICE d)
 {
 	int index = 0;
+	if (!g_initialized) {
+		fprintf(stderr, "netpp not initialized. Use --vpi=netpp.vpi\n");
+		return TOKEN_INVALID;
+	}
+
 	if (g_is_dynamic) return DYNAMIC_PROPERTY | DEVICE_TOKEN(index);
 	return DEVICE_TOKEN(index);
 }
@@ -145,6 +160,21 @@ int sim_device_set_int(DEVHANDLE handle, TOKEN t, int v)
 	
 }
 
+int sim_device_set_register(DEVHANDLE handle, TOKEN t, int v)
+{
+	int error;
+	DEVICE d = GET_DEV(handle);
+	DCValue val;
+	val.value.i = v;
+	val.type = DC_REGISTER;
+
+	error = dcDevice_SetProperty(d, t, &val);
+	if (error < 0) handleError(error);
+	return error;
+	
+}
+
+
 int set_buffer(DEVICE d, TOKEN t, void  *buf, int len)
 {
 	int error;
@@ -160,7 +190,7 @@ int set_buffer(DEVICE d, TOKEN t, void  *buf, int len)
 
 void sim_usleep(integer_ghdl cycles)
 {
-	usleep(cycles);
+	USLEEP(cycles);
 }
 
 static uint32_t s_prev = 0;
@@ -172,7 +202,7 @@ void sim_throttle(byte_t_ghdl activity, integer_ghdl cycles)
 	logic_to_uint(activity, sizeof(activity), &val);
 
 	if (val == s_prev) {
-		usleep(cycles);
+		USLEEP(cycles);
 	} else {
 		s_prev = val;
 	}
@@ -274,6 +304,7 @@ TOKEN property_from_entity(TOKEN parent, void *entity,
 	if (!p) return TOKEN_INVALID;
 	p->access.custom.p = entity; // Story entity handle in custom pointer
 
+
 	t = new_dynprop(name, p);
 	// iterate children:
 
@@ -297,13 +328,16 @@ int register_fifo(void *entity, char *name)
 	TOKEN t;
 	TOKEN root;
 	root = local_getroot(NULL);
+	if (root == TOKEN_INVALID) return -1;
 	printf("Registering FIFO..\n");
 	// Retrieve descriptor for FIFO token (defined externally)
 	t = property_from_entity(root, entity, g_t_fifo, name);
+
 	if (t == TOKEN_INVALID) {
 		printf("Unable to register FIFO, out of properties?\n");
 		return -1;
 	}
+
 	printf("Registered FIFO property with name '%s'\n", name);
 	return 0;
 }
@@ -313,6 +347,7 @@ int register_ram(void *entity, char *name)
 	TOKEN t;
 	TOKEN root;
 	root = local_getroot(NULL);
+	if (root == TOKEN_INVALID) return -1;
 	// Clone a property instance from the buffer template:
 	t = property_from_template(root, entity, name, &s_buffer_template);
 	if (t == TOKEN_INVALID) {
@@ -323,10 +358,14 @@ int register_ram(void *entity, char *name)
 	return 0;
 }
 
-char g_initialized = 0;
 
 extern DeviceDesc g_devices[];
 extern int g_ndevices;
+
+int netpp_is_initialized(void)
+{
+	return g_initialized;
+}
 
 int netpp_root_init(const char *name)
 {
@@ -347,3 +386,55 @@ int netpp_root_init(const char *name)
 	g_initialized = 1;
 	return 0;
 }
+
+static
+THREAD_RETURN THREAD_DECO netpp_thread(void *arg)
+{
+	int error;
+
+	char *argv[] = {
+		"", (char *) arg
+	};
+
+	init_registermap();
+	error = start_server(1, argv);
+	if (error < 0) return 0;
+
+	return (THREAD_RETURN) 1;
+}
+
+
+int create_thread(const char *name)
+{
+	int error;
+
+	netpp_root_init(name);
+
+#ifdef __WIN32__
+	HANDLE g_thread;
+#else
+	pthread_t g_thread;
+#endif
+
+
+#ifdef __WIN32__
+	DWORD thid;
+	g_thread = CreateThread(NULL, 0x20000, netpp_thread, (PVOID) 0
+		0, &thid);
+	if (!g_thread) {
+		error = -1;
+		printf("Failed to create thread\n");
+	}
+#else
+	error = pthread_create(&g_thread, NULL, &netpp_thread, NULL);
+#endif
+	if (error < 0) return error;
+	return 0;
+}
+
+
+integer_ghdl sim_netpp_init_wrapped(struct ghdl_string *name)
+{
+	return create_thread(name->base);
+}
+

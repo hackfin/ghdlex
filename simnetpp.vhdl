@@ -67,8 +67,8 @@ begin
 	begin
 		if rising_edge(clk) then
 			count <= count + 1;
-			-- Set integer value on device to counter value:
-			ret := device_set_int(device, t_int, to_integer(count));
+			-- Set register value on device to counter value:
+			ret := device_set_register(device, t_int, to_integer(count));
 			if ret < 0 then
 				print(output, "Failed to set integer on peer");
 			end if;

@@ -13,7 +13,6 @@ library ieee;
 
 library work;
 	use work.ghpi_netpp.all; -- For virtual register I/O (regmap_read())
-	use work.ghpi_fifo.all;  -- For the FIFO definitions
 
 --! \brief A virtual FIFO component, accessible via netpp.vpi
 --!
@@ -40,11 +39,13 @@ library work;
 
 entity VFIFO is
 generic (
-	FIFOSIZE : natural := 512; --! FIFO size in number of words
-	WORDSIZE : natural := 1    --! Word size in bytes (supported is 1, 2)
+	FIFOSIZE : natural     := 512;   --! FIFO size in number of words
+	SLEEP_CYCLES : natural := 50000; --! Sleep cycles on no activity
+	WORDSIZE : natural     := 1      --! Word size in bytes [1,2]
 );
 port (
 	signal clk         : in  std_logic; --! The input master clock
+	signal throttle    : in  std_logic; --! Throttle input for simulation
 	--! Signals by '1' when data is ready to be written
 	signal wr_ready    : out std_logic;
 	--! Signals by '1' when data is ready to be read
@@ -69,8 +70,6 @@ architecture simulation of VFIFO is
 	constant DATA_WIDTH : natural := 8*WORDSIZE;
 
 	signal fifo_flags :  fifoflag_t := "000000";
-
-	signal throttle      : std_logic := '1';
 
 	shared variable fifo_handle : duplexfifo_t;
 
@@ -101,6 +100,10 @@ begin
 			d_data := unsigned(data_out(DATA_WIDTH-1 downto 0));
 			fifo_rxtx(fifo_handle, d_data, flags);
 			data_in <= std_logic_vector(d_data(DATA_WIDTH-1 downto 0));
+
+			if flags(RXE) = '0' and throttle = '1' then
+				usleep(SLEEP_CYCLES);
+			end if;
 
 			rd_ready <= flags(RXE);
 			wr_ready <= flags(TXF);

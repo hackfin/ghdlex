@@ -9,7 +9,6 @@ library ieee;
 library ghdlex;
 	use ghdlex.ghpi_netpp.all;
 	use ghdlex.virtual.all;
-	use ghdlex.ghpi_fifo.all;
 	use ghdlex.ghdlsim.all;
 	use ghdlex.txt_util.all;
 
@@ -52,7 +51,6 @@ clkgen:
 	process
 		variable err : integer;
 	begin
-		-- err := fifo_thread_init("");
 		clkloop : loop
 			wait for 10 us;
 			clk <= not clk;
@@ -61,7 +59,6 @@ clkgen:
 			-- end if;
 		end loop clkloop;
 		print(output, " -- TERMINATED --");
-		-- fifo_thread_exit;
 
 	end process;
 
@@ -105,6 +102,7 @@ fifo: VFIFO
 	generic map (WORDSIZE => 1)
 	port map (
 		clk         => clk,
+		throttle    => '0',
 		wr_ready    => fifo_wready(i),
 		rd_ready    => fifo_rready(i),
 		wr_enable   => fifo_we(i),
@@ -118,6 +116,7 @@ fifo_single: VFIFO
 	generic map (WORDSIZE => 1)
 	port map (
 		clk         => clk,
+		throttle    => '0',
 		wr_ready    => fifo_wready(2),
 		rd_ready    => fifo_rready(2),
 		wr_enable   => fifo_we(2),
@@ -160,7 +159,10 @@ reg_decode:
 
 stim:
 	process
+		variable retval : integer;
 	begin
+		-- Explicitely initialize netpp, thus not needing --vpi=netpp.vpi:
+		retval := netpp_init("Gna");
 		we <= '0';
 		data0 <= x"deadbeef";
 		addr <= "000000000001";

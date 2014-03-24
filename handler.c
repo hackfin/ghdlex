@@ -10,7 +10,6 @@
 
 #include <stdio.h> // printf debugging only
 #include <stdlib.h>
-#include <pthread.h>
 #include "devlib.h"
 #include "devlib_error.h"
 #include "registermap.h"
@@ -171,12 +170,11 @@ static unsigned char _registermap[256] = {
 
 // FIXME: No more global stuff
 
-pthread_mutex_t reg_mutex;
-
+MUTEX reg_mutex;
 
 void init_registermap(void)
 {
-	pthread_mutex_init(&reg_mutex, NULL);
+	MUTEX_INIT(&reg_mutex);
 	_registermap[R_FPGA_Registers_Control] = THROTTLE;
 }
 
@@ -187,15 +185,16 @@ int device_write(RemoteDevice *d,
 	if (addr < VBUS_ADDR_OFFSET) {
 		printf("Write to register %04x:", addr);
 
-		pthread_mutex_lock(&reg_mutex);
+		MUTEX_LOCK(&reg_mutex);
 		memcpy(&_registermap[addr & 0xff], buf, size);
-		pthread_mutex_unlock(&reg_mutex);
+		MUTEX_UNLOCK(&reg_mutex);
 
 		while (size--) {
 			printf(" %02x", *buf++);
 		}
 		printf("\n");
 	} else {
+		// printf("Write from VBUS %04x (%lu bytes)\n", addr, size);
 		if (!g_bus) return DCERR_BADPTR;
 		uint32_t val;
 		val = 0;
@@ -206,47 +205,52 @@ int device_write(RemoteDevice *d,
 		// Wait until slave has read previous data sent
 		while (g_bus->flags & TX_PEND) {
 			// printf("Poll until slave ready\n");
-			usleep(1000); // XXX
+			USLEEP(1000); // XXX
 		}
-		pthread_mutex_lock(&g_bus->mutex);
+		MUTEX_LOCK(&g_bus->mutex);
 			g_bus->addr = addr & 0xff;
 			g_bus->data = val;
 			g_bus->flags |= TX_PEND;
-		pthread_mutex_unlock(&g_bus->mutex);
+		MUTEX_UNLOCK(&g_bus->mutex);
 	}
 	return 0;
 }
 
 /** Device flat address register map read access.
  * For low level device access (SPI, I2C, etc.) this normally wants to
- * be implemented */
+ * be implemented
+ *
+ * NOTE: We define register sizes in BITS! Therefore, convert to bytes
+ * for host side processing.
+ */
 
 int device_read(RemoteDevice *d,
 		uint32_t addr, unsigned char *buf, unsigned long size)
 {
 	if (addr < VBUS_ADDR_OFFSET) {
 		printf("Read from register %04x (%lu bytes)\n", addr, size);
-		pthread_mutex_lock(&reg_mutex);
+		MUTEX_LOCK(&reg_mutex);
 		memcpy(buf, &_registermap[addr & 0xff], size);
-		pthread_mutex_unlock(&reg_mutex);
+		MUTEX_UNLOCK(&reg_mutex);
 	} else {
+		// printf("Read from VBUS %04x (%lu bytes)\n", addr, size);
 		// Make sure no write is still pending:
 		if (!g_bus) return DCERR_BADPTR;
-		while ((g_bus->flags & (TX_PEND))) usleep(1000);
+		while ((g_bus->flags & (TX_PEND))) USLEEP(1000);
 
 		uint32_t val;
 		g_bus->addr = addr & 0xff;
-		pthread_mutex_lock(&g_bus->mutex);
+		MUTEX_LOCK(&g_bus->mutex);
 			g_bus->flags |= RX_PEND;
-		pthread_mutex_unlock(&g_bus->mutex);
+		MUTEX_UNLOCK(&g_bus->mutex);
 		while ((g_bus->flags & (RX_PEND))) {
 			// printf("Poll read...\n");
-			usleep(1000); // XXX
+			USLEEP(1000); // XXX
 		}
 		// printf("Read %08x\n", g_bus->data);
-		pthread_mutex_lock(&g_bus->mutex);
+		MUTEX_LOCK(&g_bus->mutex);
 			g_bus->flags &= ~RX_BUSY;
-		pthread_mutex_unlock(&g_bus->mutex);
+		MUTEX_UNLOCK(&g_bus->mutex);
 
 		buf += size - 1;
 		val = g_bus->data;
@@ -269,12 +273,12 @@ void sim_regmap_read(regaddr_t_ghdl address, unsigned_ghdl data)
 	
 	val = 0;
 	// Big endian shift:
-	pthread_mutex_lock(&reg_mutex);
+	MUTEX_LOCK(&reg_mutex);
 	while (nbytes--) {
 		val <<= 8;
 		val |= _registermap[addr++];
 	}
-	pthread_mutex_unlock(&reg_mutex);
+	MUTEX_UNLOCK(&reg_mutex);
 	uint_to_logic(data->base, data->bounds->len, val);
 }
 
@@ -288,12 +292,12 @@ void sim_regmap_write(regaddr_t_ghdl address, unsigned_ghdl data)
 	
 	nbytes = (data->bounds->len + 7) >> 3;
 	addr += nbytes - 1;
-	pthread_mutex_lock(&reg_mutex);
+	MUTEX_LOCK(&reg_mutex);
 	while (nbytes--) {
 		_registermap[addr--] = val & 0xff;
 		val >>= 8;
 	}
-	pthread_mutex_unlock(&reg_mutex);
+	MUTEX_UNLOCK(&reg_mutex);
 }
 
 bus_t_ghdl sim_bus_new_wrapped(string_ghdl name, integer_ghdl width)
@@ -302,7 +306,7 @@ bus_t_ghdl sim_bus_new_wrapped(string_ghdl name, integer_ghdl width)
 		(Bus *) malloc(sizeof(Bus));
 	printf("Reserved Bus '%s' with word size %d\n", (char *) name->base,
 		width);
-	pthread_mutex_init(&b->mutex, NULL);
+	MUTEX_INIT(&b->mutex);
 	b->flags = 0;
 
 	g_bus = b; // XXX
@@ -314,7 +318,7 @@ void sim_bus_rxtx(bus_t_ghdl *bus, unsigned_ghdl addr, unsigned_ghdl data,
 {
 	Bus *b = (Bus *) *bus;
 
-	pthread_mutex_lock(&b->mutex);
+	MUTEX_LOCK(&b->mutex);
 
 	if (b->flags & TX_PEND) {
 		flag[1] = HIGH; b->flags &= ~TX_PEND;
@@ -338,5 +342,5 @@ void sim_bus_rxtx(bus_t_ghdl *bus, unsigned_ghdl addr, unsigned_ghdl data,
 		flag[2] = LOW;
 	}
 
-	pthread_mutex_unlock(&b->mutex);
+	MUTEX_UNLOCK(&b->mutex);
 }

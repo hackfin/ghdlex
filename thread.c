@@ -8,15 +8,18 @@
  *
  */
 
+#ifdef __linux__
 #include <pthread.h>
+#endif
 #include <stdio.h>
 #include <unistd.h>
 
 #include "ghpi.h"
+#include "example.h"
 #include "fifo.h"
 
 #ifdef USE_NETPP
-#include "example.h"
+// #include "example.h"
 #include "slave.h"
 #include "netpp.h"
 #else
@@ -41,13 +44,22 @@ extern TOKEN g_t_fifo_outfill;
 /** Legacy global FIFO */
 struct duplexfifo_t g_dfifo;
 
-void *fifo_thread(void *arg)
+#ifdef __WIN32__
+#define THREAD_RETURN DWORD
+#define THREAD_DECO   WINAPI
+#else
+#define THREAD_RETURN void *
+#define THREAD_DECO
+#endif
+
+THREAD_RETURN THREAD_DECO fifo_thread(void *arg)
 {
 	PropertyDesc *fifo;
 	int error;
 	char *argv[] = {
 		"", (char *) arg
 	};
+
 	error = init_backend();
 	if (error < 0) return 0;
 
@@ -66,7 +78,7 @@ void *fifo_thread(void *arg)
 
 	error = start_server(1, argv);
 	if (error < 0) return 0;
-	return (void *) 1;
+	return (THREAD_RETURN) 1;
 }
 
 #else
@@ -128,23 +140,43 @@ void *fifo_thread(void *arg)
 
 #endif
 
+#ifdef __WIN32__
+HANDLE g_thread;
+#else
 pthread_t g_thread;
+#endif
 
 /* XXX Legacy. Will leave in future */
+
+#include "netppwrap.h"
 
 int sim_fifo_thread_init(struct ghdl_string *str, int wordsize)
 {
 	int error;
+
+	netpp_root_init("Legacy_Fifo_Thread");
+
 
 	error = fifo_init(&g_dfifo.out, FIFO_SIZE, wordsize);
 	if (error < 0) return error;
 	error = fifo_init(&g_dfifo.in, FIFO_SIZE, wordsize);
 	if (error < 0) return error;
 
+#ifdef __WIN32__
+	DWORD thid;
+	g_thread = CreateThread(NULL, 0x20000, fifo_thread, (PVOID) &g_dfifo,
+		0, &thid);
+	if (!g_thread) {
+		error = -1;
+		printf("Failed to create thread\n");
+	}
+#else
+
 #ifdef USE_NETPP
 	error = pthread_create(&g_thread, NULL, &fifo_thread, NULL);
 #else
 	error = pthread_create(&g_thread, NULL, &fifo_thread, &g_dfifo);
+#endif
 #endif
 	if (error < 0) return error;
 	return 0;
@@ -154,7 +186,12 @@ int sim_fifo_thread_init(struct ghdl_string *str, int wordsize)
 void fifo_thread_exit()
 {
 	int error;
+#ifdef __WIN32__
+	error = TerminateThread(g_thread, -1);
+	if (error == 0) { printf("Failed to terminate thread\n"); }
+#else
 	error = pthread_cancel(g_thread);
+#endif
 	fifo_exit(&g_dfifo.out);
 	fifo_exit(&g_dfifo.in);
 }
