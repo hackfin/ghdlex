@@ -1,5 +1,5 @@
 /** \file ghpi.h
- * GHDL vhpi C interface specifics
+ * GHDL VHPI C interface specifics
  *
  * (c) 2011, Martin Strubel <hackfin@section5.ch>
  *
@@ -137,17 +137,17 @@ void hexdump(char *buf, unsigned long n);
  * The second method is almost as simple. Typically, you add a virtualized
  * entity to your design or you just flip a configuration statement to
  * use the simulation architecture of an entity. For example, you instance
- * the VirtualFifo entity in your design and a separate netpp thread is
+ * the VFIFO entity in your design and a separate netpp thread is
  * automatically started when you run the simulation.
  *
  * The third method is the direct access to netpp. This can be tricky, as
  * netpp can have the role of a master, of a slave, or both.
  * For example, the simulation would be a master in case it drives a virtual
  * frame buffer and requires no more interaction. Typically it acts as a
- * slave when it uses the VirtualFIFO only. 
+ * slave when it uses the VFIFO only. 
  * You'll have to somewhat dig into the netpp internals. Quite a few netpp data
  * structures can be accessed from VHDL. This method requires you to become
- * familiar with the \subpage GHPIfuncs module.
+ * familiar with the \subpage GHPI_Wrap module.
  *
  * \subsection VirtualEntities Virtual Entities
  *
@@ -171,7 +171,7 @@ void hexdump(char *buf, unsigned long n);
  * initialized netpp server, but you will also get a warning on the
  * console. Future versions may run an extra server on a separate port.
  *
- * The VirtualFIFO is normally the first thing to implement for testing
+ * The VFIFO is normally the first thing to implement for testing
  * a hardware and software design in cooperation. From the host side, it
  * works like a typical FIFO adapter that is accessed through USB or
  * a serial interface.
@@ -230,11 +230,11 @@ python py/fifo.py
  * - Some specific handles for interfacing with external units
  *
  * All currently covered types are found in the typedef section of the
- * \ref GHPIfuncs module.
+ * \ref GHPI_Wrap module.
  *
  * The following modules provide the API for the GHPI extension:
- * - \subpage GHPIfuncs    
- * - \subpage GHPI_Fifo
+ * - \subpage GHPI_Wrap    
+ * - \subpage GHPI_Netpp
  * - \subpage GHPI_Pipe  
  *
  * From the C API side:
@@ -355,6 +355,30 @@ ram0 = getattr(root_node, ":simram:ram0:") \endcode
  * If you change signals like the 'clk' signal which is typically
  * generated inside the VHDL test bench, randomly inexplicable behaviour
  * can occur.
+ *
+ * \subsection RealTime  Timing versus Real Time
+ *
+ * As the simulation always runs slower than the real world, you have to
+ * introduce some timing tricks to make software cooperate properly with the
+ * simulation. For example, when using a VFIFO, the software has to use
+ * greater timeouts to wait for the simulation to finish.
+ *
+ * On the other hand, you might not want to run the simulation at full speed
+ * when it is not interacting with the software. For this case, the VFIFO
+ * entity has a throttle pin. If '1', the Virtual FIFO will sleep the
+ * specified SLEEP_CYCLES when there is no activity.
+ *
+ * That way, a simulation time scale can somewhat be controlled such that
+ * it looks like "real time" (with respect to a scale).
+ *
+ * Some other entities that may not be contained in the free ghdlex
+ * distribution use the global_throttle signal. The user has to assign
+ * this signal himself on the top level implementation.
+ * The example simboard.vhdl demonstrates how the global_throttle signal
+ * is controlled from outside via netpp via a property definition.
+ *
+ * When using the netpp.vpi module, you can manipulate this signal
+ * automatically from the netpp side by its name in the hierarchy.
  *
  * \subsection Extending Extending Autowrapping
  *

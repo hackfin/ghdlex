@@ -13,11 +13,11 @@
  * Call API macro auxiliaries:
  */
 
-/** \defgroup GHPIfuncs    Autowrapped functions callable from GHDL
+/** \defgroup GHPI_Wrap    Autowrapped type mapping C <-> GHDL
  * 
- * This module lists the so far semi-automatically wrapped C functions
- * that can be accessed from the GHDL simulation. If you want to add more
- * functionality, edit apidef.h.
+ * This module lists the so far semi-automatically wrapped C types and
+ * functions that can be accessed from the GHDL simulation.
+ * If you want to add more functionality, edit apidef.h.
  *
  * It includes a number of type definitions for abstraction of data exchange
  * between C and GHDL.
@@ -41,10 +41,12 @@
  * For all other type definitions, omit the _ghdl suffix when using it in
  * VHDL.
  *
+ * \example simboard.vhdl
  * \example simnetpp.vhdl
  * \example simpipe.vhdl
- * \example simboard.vhdl
+ * \example simfb.vhdl
  * \example dpram16.vhdl
+ * \example vfifo.vhdl
  *
  */
 
@@ -58,7 +60,7 @@
 #undef APIDEF_UNINITIALIZE
 #include "apimacros.h"
 
-/** \addtogroup GHPIfuncs
+/** \addtogroup GHPI_Wrap
  * \{ */
 
 /* Type definitions for C<->GHDL interface.
@@ -115,7 +117,7 @@ DEFTYPE_SLV(regaddr_t, 8)
 DEFTYPE_SLV(byte_t, 8)
 
 
-/** Open netpp device
+/* Open netpp device
  * \param id    A netpp device identifier
  * \return A netpp device handle
  */
@@ -128,12 +130,13 @@ VHDL_COMMENT("@param v   A 32 bit integer")
 API_DEFFUNC( device_set_int,  _T(integer),
 	ARG(h, netpphandle_t), ARG(t, token_t), ARG(v, integer))
 
+VHDL_COMMENT("Set register value on netpp remote device")
 API_DEFFUNC( device_set_register,  _T(integer),
 	ARG(h, netpphandle_t), ARG(t, token_t), ARG(v, integer))
 
 
 
-/** Get property token from device by name
+/* Get property token from device by name
  * \param h    The netpp device handle
  * \param id   The property name
  *
@@ -147,6 +150,43 @@ API_DEFFUNC( device_gettoken_wrapped, _T(token_t),
 VHDL_COMMENT("Close connection to remote device")
 API_DEFPROC( device_close,     _T(void),
 	ARG(h, netpphandle_t))
+
+VHDL_COMMENT("Read from dummy register map. At the moment only 8 bit wide")
+VHDL_COMMENT("@deprecated Use the VirtualBus API instead")
+VHDL_COMMENT("@param addr  Register map address")
+VHDL_COMMENT("@param data  Register map data")
+API_DEFPROC( regmap_read, _T(void), ARG(addr, regaddr_t), ARGO(data, unsigned))
+
+VHDL_COMMENT("Write to dummy register map. At the moment only 8 bit wide")
+VHDL_COMMENT("@deprecated Use the VirtualBus API instead")
+VHDL_COMMENT("@param addr  Register map address")
+VHDL_COMMENT("@param data  Register map data")
+API_DEFPROC( regmap_write, _T(void), ARG(addr, regaddr_t), ARG(data, unsigned))
+
+VHDL_COMMENT("Sleep for 'cycles' microseconds")
+VHDL_COMMENT("This is a true CPU sleep, simulation will pause for this period.")
+VHDL_COMMENT("@param cycles sleep time in us")
+API_DEFPROC( usleep,       _T(void), ARG(cycles, integer))
+
+VHDL_COMMENT("Throttle simulation")
+VHDL_COMMENT("@param activity When toggled, do not sleep")
+VHDL_COMMENT("@param cycles   sleep time in us")
+API_DEFPROC( throttle,     _T(void), ARG(activity, byte_t),
+             ARG(cycles, integer) )
+
+
+/** \} */
+
+/** \defgroup VFramebuf   Virtual Framebuffer API
+ * 	The virtual framebuffer API allows to access a netpp display server
+ * 	from VHDL. This might not be included in the public distribution of
+ * 	ghdlex/netpp.
+ */
+
+
+VHDL_COMMENT("\\addtogroup VFramebuf")
+VHDL_COMMENT("\\{") // {
+VHDL_COMMENT("\n-- DELIMITER -- \n")
 
 VHDL_COMMENT("Initialize remote frame buffer device")
 VHDL_COMMENT("@param dev      A netpp framebuffer capable device handle")
@@ -179,27 +219,7 @@ VHDL_COMMENT("Release remote framebuffer")
 API_DEFPROC( releasefb,       _T(void),
 	ARG(fb, framebuffer_t))
 
-VHDL_COMMENT("Read from dummy register map. At the moment only 8 bit wide")
-VHDL_COMMENT("@param addr  Register map address")
-VHDL_COMMENT("@param data  Register map data")
-API_DEFPROC( regmap_read, _T(void), ARG(addr, regaddr_t), ARGO(data, unsigned))
-
-VHDL_COMMENT("Write to dummy register map. At the moment only 8 bit wide")
-VHDL_COMMENT("@param addr  Register map address")
-VHDL_COMMENT("@param data  Register map data")
-API_DEFPROC( regmap_write, _T(void), ARG(addr, regaddr_t), ARG(data, unsigned))
-
-VHDL_COMMENT("Sleep for 'cycles' microseconds")
-VHDL_COMMENT("@param cycles sleep time in us")
-API_DEFPROC( usleep,       _T(void), ARG(cycles, integer))
-
-VHDL_COMMENT("Throttle simulation")
-VHDL_COMMENT("@param activity When toggled, do not sleep")
-VHDL_COMMENT("@param cycles   sleep time in us")
-API_DEFPROC( throttle,     _T(void), ARG(activity, byte_t),
-             ARG(cycles, integer) )
-
-/** \} */
+VHDL_COMMENT("\\}") // }
 
 /** \defgroup VFifoAPI    Virtual FIFO API
  * This is the new FIFO API. A virtual FIFO is simply created by
@@ -208,6 +228,9 @@ API_DEFPROC( throttle,     _T(void), ARG(activity, byte_t),
  * 
  */
 
+VHDL_COMMENT("\\addtogroup VFifoAPI")
+VHDL_COMMENT("\\{") // {
+VHDL_COMMENT("\n-- DELIMITER -- \n")
 
 /* Wrapped function, see fifo_new in libnetpp.chdl */
 API_DEFFUNC( fifo_new_wrapped, _T(duplexfifo_t),
@@ -216,9 +239,29 @@ API_DEFFUNC( fifo_new_wrapped, _T(duplexfifo_t),
 	ARG(wordsize, integer)
 	)
 
-VHDL_COMMENT("\\addtogroup VFifoAPI \\{") // {
 
-/** FIFO I/O transaction handler */
+
+VHDL_COMMENT("The FIFO I/O routine.")
+VHDL_COMMENT("@param data   Pointer to data being written, if TX flag set,")
+VHDL_COMMENT("              Data is modified with the 'read' FIFO data when RX")
+VHDL_COMMENT("              flag set. If FIFO is not ready for READ or WRITE")
+VHDL_COMMENT("              operation (empty or full), an underrun respective")
+VHDL_COMMENT("              overrun condition will occur and be signalled in the")
+VHDL_COMMENT("              flags(OVR) and flags(UNR) bits. Clearing this error")
+VHDL_COMMENT("              condition is achieved by setting these error flags to")
+VHDL_COMMENT("              '1'.")
+VHDL_COMMENT("              The word size of the data bit vector is defined by")
+VHDL_COMMENT("              the wsize argument to fifo_thread_init()")
+VHDL_COMMENT("@param flags  The FIFO control (in) and status (out) flags.")
+VHDL_COMMENT("              When calling this function the first time, you should")
+VHDL_COMMENT("              check the status by setting all flags to '0'.")
+VHDL_COMMENT("              On return, the (RX) and (TX) fill state can be read")
+VHDL_COMMENT("              from the RXE and TXF flags (for burst reading) and")
+VHDL_COMMENT("              from the RX and TX flags (current, absolute FIFO fill")
+VHDL_COMMENT("              state. On subsequent calls, the RX and TX flags")
+VHDL_COMMENT("              indicate, which action (Read word/Write word) should")
+VHDL_COMMENT("              be taken. The current status is always returned in the")
+VHDL_COMMENT("              flags array.")
 API_DEFPROC( fifo_rxtx, _T(void), ARGIOP(df, duplexfifo_t),
 	ARGIO(data, unsigned),
 	ARGIO(flags, fifoflag_t)
@@ -241,9 +284,6 @@ VHDL_COMMENT("\\}") // }
  * 
  */
 
-/** \addtogroup VBusAPI
- * \{ */
-
 
 /* Wrapped function, see bus_new in libnetpp.chdl */
 API_DEFFUNC( bus_new_wrapped, _T(bus_t),
@@ -251,6 +291,9 @@ API_DEFFUNC( bus_new_wrapped, _T(bus_t),
 	ARG(width, integer)
 	)
 
+VHDL_COMMENT("\\addtogroup VBusAPI")
+VHDL_COMMENT("\\{") // {
+VHDL_COMMENT("\n-- DELIMITER -- \n")
 
 VHDL_COMMENT("Virtual Bus I/O")
 VHDL_COMMENT("@param vbus     Bus handle")
@@ -266,11 +309,12 @@ API_DEFPROC( bus_rxtx, _T(void), ARGIOP(vbus, bus_t),
 VHDL_COMMENT("Delete Bus")
 API_DEFPROC( bus_del,        _T(void), ARGIOP(vbus, bus_t))
 
-/** \} */
+VHDL_COMMENT("\\}") // }
 
 /** \defgroup VirtualRAM    Virtual RAM API
  *
- * Virtual RAM modules can be created by instantiating a 
+ * Virtual RAM modules are created from VHDL code by instancing a
+ * DualPort16 RAM entity. See dpram16.vhdl example.
  */
 
 /** \addtogroup VirtualRAM
@@ -280,6 +324,12 @@ API_DEFPROC( bus_del,        _T(void), ARGIOP(vbus, bus_t))
 API_DEFFUNC( ram_new_wrapped, _T(rambuf_t),
 	ARG(name, string),
 	ARG(size, integer))
+
+/** \} */
+
+VHDL_COMMENT("\\addtogroup VirtualRAM")
+VHDL_COMMENT("\\{") // {
+VHDL_COMMENT("\n-- DELIMITER -- \n")
 
 VHDL_COMMENT("Write to RAM buffer")
 VHDL_COMMENT("@param addr  word address")
@@ -296,9 +346,10 @@ API_DEFPROC( ram_read,        _T(void), ARGIOP(ram, rambuf_t),
 VHDL_COMMENT("Delete and free RAM buffer")
 API_DEFPROC( ram_del,         _T(void), ARGIOP(ram, rambuf_t))
 
-/** \} */
+VHDL_COMMENT("\\}") // }
 
-/** \defgroup Netpp      Netpp initialization and communication
+
+/** \defgroup GHPI_Netpp    Netpp initialization and communication
  *
  */
 

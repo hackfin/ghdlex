@@ -28,7 +28,7 @@ ALIASES                =
 OPTIMIZE_OUTPUT_FOR_C  = NO
 OPTIMIZE_OUTPUT_JAVA   = NO
 OPTIMIZE_FOR_FORTRAN   = NO
-OPTIMIZE_OUTPUT_FOR_C  = NO
+# OPTIMIZE_OUTPUT_VHDL   = YES
 EXTENSION_MAPPING      =
 BUILTIN_STL_SUPPORT    = NO
 CPP_CLI_SUPPORT        = NO
@@ -92,12 +92,15 @@ INPUT                  = doc_apidef.h \
                          libfifo.vhdl \
                          libpipe.vhdl \
                          libnetpp.vhdl \
+                         libvirtual.vhdl \
                          vbus.vhdl \
                          vfifo.vhdl \
+                         examples/simnetpp.vhdl \
+                         examples/simboard.vhdl \
+                         examples/simpipe.vhdl \
+                         examples/simfb.vhdl \
                          virtualfifo.vhdl \
-                         simpipe.vhdl \
-                         simnetpp.vhdl \
-                         simfb.vhdl \
+                         vfx2fifo.vhdl \
                          dpram16.vhdl \
                          vpiwrapper.h \
                          fifo.h \
@@ -110,10 +113,10 @@ EXCLUDE                =
 EXCLUDE_SYMLINKS       = NO
 EXCLUDE_PATTERNS       =
 EXCLUDE_SYMBOLS        =
-EXAMPLE_PATH           = .
+EXAMPLE_PATH           = . examples
 EXAMPLE_PATTERNS       =
 EXAMPLE_RECURSIVE      = NO
-IMAGE_PATH             = doc/images
+IMAGE_PATH             = 
 INPUT_FILTER           =
 FILTER_PATTERNS        =
 FILTER_SOURCE_FILES    = NO
@@ -232,7 +235,7 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = NO
 SEARCH_INCLUDES        = NO
-INCLUDE_PATH           = include/
+INCLUDE_PATH           = include
 INCLUDE_FILE_PATTERNS  =
 PREDEFINED             = RUN_CHEAD
 EXPAND_AS_DEFINED      = 

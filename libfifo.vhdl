@@ -20,9 +20,7 @@ use ieee.numeric_std.all; -- Unsigned
 --! The data in/out word size is configureable using the WORD_SIZE generic.
 --! (Supported values: 1, 2)
 --!
---! \example virtualfifo.vhdl
---!
---! \defgroup GHPI_Fifo   Old VHDL FIFO interface
+--! \defgroup GHPI_Fifo   Old deprecated VHDL FIFO interface
 --! \addtogroup GHPI_Fifo
 --! \{
 package ghpi_fifo is

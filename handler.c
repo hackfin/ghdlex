@@ -15,7 +15,6 @@
 #include "registermap.h"
 #include "property_protocol.h"
 #include "fifo.h"
-#include "bus.h"
 
 #include "vpi_user.h"
 #include "ghpi.h"
@@ -175,6 +174,7 @@ MUTEX reg_mutex;
 void init_registermap(void)
 {
 	MUTEX_INIT(&reg_mutex);
+	// Default Throttle on:
 	_registermap[R_FPGA_Registers_Control] = THROTTLE;
 }
 

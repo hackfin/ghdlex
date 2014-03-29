@@ -1,3 +1,4 @@
+--! \file vfx2fifo.vhdl    Virtual FX2 FIFO Wrapper for VFIFO
 -- Software FIFO interface for GHDL simulator
 --
 -- (c) 2011, Martin Strubel <hackfin@section5.ch>
@@ -15,10 +16,14 @@ library work;
 use work.virtual.all;
 use work.ghpi_netpp.all;
 
+--! \brief Virtual FX2 FIFO
+--! Emulates a FX2 fifo with a software interface to speak to a netpp
+--! client.
+
 entity VirtualFX2Fifo is
 	generic (
-		NETPP_NAME   : string   := "DEFAULT";
-		WORDSIZE     : natural := 1
+		NETPP_NAME   : string   := "DEFAULT"; --! Default NETPP name
+		WORDSIZE     : natural := 1           --! Word size
 	);
 	port (
 		u_ifclk      : in std_logic; -- USB interface clock

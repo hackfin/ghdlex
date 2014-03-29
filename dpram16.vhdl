@@ -1,3 +1,4 @@
+--! \file dpram16    Virtual 16 bit RAM for backdoor access
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
@@ -29,17 +30,17 @@ entity DualPort16 is
 		ADDR_W       : natural  := 14
 	);
 	port(
-		clk     : in  std_logic;
+		clk     : in  std_logic;           --! Clock for Port A and B
 		-- Port A
-		a_we    : in  std_logic;
-		a_addr  : in  unsigned(ADDR_W-1 downto 0);
-		a_write : in  unsigned(16-1 downto 0);
-		a_read  : out unsigned(16-1 downto 0);
+		a_we    : in  std_logic;           --! A write enable (high active)
+		a_addr  : in  unsigned(ADDR_W-1 downto 0); --! Port A Address
+		a_write : in  unsigned(16-1 downto 0); --! Port A write data
+		a_read  : out unsigned(16-1 downto 0); --! Read data
 		-- Port B
-		b_we    : in  std_logic;
-		b_addr  : in  unsigned(ADDR_W-1 downto 0);
-		b_write : in  unsigned(16-1 downto 0);
-		b_read  : out unsigned(16-1 downto 0)
+		b_we    : in  std_logic;           --! B write enable
+		b_addr  : in  unsigned(ADDR_W-1 downto 0); --! B address
+		b_write : in  unsigned(16-1 downto 0);  --! B write data
+		b_read  : out unsigned(16-1 downto 0)   --! B read data
 	);
 end DualPort16;
 

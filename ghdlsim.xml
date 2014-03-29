@@ -26,7 +26,9 @@
     <extension>develop</extension>
   </revision>
 
-  <header language="C">#include "example.h"</header>
+  <header language="C">#include "example.h"
+#include "threadaux.h"
+#include "bus.h"</header>
 
   <header language="VHDL">library work; use work.iomap_config.all;</header>
 
@@ -119,6 +121,8 @@ Later, these slice defines will be moved to the iomap definitions for the entire
 
     <registermap addrsize="16" endian="BIG" id="fpga_registers"
                  name="FPGA_Registers" offset="0x000">
+      <info>This register map definition with maximum register address VBUS_ADDR_OFFSET-1 refers to an internal simulated RAM that is repeatedly read by regmap_read().</info>
+
       <register access="RO" addr="0x00" id="MagicId"></register>
 
       <register addr="0x02" id="Control">
@@ -143,7 +147,9 @@ Later, these slice defines will be moved to the iomap definitions for the entire
     </registermap>
 
     <registermap addrsize="4" endian="BIG" id="tap_registers" name="TAP"
-                 offset="0x0200">
+                 offset="VBUS_ADDR_OFFSET">
+      <!--We use the VBUS address offset from the C header.-->
+
       <register access="RO" addr="0x00" id="TAP_IDCODE" size="4">
         <info>IDCODE register. Contains IDCODE of attached CPU.</info>
       </register>
@@ -207,10 +213,11 @@ Later, these slice defines will be moved to the iomap definitions for the entire
 
         <default>1</default>
       </register>
+
       <register addr="0x19" id="SIM_SLEEPCYCLES" size="2">
         <info>When Throttle bit set, simulation sleeps &lt;this register's value&gt;</info>
-        <default>fa00</default>
 
+        <default>fa00</default>
       </register>
     </registermap>
 
@@ -291,7 +298,9 @@ It does not require any extra handshake logic.</info>
       </property>
     </group>
 
-    <group name="VirtualPins">
+    <group name="VirtualIO">
+      <info>Virtual Input/Output. These properties can either control settings in the C library or map directly to a register. Depending on which register space they map to, the internal routines will either access the VirtualBus or the dummy register map (deprecated)</info>
+
       <property access="RW" name="Enable" type="BOOL">
         <info>Enable bit. Might be not used.</info>
 
@@ -329,8 +338,10 @@ It does not require any extra handshake logic.</info>
       </property>
     </group>
 
-    <group name="VirtualJTAG">
-      <struct id="fifo" name="Fifo">
+    <group name="Templates">
+      <info>This group only contains templates for internal generation of entities. Accessing them explicitely will have no effect or crash the system.</info>
+
+      <struct hidden="true" id="fifo" name="Fifo">
         <property access="RW" id="fifobuf" name="Buffer" type="BUFFER">
           <!--A buffer object that is handled via a handler function. See handler.c
 (Function get_fifo()/set_fifo() for details.)-->

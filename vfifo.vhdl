@@ -14,13 +14,13 @@ library ieee;
 library work;
 	use work.ghpi_netpp.all; -- For virtual register I/O (regmap_read())
 
---! \brief A virtual FIFO component, accessible via netpp.vpi
+--! \brief A virtual FIFO component, accessible via netpp
 --!
 --! This virtual FIFO works like the VirtualFifo component (legacy), but
 --! allows to be instanced more than once. It requires a netpp server to
 --! run in order to be accessed from the outside. Typically, you include
 --! this component into your simulation and run it with the
---! --vpi=netpp.vpi argument.
+--! --vpi=netpp.vpi argument or use the explicit netpp_init() call.
 --! 
 --! This FIFO component works full duplex, unlike the FX2 emulation.
 --! A FIFO netpp property is simply a buffer that is read out or written
@@ -39,6 +39,8 @@ library work;
 
 entity VFIFO is
 generic (
+	--! Name, as visible from netpp. If 'DEFAULT', the instanciation
+	--! uses a generated name from the hierarchy.
 	NETPP_NAME   : string   := "DEFAULT";
 	FIFOSIZE     : natural     := 512;   --! FIFO size in number of words
 	--! Sleep cycles on no activity. If 0, use sleep `global_waitcycles`

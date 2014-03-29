@@ -10,8 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "netpp.h"
-#include "property_types.h"
-#include "property_protocol.h"
+#include "slave.h"
 #include "dynprops.h"
 #include "fifo.h"
 #include "ghpi.h"
@@ -44,7 +43,10 @@ extern TOKEN g_t_fifo;
 ////////////////////////////////////////////////////////////////////////////
 // PROTOS
 
+// handler.c:
+
 int buffer_handler(void *p, int write, DCValue *val);
+void init_registermap(void);
 
 // Templates:
 

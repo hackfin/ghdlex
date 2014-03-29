@@ -1,4 +1,4 @@
---! \file   Virtual Bus implementation
+--! \file vbus.vhdl Virtual Bus implementation
 
 -- (c) 2013 Martin Strubel <hackfin@section5.ch>
 

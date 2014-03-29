@@ -1,4 +1,5 @@
--- /* Ignore the following two lines for THIS CHDL file. */
+--! \file libnetpp.vhdl   Generated autowrapper library package
+-- /* ONLY EDIT THIS FILE IF IT HAS A CHDL EXTENSION !!! */
 -- This file is generated from __FILE__
 -- Modifications will be lost, please edit __FILE__
 -- // This is a CPP template to create a VHDL file using the C preprocessor.
@@ -9,13 +10,20 @@ library ieee;
 	use ieee.std_logic_1164.all;
 	use ieee.numeric_std.all; -- Unsigned
 
---! GHPI netpp wrapper package
+--! \brief GHPI netpp wrapper package
 --! Provides a few functions to access netpp master functionality from
 --! the simulation.
 
 
 package ghpi_netpp is
-	----- GLOBAL SIGNALS -----
+
+	--! \defgroup GlobalSignals Global Signals
+	--! These are experimental signals
+
+	--! \addtogroup GlobalSignals
+	--! \{
+
+	----- GLOBAL SIGNALS  -----
 
 	--! Global throttle signal. If high, use as throttle signal
 	--! to virtual FIFO implementations such as VirtualFX2Fifo.
@@ -27,9 +35,11 @@ package ghpi_netpp is
 	--! Global debugger clock in MHz
 	signal global_dbgclk      : std_logic := '0';
 
+	--! \}
+
 	----- NETPP SLAVE API -----
 
-	--! \addtogroup Netpp
+	--! \addtogroup GHPI_Netpp
 	--! \{
 
 	--! Initializes the netpp slave structures for a simulation
@@ -87,7 +97,7 @@ package ghpi_netpp is
 	constant RX_FULL  : natural := 2;
 
 
-	--! Access type. These don't directly map into C struct pointers,
+	--! Access type. These do not directly map into C struct pointers,
 	--! see functions using duplexfifo_t_ghdl as arguments for example
 	--! on how to access the handle in C.
 	type     duplexfifo_t  is access integer;
@@ -117,14 +127,15 @@ package ghpi_netpp is
 
 	--! \}
 
-	--! \addtogroup Auxiliaries
-	--! \{
 	
 	----- NETPP REMOTE FRAMEBUFFER API -----
 
-	subtype framebuffer_t is integer;
-	subtype pixel_t is unsigned(15 downto 0);
-	type pixarray_t is array(natural range <>) of pixel_t;
+	--! \addtogroup VFramebuf
+	--! \{
+
+	subtype framebuffer_t is integer;          --! Framebuffer handle
+	subtype pixel_t is unsigned(15 downto 0);  --! Pixel type
+	type pixarray_t is array(natural range <>) of pixel_t; --! Pixel array
 
 	constant VIDEOMODE_8BIT    : natural := 1; --! 8 Bit grayscale
 	constant VIDEOMODE_UYVY    : natural := 3; --! UYVY 16 bpp mode

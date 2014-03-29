@@ -9,13 +9,15 @@ VERSION = 0.050develop
 
 
 
-CSRCS = helpers.c ram.c fifo.c thread.c 
+CSRCS = helpers.c
 
 # DUTIES = simfifo simram simboard simfb simnetpp
+ifeq ($(NETPP_EXISTS),yes)
 DUTIES = simram simboard simfb simnetpp
 DUTIES += decode_tap_registers.vhdl
+endif
 
--include config.mk
+include config.mk
 
 # USE_LEGACY = yes
 
@@ -78,7 +80,7 @@ WORK = work/work-obj93.cf
 CFLAGS = -g -Wall 
 
 ifeq ($(PLATFORM),Linux)
-DUTIES += simpipe netpp.vpi 
+DUTIES += simpipe
 CFLAGS += -fPIC
 LDFLAGS = -Wl,-export-dynamic # Make sure libslave can use local_getroot()
 endif
@@ -96,11 +98,12 @@ ifeq ($(NETPP_EXISTS),yes)
 	NETPP_DEPS = $(NETPP)/common \
 		$(NETPP)/include/devlib_error.h registermap.h
 	DEVICEFILE = ghdlsim.xml
-	CSRCS += proplist.c netpp.c framebuf.c
+	CSRCS += proplist.c netpp.c framebuf.c ram.c fifo.c
 	CSRCS += handler.c 
 	CFLAGS += -I$(NETPP)/include -I$(NETPP)/devices
 	CFLAGS += -DUSE_NETPP
 ifeq ($(PLATFORM),Linux)
+	DUTIES += netpp.vpi 
 	LDFLAGS += -Wl,-L$(LIBSLAVE) -Wl,-lslave
 endif
 ifeq ($(PLATFORM),mingw32)
@@ -145,14 +148,14 @@ ifdef USE_LEGACY
 GHDLEX_VHDL += libfifo.vhdl
 endif
 
-VHDLFILES = simfifo.vhdl 
+VHDLFILES = examples/simfifo.vhdl 
 ifdef NETPP
-VHDLFILES += simnetpp.vhdl 
-VHDLFILES += simfb.vhdl
-VHDLFILES += simram.vhdl
-VHDLFILES += simboard.vhdl
+VHDLFILES += examples/simnetpp.vhdl 
+VHDLFILES += examples/simfb.vhdl
+VHDLFILES += examples/simram.vhdl
+VHDLFILES += examples/simboard.vhdl
 endif
-VHDLFILES += simpipe.vhdl
+VHDLFILES += examples/simpipe.vhdl
 
 all: $(NETPP_DEPS) $(DUTIES) 
 
@@ -282,7 +285,12 @@ doc_apidef.h: apidef.h
 	cpp -C -E -DRUN_CHEAD -DNO_MACRO_DOCS $< >$@
 
 registermap.h: $(DEVICEFILE)
-	$(XP) -o $@ $(XSLT)/reg8051.xsl $(DEVICEFILE)
+	$(XP) -o $@ --stringparam srcfile $< \
+	--param convertBitfields 1 \
+	--param useMapPrefix 1 \
+	--stringparam regprefix R_ \
+	$(XSLT)/registermap.xsl $<
+
 
 decode_%.vhdl: $(DEVICEFILE) $(PERIO_XSL)
 	$(XP) -o $@ --stringparam srcfile $< \
@@ -291,7 +299,7 @@ decode_%.vhdl: $(DEVICEFILE) $(PERIO_XSL)
 		--param dwidth 32 \
 		--xinclude $(PERIO_XSL) $<
 
-docs: doc_apidef.h Doxyfile
+docs: doc_apidef.h libnetpp.vhdl Doxyfile
 	doxygen
 
 h2vhdl.o: h2vhdl.c apidef.h

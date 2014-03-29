@@ -67,9 +67,10 @@ int dump_header(FILE *f, char *item, struct ghdl_apidesc *d)
 	return i;
 }
 
-void dump_comment(FILE *f, struct ghdl_apidesc *d)
+void dump_comment(FILE *f, struct ghdl_apidesc *d, int which)
 {
-	fprintf(f, "--! %s\n", d->name);
+	if (which) { fprintf(f, "--! %s\n", d->name); }
+	else       { fprintf(f, "-- %s\n", d->name); }
 }
 
 void dump_func_decl(FILE *f, struct ghdl_apidesc *d)
@@ -137,7 +138,7 @@ int dump_decl(FILE *f)
 				dump_proc_decl(f, d);
 				break;
 			default:
-				dump_comment(f, d);
+				dump_comment(f, d, 1);
 
 		}
 		d++;
@@ -157,8 +158,8 @@ int dump_body(FILE *f)
 			case TYPE_PROC:
 				dump_proc_body(f, d);
 				break;
-			default:
-				dump_comment(f, d);
+//			default:
+//				dump_comment(f, d, 0);
 		}
 		d++;
 	}

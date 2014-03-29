@@ -68,7 +68,7 @@
 #ifndef NO_MACRO_DOCS
 /** Creates an explicit typedef for the specified VHDL data type.
  * The VHDL data type has a '_ghdl' suffix on the C side. See also
- * \ref GHPIfuncs
+ * \ref GHPI_Wrap
  * \param t      Type name
  * \param def    C definition
  */
