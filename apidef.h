@@ -42,6 +42,9 @@
  * VHDL.
  *
  * \example simnetpp.vhdl
+ * \example simpipe.vhdl
+ * \example simboard.vhdl
+ * \example dpram16.vhdl
  *
  */
 
@@ -196,7 +199,15 @@ VHDL_COMMENT("@param cycles   sleep time in us")
 API_DEFPROC( throttle,     _T(void), ARG(activity, byte_t),
              ARG(cycles, integer) )
 
-/* New FIFO API */
+/** \} */
+
+/** \defgroup VFifoAPI    Virtual FIFO API
+ * This is the new FIFO API. A virtual FIFO is simply created by
+ * instanciating a VFIFO entity. Internally, an interface to netpp
+ * is generated.
+ * 
+ */
+
 
 /* Wrapped function, see fifo_new in libnetpp.chdl */
 API_DEFFUNC( fifo_new_wrapped, _T(duplexfifo_t),
@@ -205,6 +216,9 @@ API_DEFFUNC( fifo_new_wrapped, _T(duplexfifo_t),
 	ARG(wordsize, integer)
 	)
 
+VHDL_COMMENT("\\addtogroup VFifoAPI \\{") // {
+
+/** FIFO I/O transaction handler */
 API_DEFPROC( fifo_rxtx, _T(void), ARGIOP(df, duplexfifo_t),
 	ARGIO(data, unsigned),
 	ARGIO(flags, fifoflag_t)
@@ -213,7 +227,23 @@ API_DEFPROC( fifo_rxtx, _T(void), ARGIOP(df, duplexfifo_t),
 VHDL_COMMENT("Delete FIFO")
 API_DEFPROC( fifo_del,        _T(void), ARGIOP(fifo, duplexfifo_t))
 
-/* Virtual Bus API */
+VHDL_COMMENT("\\}") // }
+
+/** \defgroup VBusAPI    Virtual Bus API
+ *
+ * A virtual bus is created by instancing a VirtualBus entity in your
+ * design. From the outside (via netpp), this bus is accessed via your
+ * own implementation of device_write() and device_read() (see netpp
+ * documentation for details). By using an XML device description, you
+ * can generate a register map, the according bus decoder and a list
+ * of properties that refer to bits or registers of your design.
+ * Those properties can be accessed externally from the network.
+ * 
+ */
+
+/** \addtogroup VBusAPI
+ * \{ */
+
 
 /* Wrapped function, see bus_new in libnetpp.chdl */
 API_DEFFUNC( bus_new_wrapped, _T(bus_t),
@@ -236,7 +266,15 @@ API_DEFPROC( bus_rxtx, _T(void), ARGIOP(vbus, bus_t),
 VHDL_COMMENT("Delete Bus")
 API_DEFPROC( bus_del,        _T(void), ARGIOP(vbus, bus_t))
 
-/* RAM stuff */
+/** \} */
+
+/** \defgroup VirtualRAM    Virtual RAM API
+ *
+ * Virtual RAM modules can be created by instantiating a 
+ */
+
+/** \addtogroup VirtualRAM
+ * \{ */
 
 /* Allocate new RAM buffer, wrapper */
 API_DEFFUNC( ram_new_wrapped, _T(rambuf_t),
@@ -258,13 +296,14 @@ API_DEFPROC( ram_read,        _T(void), ARGIOP(ram, rambuf_t),
 VHDL_COMMENT("Delete and free RAM buffer")
 API_DEFPROC( ram_del,         _T(void), ARGIOP(ram, rambuf_t))
 
-/** Explicit netpp initialization. Apply this when not using --vpi=netpp.vpi
+/** \} */
+
+/** \defgroup Netpp      Netpp initialization and communication
+ *
  */
-VHDL_COMMENT("Initialize netpp root node")
+
 API_DEFFUNC( netpp_init_wrapped, _T(integer),
 	ARG(name, string) )
-
-/** \} */
 
 /* Test functions only */
 API_DEFFUNC( get_ptr,       _T(handle_t), ARG(dev, netpphandle_t))

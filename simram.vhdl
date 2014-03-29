@@ -28,7 +28,7 @@ clkgen:
 	process
 		variable err : integer;
 	begin
-		-- err := fifo_thread_init("");
+		err := netpp_init("VirtualRAM");
 		clkloop : loop
 			wait for 10 us;
 			clk <= not clk;
@@ -42,36 +42,43 @@ clkgen:
 	end process;
 
 ram0:
-	DualPort16 generic map (ADDR_W => ADDR_W)
-	   port map (
-			clk     => clk,
-			-- Port A
-			a_we    => we,
-			a_addr  => addr,
-			a_write => data0(15 downto 0),
-			a_read  => data1,
-			-- Port B
-			b_we    => '0',
-			b_addr  => addr,
-			b_write => data0(15 downto 0),
-			b_read  => open
-	   );
+	DualPort16
+	generic map (
+		-- NETPP_NAME => "LowWord", -- You could enable an explicit name
+		ADDR_W => ADDR_W
+	)
+	port map (
+		clk     => clk,
+		-- Port A
+		a_we    => we,
+		a_addr  => addr,
+		a_write => data0(15 downto 0),
+		a_read  => data1,
+		-- Port B
+		b_we    => '0',
+		b_addr  => addr,
+		b_write => data0(15 downto 0),
+		b_read  => open
+	);
 
 ram1:
-	DualPort16 generic map (ADDR_W => ADDR_W)
-	   port map (
-			clk     => clk,
-			-- Port A
-			a_we    => we,
-			a_addr  => addr,
-			a_write => data0(31 downto 16),
-			a_read  => data2,
-			-- Port B
-			b_we    => '0',
-			b_addr  => addr,
-			b_write => data0(31 downto 16),
-			b_read  => open
-	   );
+	DualPort16 generic map (
+		-- NETPP_NAME => "HighWord", -- You could enable an explicit name
+		ADDR_W => ADDR_W
+	)
+	port map (
+		clk     => clk,
+		-- Port A
+		a_we    => we,
+		a_addr  => addr,
+		a_write => data0(31 downto 16),
+		a_read  => data2,
+		-- Port B
+		b_we    => '0',
+		b_addr  => addr,
+		b_write => data0(31 downto 16),
+		b_read  => open
+	);
 
 stim:
 	process

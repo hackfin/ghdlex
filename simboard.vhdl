@@ -102,7 +102,7 @@ fifo: VFIFO
 	generic map (WORDSIZE => 1)
 	port map (
 		clk         => clk,
-		throttle    => '0',
+		throttle    => global_throttle,
 		wr_ready    => fifo_wready(i),
 		rd_ready    => fifo_rready(i),
 		wr_enable   => fifo_we(i),
@@ -116,7 +116,7 @@ fifo_single: VFIFO
 	generic map (WORDSIZE => 1)
 	port map (
 		clk         => clk,
-		throttle    => '0',
+		throttle    => global_throttle,
 		wr_ready    => fifo_wready(2),
 		rd_ready    => fifo_rready(2),
 		wr_enable   => fifo_we(2),
@@ -144,6 +144,8 @@ vbus:
 	tap_stat.emurdy <= '0';
 	tap_stat.core_spec <= x"aa";
 
+	global_throttle <= tap_ctrl.sim_throttle;
+
 reg_decode:
 	decode_tap_registers
 	port map (
@@ -162,7 +164,7 @@ stim:
 		variable retval : integer;
 	begin
 		-- Explicitely initialize netpp, thus not needing --vpi=netpp.vpi:
-		retval := netpp_init("Gna");
+		retval := netpp_init("VirtualBoard");
 		we <= '0';
 		data0 <= x"deadbeef";
 		addr <= "000000000001";

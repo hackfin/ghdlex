@@ -92,9 +92,9 @@ INPUT                  = doc_apidef.h \
                          libfifo.vhdl \
                          libpipe.vhdl \
                          libnetpp.vhdl \
+                         vbus.vhdl \
                          vfifo.vhdl \
                          virtualfifo.vhdl \
-                         vbus.vhdl \
                          simpipe.vhdl \
                          simnetpp.vhdl \
                          simfb.vhdl \

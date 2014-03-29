@@ -17,8 +17,6 @@ use ieee.numeric_std.all; -- Unsigned
 --! FIFO. That means, you will have to assert the RX flag prior to calling
 --! pipe_in() to obtain a first valid byte.
 --!
---! \example simpipe.vhdl
---!
 --! \defgroup GHPI_Pipe  Unix Pipe interface
 --! \addtogroup GHPI_Pipe
 --! \{

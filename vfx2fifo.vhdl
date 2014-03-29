@@ -5,7 +5,6 @@
 -- A virtual FIFO behaving like a FX2
 --
 -- This is the typically the interface between netpp and a VHDL simulation.
--- It can also be used without netpp.
 -- The word size is configureable (1, 2) using the WORDSIZE generic.
 
 library ieee;
@@ -18,7 +17,8 @@ use work.ghpi_netpp.all;
 
 entity VirtualFX2Fifo is
 	generic (
-		WORDSIZE : natural := 1
+		NETPP_NAME   : string   := "DEFAULT";
+		WORDSIZE     : natural := 1
 	);
 	port (
 		u_ifclk      : in std_logic; -- USB interface clock
@@ -76,6 +76,7 @@ oectrl:
 
 	virtual_fifo: VFIFO
 	generic map (
+		NETPP_NAME => NETPP_NAME,
 		WORDSIZE => WORDSIZE
 	)
 	port map (
@@ -85,8 +86,8 @@ oectrl:
 		rd_ready    => can_rx,
 		wr_enable   => we,
 		rd_enable   => re,
-		data_in     => u_fd(8*WORDSIZE-1 downto 0),
-		data_out    => data
+		data_in     => data,
+		data_out    => u_fd(8*WORDSIZE-1 downto 0)
 	);
 
 	we <= not slwr;

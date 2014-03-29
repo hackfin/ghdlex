@@ -171,7 +171,7 @@ Later, these slice defines will be moved to the iomap definitions for the entire
           <info>Reset the CPU core.</info>
         </bitfield>
 
-        <default>0000000000000000</default>
+        <default>0xxxxxxx00000000</default>
       </register>
 
       <register access="RO" addr="0x0a" id="TAP_EMUSTAT" size="2">
@@ -198,7 +198,7 @@ Later, these slice defines will be moved to the iomap definitions for the entire
         <info>Program counter of attached CPU. Only valid when in emulation. Might be unused on some CPU cores.</info>
       </register>
 
-      <register access="RW" addr="0x18" id="TAP_SIMCTRL" size="8">
+      <register access="RW" addr="0x18" id="TAP_SIMCTRL" size="1">
         <info>Simulation only control register for Virtual TAP.</info>
 
         <bitfield lsb="0" msb="0" name="SIM_THROTTLE">
@@ -206,6 +206,11 @@ Later, these slice defines will be moved to the iomap definitions for the entire
         </bitfield>
 
         <default>1</default>
+      </register>
+      <register addr="0x19" id="SIM_SLEEPCYCLES" size="2">
+        <info>When Throttle bit set, simulation sleeps &lt;this register's value&gt;</info>
+        <default>fa00</default>
+
       </register>
     </registermap>
 
@@ -225,10 +230,16 @@ It does not require any extra handshake logic.</info>
         <regref bits="EMUREQ" ref="TAP_EMUCTRL" />
       </property>
 
-      <property name="SimThrottle" type="BOOL">
+      <property name="TapThrottle" type="BOOL">
         <info>Set 1 to throttle simulation</info>
 
         <regref bits="SIM_THROTTLE" ref="TAP_SIMCTRL" />
+      </property>
+
+      <property name="TapWaitCycles" type="INT">
+        <info>Numer of cycles to wait</info>
+
+        <regref ref="SIM_SLEEPCYCLES" />
       </property>
 
       <property access="RO" name="EmuReady" type="BOOL">
@@ -306,7 +317,7 @@ It does not require any extra handshake logic.</info>
       </property>
 
       <property access="RW" name="Throttle" type="BOOL">
-        <info>Throttle bit. If set, simulation will sleep (therefore run slower) while there is no FIFO activity</info>
+        <info>Throttle bit. Typically mapped to the global_throttle signal. If set, simulation will sleep (therefore run slower) while there is no FIFO activity</info>
 
         <regref bits="THROTTLE" ref="Control" />
       </property>

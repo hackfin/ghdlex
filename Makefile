@@ -13,7 +13,7 @@ CSRCS = helpers.c ram.c fifo.c thread.c
 
 # DUTIES = simfifo simram simboard simfb simnetpp
 DUTIES = simram simboard simfb simnetpp
-DUTIES += regmap.vhdl
+DUTIES += decode_tap_registers.vhdl
 
 -include config.mk
 
@@ -139,7 +139,7 @@ GHDLEX_VHDL = \
 	vfx2fifo.vhdl \
 	iomap_config.vhdl \
 	registermap_pkg.vhdl \
-	regmap.vhdl
+	decode_tap_registers.vhdl
 
 ifdef USE_LEGACY
 GHDLEX_VHDL += libfifo.vhdl
@@ -176,6 +176,9 @@ libmysim.so: $(OBJS)
 $(WORK): $(VHDLFILES) lib/ghdlex-obj93.cf
 	[ -e work ] || mkdir work
 	$(GHDL) -i $(GHDLFLAGS) $(VHDLFILES)
+
+# Style sheet for peripheral I/O map generation:
+PERIO_XSL = perio.xsl
 
 registermap_pkg.vhdl: ghdlsim.xml vhdlregs.xsl
 	$(XP) -o $@ --stringparam srcfile $< \
@@ -281,12 +284,12 @@ doc_apidef.h: apidef.h
 registermap.h: $(DEVICEFILE)
 	$(XP) -o $@ $(XSLT)/reg8051.xsl $(DEVICEFILE)
 
-regmap.vhdl: $(DEVICEFILE) perio.xsl
+decode_%.vhdl: $(DEVICEFILE) $(PERIO_XSL)
 	$(XP) -o $@ --stringparam srcfile $< \
 		--param msb 7 \
-		--stringparam regmap tap_registers \
+		--stringparam regmap $(patsubst decode_%.vhdl,%,$@) \
 		--param dwidth 32 \
-		--xinclude perio.xsl $<
+		--xinclude $(PERIO_XSL) $<
 
 docs: doc_apidef.h Doxyfile
 	doxygen

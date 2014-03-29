@@ -25,7 +25,8 @@ use work.ghpi_netpp.all;
 --!
 entity DualPort16 is
 	generic(
-		ADDR_W       : natural := 14
+		NETPP_NAME   : string   := "DEFAULT";
+		ADDR_W       : natural  := 14
 	);
 	port(
 		clk     : in  std_logic;
@@ -49,7 +50,11 @@ begin
 -- Initialization within simulation:
 	process
 	begin
-		ram_handle := ram_new(simulation'path_name, ADDR_W);
+		if NETPP_NAME = "DEFAULT" then
+			ram_handle := ram_new(simulation'path_name, ADDR_W);
+		else
+			ram_handle := ram_new(NETPP_NAME, ADDR_W);
+		end if;
 		if ram_handle = null then
 			assert false report "Failed to reserve RAM buffer";
 		end if;

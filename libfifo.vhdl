@@ -2,14 +2,15 @@
 -- (c) 2011, Martin Strubel <hackfin@section5.ch>
 --
 
---! \deprecated DO NOT USE THIS API ANYMORE.
---! Use the FIFO API from libnetpp.chdl.
 
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
 
 --! \brief VHDL FIFO interface
+--! 
+--! \deprecated DO NOT USE THIS API ANYMORE.
+--! Use the FIFO API from libnetpp.chdl.
 --!
 --! Simple virtual FIFO module
 --! Implements a first-fall-through FIFO accessible through network
@@ -21,7 +22,7 @@ use ieee.numeric_std.all; -- Unsigned
 --!
 --! \example virtualfifo.vhdl
 --!
---! \defgroup GHPI_Fifo   VHDL FIFO interface
+--! \defgroup GHPI_Fifo   Old VHDL FIFO interface
 --! \addtogroup GHPI_Fifo
 --! \{
 package ghpi_fifo is

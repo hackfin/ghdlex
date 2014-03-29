@@ -8,9 +8,16 @@ package virtual is
 
 	component VFIFO is
 		generic (
-			FIFOSIZE : natural     := 512;   --! FIFO size in number of words
-			SLEEP_CYCLES : natural := 50000; --! Sleep cycles on no activity
-			WORDSIZE : natural     := 1      --! Word size in bytes [1,2]
+			--! When this name is set, export unter this name on top level
+			--! of the netpp device hierarchy. Otherwise, a default
+			--! generated name is used which represents the hierarchy of
+			--! the VFIFO entity inside the entire design.
+			NETPP_NAME   : string   := "DEFAULT";
+			--! FIFO size in number of words
+			FIFOSIZE     : natural     := 512;
+			--! Sleep cycles on no activity. If 0, use sleep `global_waitcycles`
+			SLEEP_CYCLES : natural := 50000;
+			WORDSIZE     : natural     := 1      --! Word size in bytes [1,2]
 		);
 		port (
 			signal clk         : in  std_logic; --! The input master clock
@@ -34,7 +41,8 @@ package virtual is
 	-- A FIFO emulation for a Cypress FX2
 	component VirtualFX2Fifo
 		generic (
-			WORDSIZE : natural := 1
+			NETPP_NAME   : string   := "DEFAULT";
+			WORDSIZE     : natural := 1
 		);
 		port (
 			u_ifclk      : in std_logic; -- USB interface clock
@@ -51,7 +59,8 @@ package virtual is
 
 	component DualPort16 is
 		generic(
-			ADDR_W       : natural := 14
+			NETPP_NAME   : string   := "DEFAULT";
+			ADDR_W       : natural  := 14
 		);
 		port(
 			clk     : in  std_logic;

@@ -12,18 +12,25 @@ library ieee;
 --! GHPI netpp wrapper package
 --! Provides a few functions to access netpp master functionality from
 --! the simulation.
---! \example dpram16.vhdl
---! \addtogroup GHPIfuncs
---! \{
+
+
 package ghpi_netpp is
 	----- GLOBAL SIGNALS -----
 
 	--! Global throttle signal. If high, use as throttle signal
 	--! to virtual FIFO implementations such as VirtualFX2Fifo.
-	signal global_throttle  : std_logic := '1';
+	signal global_throttle    : std_logic := '1';
+	
+	--! Global number of wait cycles for some entities to sleep.
+	signal global_waitcycles  : natural := 50000;
+
+	--! Global debugger clock in MHz
+	signal global_dbgclk      : std_logic := '0';
 
 	----- NETPP SLAVE API -----
 
+	--! \addtogroup Netpp
+	--! \{
 
 	--! Initializes the netpp slave structures for a simulation
 	function netpp_init(name : string)
@@ -42,6 +49,11 @@ package ghpi_netpp is
 	function device_gettoken(h: netpphandle_t; id: string)
 		return token_t;
 
+	--! \}
+
+	--! \addtogroup VirtualRAM
+	--! \{
+
 	----- RAM API -----
 	subtype  ram16_t       is unsigned(15 downto 0);
 	subtype  byte_t        is unsigned(7 downto 0);
@@ -52,6 +64,11 @@ package ghpi_netpp is
 	--! @param size  Size in words (not bytes)
 	--! @param name  A unique name, used for netpp export
 	function ram_new(name : string; size : integer) return rambuf_t;
+
+	--! \}
+
+	--! \addtogroup VFifoAPI
+	--! \{
 
 	----- FIFO API -----
 
@@ -82,14 +99,26 @@ package ghpi_netpp is
 	function fifo_new(name : string; size : integer; wordsize : integer)
 		return duplexfifo_t;
 
+	--! \}
+
+	--! \addtogroup VBusAPI
+	--! \{
 	----- NETPP BUS API -----
 
 	type     bus_t         is access integer;
 	--! Bus flags. 0: read, 1: write, 2: read ready
 	subtype  busflag_t     is unsigned(0 to 2);
 
+	--! Create a new virtual bus.
+	--! @param name      Name in the netpp root hierarchy
+	--! @param wordsize  Data word width in bytes
 	function bus_new(name : string; wordsize : integer)
 		return bus_t;
+
+	--! \}
+
+	--! \addtogroup Auxiliaries
+	--! \{
 	
 	----- NETPP REMOTE FRAMEBUFFER API -----
 
@@ -101,11 +130,13 @@ package ghpi_netpp is
 	constant VIDEOMODE_UYVY    : natural := 3; --! UYVY 16 bpp mode
 	constant VIDEOMODE_INDEXED : natural := 17; --! Indexed 16bit mode
 
+	--! \}
+
+
 #include "func_decl.chdl"
 
 end package;
 
---! \}
 
 package body ghpi_netpp is
 

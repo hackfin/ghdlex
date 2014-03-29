@@ -1,5 +1,4 @@
---! \file 
---! \brief Virtualized simple bus implementation
+--! \file   Virtual Bus implementation
 
 -- (c) 2013 Martin Strubel <hackfin@section5.ch>
 
@@ -13,6 +12,8 @@ library work;
 	use work.txt_util.all;
 	use std.textio.all;
 
+
+--! \brief Virtualized simple bus implementation
 --!
 --! The VirtualBus component implements a very simple read/write bus
 --! slave protocol for testing a (slave) interface from outside software.
@@ -34,7 +35,6 @@ library work;
 --! that means, legacy accesses are timing critical and the simulation
 --! does not feed back to the caller if a specific register update was
 --! noticed.
---! \example simboard.vhdl
 
 entity VirtualBus is
 	generic (

@@ -39,9 +39,11 @@ library work;
 
 entity VFIFO is
 generic (
-	FIFOSIZE : natural     := 512;   --! FIFO size in number of words
-	SLEEP_CYCLES : natural := 50000; --! Sleep cycles on no activity
-	WORDSIZE : natural     := 1      --! Word size in bytes [1,2]
+	NETPP_NAME   : string   := "DEFAULT";
+	FIFOSIZE     : natural     := 512;   --! FIFO size in number of words
+	--! Sleep cycles on no activity. If 0, use sleep `global_waitcycles`
+	SLEEP_CYCLES : natural := 50000;
+	WORDSIZE     : natural     := 1      --! Word size in bytes [1,2]
 );
 port (
 	signal clk         : in  std_logic; --! The input master clock
@@ -78,7 +80,11 @@ begin
 	process
 		variable ret : integer;
 	begin
-		fifo_handle := fifo_new(simulation'path_name, FIFOSIZE, WORDSIZE);
+		if NETPP_NAME = "DEFAULT" then
+			fifo_handle := fifo_new(simulation'path_name, FIFOSIZE, WORDSIZE);
+		else
+			fifo_handle := fifo_new(NETPP_NAME, FIFOSIZE, WORDSIZE);
+		end if;
 		if fifo_handle = null then
 			assert false report "Failed to register FIFO";
 		end if;
@@ -102,7 +108,11 @@ begin
 			data_in <= std_logic_vector(d_data(DATA_WIDTH-1 downto 0));
 
 			if flags(RXE) = '0' and throttle = '1' then
-				usleep(SLEEP_CYCLES);
+				if SLEEP_CYCLES /= 0 then
+					usleep(SLEEP_CYCLES);
+				else
+					usleep(global_waitcycles);
+				end if;
 			end if;
 
 			rd_ready <= flags(RXE);

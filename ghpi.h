@@ -94,9 +94,9 @@ void hexdump(char *buf, unsigned long n);
 
 /*!
  * \mainpage GHDLex documentation
- * \version 0.04develop
+ * \version 0.05develop
  * \author Martin Strubel
- * \date 10/2012
+ * \date 03/2014
  *
  * \section Intro     Introduction
  *
@@ -158,13 +158,17 @@ void hexdump(char *buf, unsigned long n);
  *  - VirtualBus:  A simple virtual bus master for testing slave devices
  *  - VirtualFIFO: A FIFO buffer (standalone, one instance): DEPRECATED!
  *
- * They all depend on netpp, however, the VirtualFIFO runs its own netpp
- * server thread, whereas the other modules require to add the netpp.vpi
- * module to the simulation using the option:
- * \code --vpi=netpp.vpi  \endcode
+ * They all depend on netpp, so they call netpp_init() at start up of
+ * the simulation.
+ *
+ * Previously, some of those modules did require to load the netpp.vpi
+ * module on top. This is no longer necessary, as soon as they call
+ * netpp_init(), the netpp API is initialized. If not, your simulation
+ * will stop with a Null pointer exception and write a warning about
+ * using netpp.vpi.
  *
  * It is not a problem to load the netpp.vpi on top of an already
- * initialized netpp server, however, you will get a warning on the
+ * initialized netpp server, but you will also get a warning on the
  * console. Future versions may run an extra server on a separate port.
  *
  * The VirtualFIFO is normally the first thing to implement for testing
@@ -295,7 +299,7 @@ python py/fifo.py
  *
  * As an example, a testbench is loaded with the netpp.vpi module:
  *
- * \code ./simram --vpi=netpp.vpi \endcode
+ * \code ./simx --vpi=netpp.vpi \endcode
  *
  * and responds with:
  * \code
