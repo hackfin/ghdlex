@@ -25,6 +25,8 @@
 <xsl:param name="entprefix">decode</xsl:param>
 <!-- most significant byte to define address width -->
 <xsl:param name="msb">7</xsl:param>
+<!-- Interface type -->
+<xsl:param name="iface_type">std_logic_vector</xsl:param>
 
 <xsl:param name="output_decoder">0</xsl:param>
 <xsl:param name="dwidth">16</xsl:param>
@@ -77,9 +79,9 @@ component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id"/> is
 		ce        : in  std_logic;
 		ctrl      : out <xsl:value-of select="@id"/>_WritePort;
 		stat      : in  <xsl:value-of select="@id"/>_ReadPort;
-		data_in   : in  std_logic_vector(<xsl:value-of select="$dwidth"/>-1 downto 0);
-		data_out  : out std_logic_vector(<xsl:value-of select="$dwidth"/>-1 downto 0);
-		addr      : in  std_logic_vector(BV_MMR_CFG_<xsl:value-of select="@id"/>);
+		data_in   : in  <xsl:value-of select="$iface_type"/>(<xsl:value-of select="$dwidth"/>-1 downto 0);
+		data_out  : out <xsl:value-of select="$iface_type"/>(<xsl:value-of select="$dwidth"/>-1 downto 0);
+		addr      : in  <xsl:value-of select="$iface_type"/>(BV_MMR_CFG_<xsl:value-of select="@id"/>);
 		we        : in  std_logic;
 		clk       : in  std_logic
 	);
@@ -103,7 +105,7 @@ end component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id" />;
 
 		</xsl:when>
 		<xsl:otherwise>
-			<xsl:text>		</xsl:text><xsl:value-of select="translate(@name, $ucase, $lcase)"/> : std_logic_vector(BV_<xsl:value-of select="@name"/>
+			<xsl:text>		</xsl:text><xsl:value-of select="translate(@name, $ucase, $lcase)"/> : <xsl:value-of select="$iface_type"/>(BV_<xsl:value-of select="@name"/>
 			<xsl:text>);
 </xsl:text>
 		</xsl:otherwise>
@@ -159,11 +161,11 @@ end component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id" />;
 			<xsl:choose>
 				<xsl:when test="@size">
 					<xsl:text>		</xsl:text>
-					<xsl:value-of select="$regid"/> : std_logic_vector(REG_SIZE<xsl:value-of select="@size"/>B);
+					<xsl:value-of select="$regid"/> : <xsl:value-of select="$iface_type"/>(REG_SIZE<xsl:value-of select="@size"/>B);
 </xsl:when>
 				<xsl:otherwise>
 					<xsl:text>		</xsl:text>
-					<xsl:value-of select="$regid"/> : std_logic_vector(REG_SIZE);
+					<xsl:value-of select="$regid"/> : <xsl:value-of select="$iface_type"/>(REG_SIZE);
 </xsl:otherwise>
 			</xsl:choose>
 		</xsl:otherwise>

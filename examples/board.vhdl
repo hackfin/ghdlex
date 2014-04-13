@@ -19,6 +19,7 @@ entity simboard is
 end simboard;
 
 architecture simulation of simboard is
+	constant FIFO_WORDWIDTH : natural := 1;
 	signal clk: std_logic := '0';
 	signal we: std_logic := '0';
 	constant ADDR_W : natural := 12;
@@ -36,13 +37,17 @@ architecture simulation of simboard is
 	signal tap_ce    : std_logic;
 	signal tap_ctrl  : tap_registers_WritePort;
 	signal tap_stat  : tap_registers_ReadPort;
- 
-	type byte_bus_t is array (0 to 2) of std_logic_vector(7 downto 0);
 
-	signal fifo_wready     : std_logic_vector(0 to 2);
-	signal fifo_rready     : std_logic_vector(0 to 2);
-	signal fifo_we         : std_logic_vector(0 to 2);
-	signal fifo_re         : std_logic_vector(0 to 2);
+	constant NFIFOS  : natural := 2;
+ 
+	type byte_bus_t is array (0 to NFIFOS-1) of
+		std_logic_vector(FIFO_WORDWIDTH*8-1 downto 0);
+
+	signal fifo_canwrite   : std_logic;
+	signal fifo_wready     : std_logic_vector(0 to NFIFOS-1);
+	signal fifo_rready     : std_logic_vector(0 to NFIFOS-1);
+	signal fifo_we         : std_logic_vector(0 to NFIFOS-1);
+	signal fifo_re         : std_logic_vector(0 to NFIFOS-1);
 	-- Note: Arrays of that kind are not yet supported by the wrapper
 	signal fifo_din        : byte_bus_t;
 	signal fifo_dout       : byte_bus_t;
@@ -100,7 +105,7 @@ ram1:
 nfifo:
 	for i in 0 to 1 generate
 fifo: VFIFO
-	generic map (WORDSIZE => 1)
+	generic map (WORDSIZE => FIFO_WORDWIDTH)
 	port map (
 		clk         => clk,
 		throttle    => global_throttle,
@@ -113,18 +118,36 @@ fifo: VFIFO
 	);
 	end generate;
 
-fifo_single: VFIFO
-	generic map (WORDSIZE => 1)
-	port map (
-		clk         => clk,
-		throttle    => global_throttle,
-		wr_ready    => fifo_wready(2),
-		rd_ready    => fifo_rready(2),
-		wr_enable   => fifo_we(2),
-		rd_enable   => fifo_re(2),
-		data_in     => fifo_dout(2),
-		data_out    => fifo_din(2)
-	);
+	-- Feed out data to input:
+
+	fifo_din(0) <= fifo_dout(0);
+
+	-- Delayed process, because full flag signals on (FULL-1) pointer
+	-- condition:
+loopback:
+	process (clk)
+	begin
+		if rising_edge(clk) then
+			fifo_re(0) <= fifo_rready(0); -- Read when data ready
+			fifo_canwrite <= fifo_wready(0);
+			fifo_we(0) <= fifo_rready(0) and fifo_canwrite;
+		end if;
+	end process;
+
+-- Disabled, we play with the procedural generation above.
+
+-- fifo_single: VFIFO
+-- 	generic map (WORDSIZE => 1)
+-- 	port map (
+-- 		clk         => clk,
+-- 		throttle    => global_throttle,
+-- 		wr_ready    => fifo_wready(2),
+-- 		rd_ready    => fifo_rready(2),
+-- 		wr_enable   => fifo_we(2),
+-- 		rd_enable   => fifo_re(2),
+-- 		data_in     => fifo_dout(2),
+-- 		data_out    => fifo_din(2)
+-- 	);
 
 vbus:
 	VirtualBus

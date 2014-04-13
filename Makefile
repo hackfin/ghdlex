@@ -5,19 +5,12 @@
 # See LICENSE.txt for usage policies
 #
 
-VERSION = 0.050develop
-
+VERSION = 0.051
 
 
 CSRCS = helpers.c
 
-# DUTIES = simfifo simram simboard simfb simnetpp
-ifeq ($(NETPP_EXISTS),yes)
-DUTIES = simram simboard simfb simnetpp
-DUTIES += decode_tap_registers.vhdl
-endif
-
-include config.mk
+-include config.mk
 
 # USE_LEGACY = yes
 
@@ -69,9 +62,11 @@ XGHDLFLAGS = --work=work -Plib --PREFIX=$(GHDL_PREFIX) \
 # NETPP = $(HOME)/src/netpp
 # Run "make allnetpp" to fetch and build the source
 #
-NETPP_VER = netpp-0.40-svn320
+NETPP ?= $(CURDIR)/netpp
+
+NETPP_VER = netpp_src-0.40-svn321
 NETPP_TAR = $(NETPP_VER).tgz 
-NETPP_WEB = http://section5.ch/customer/head/$(NETPP_TAR)
+NETPP_WEB = http://section5.ch/downloads/$(NETPP_TAR)
 NETPP_EXISTS = $(shell [ -e $(NETPP)/xml ] && echo yes )
 CURDIR = $(shell pwd)
 
@@ -79,22 +74,25 @@ WORK = work/work-obj93.cf
 
 CFLAGS = -g -Wall 
 
+ifeq ($(NETPP_EXISTS),yes)
+DUTIES = decode_tap_registers.vhdl
+DUTIES += simnetpp simfb
+DUTIES += simram simboard
+endif
+
+
 ifeq ($(PLATFORM),Linux)
 DUTIES += simpipe
 CFLAGS += -fPIC
 LDFLAGS = -Wl,-export-dynamic # Make sure libslave can use local_getroot()
 endif
 
-ifndef NETPP
-NETPP = $(CURDIR)/netpp
-endif
 
 LIBSLAVE = $(NETPP)/devices/libslave
 
 LDFLAGS += -Wl,-L. -Wl,-lmysim
 
 ifeq ($(NETPP_EXISTS),yes)
-	DUTIES += simnetpp simfb
 	NETPP_DEPS = $(NETPP)/common \
 		$(NETPP)/include/devlib_error.h registermap.h
 	DEVICEFILE = ghdlsim.xml
@@ -146,16 +144,16 @@ GHDLEX_VHDL = \
 
 ifdef USE_LEGACY
 GHDLEX_VHDL += libfifo.vhdl
+VHDLFILES = examples/fifo.vhdl 
 endif
 
-VHDLFILES = examples/simfifo.vhdl 
 ifdef NETPP
-VHDLFILES += examples/simnetpp.vhdl 
-VHDLFILES += examples/simfb.vhdl
-VHDLFILES += examples/simram.vhdl
-VHDLFILES += examples/simboard.vhdl
+VHDLFILES += examples/netpp.vhdl 
+VHDLFILES += examples/fb.vhdl
+VHDLFILES += examples/ram.vhdl
+VHDLFILES += examples/board.vhdl
 endif
-VHDLFILES += examples/simpipe.vhdl
+VHDLFILES += examples/pipe.vhdl
 
 all: $(NETPP_DEPS) $(DUTIES) 
 
@@ -193,24 +191,9 @@ registermap_pkg.vhdl: ghdlsim.xml vhdlregs.xsl
 regprops.xml: ghdlsim.xml $(XSLT)/regwrap.xsl
 	$(XP) -o $@ $(XSLT)/regwrap.xsl $<
 
-simpipe: $(WORK) $(LIBRARIES)
+# Rule to build simulation examples:
+sim%: $(WORK) $(LIBRARIES)
 	$(GHDL) -m $(GHDL_LDFLAGS) $(LDFLAGS) $@
-
-simfifo: $(WORK) $(LIBRARIES)
-	$(GHDL) -m $(GHDL_LDFLAGS) $(LDFLAGS) $@
-
-simram: $(WORK) $(LIBRARIES)
-	$(GHDL) -m $(GHDL_LDFLAGS) $(LDFLAGS) $@
-
-simboard: $(WORK) $(LIBRARIES)
-	$(GHDL) -m $(GHDL_LDFLAGS) $(LDFLAGS) $@
-
-simnetpp: $(WORK) $(LIBRARIES)
-	$(GHDL) -m $(GHDL_LDFLAGS) $(LDFLAGS) $@
-
-simfb: $(WORK) $(LIBRARIES)
-	$(GHDL) -m $(GHDL_LDFLAGS) $(LDFLAGS) $@
-
 
 # The ghdlex library for external use:
 lib/ghdlex-obj93.cf: $(GHDLEX_VHDL)
@@ -258,9 +241,6 @@ allnetpp: $(LIBSLAVE)/libslave.so
 
 $(NETPP)/common: 
 	ln -s $< $(NETPP)/share/netpp/common $@
-
-$(LIBSLAVE): $(NETPP)/devices/slave
-	ln -s $< $@
 
 VPIOBJS = vpiwrapper.o
 VPIOBJS += vpi_proplist.o vpi_netpp.o vpi_ram.o

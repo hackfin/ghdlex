@@ -158,6 +158,7 @@ int dump_body(FILE *f)
 			case TYPE_PROC:
 				dump_proc_body(f, d);
 				break;
+//			Omit comments in body
 //			default:
 //				dump_comment(f, d, 0);
 		}

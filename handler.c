@@ -203,9 +203,15 @@ int device_write(RemoteDevice *d,
 			val |= *buf++;
 		}
 		// Wait until slave has read previous data sent
-		while (g_bus->flags & TX_PEND) {
+		int retry = 0;
+		while (g_bus->flags & TX_PEND ) {
 			// printf("Poll until slave ready\n");
-			USLEEP(1000); // XXX
+			USLEEP(1000); // Wait 1 ms
+			retry++;
+			if (retry > g_bus->timeout_ms) {
+				fprintf(stderr, "Bus timeout. No response from Simulation?\n");
+				return DCERR_COMM_TIMEOUT;
+			}
 		}
 		MUTEX_LOCK(&g_bus->mutex);
 			g_bus->addr = addr & 0xff;
@@ -243,9 +249,16 @@ int device_read(RemoteDevice *d,
 		MUTEX_LOCK(&g_bus->mutex);
 			g_bus->flags |= RX_PEND;
 		MUTEX_UNLOCK(&g_bus->mutex);
+		int retry = 0;
 		while ((g_bus->flags & (RX_PEND))) {
 			// printf("Poll read...\n");
-			USLEEP(1000); // XXX
+			USLEEP(1000);
+			retry++;
+			if (retry > g_bus->timeout_ms) {
+				fprintf(stderr, "Bus timeout. No response from Simulation?\n");
+				return DCERR_COMM_TIMEOUT;
+			}
+
 		}
 		// printf("Read %08x\n", g_bus->data);
 		MUTEX_LOCK(&g_bus->mutex);
@@ -308,8 +321,10 @@ bus_t_ghdl sim_bus_new_wrapped(string_ghdl name, integer_ghdl width)
 		width);
 	MUTEX_INIT(&b->mutex);
 	b->flags = 0;
+	b->timeout_ms = 3000;
 
 	g_bus = b; // XXX
+	
 	return (bus_t_ghdl) b;
 }
 

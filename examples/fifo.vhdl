@@ -2,6 +2,7 @@
 -- FIFO Simulator <-> C interfacing example
 -- (c) 2011 Martin Strubel <hackfin@section5.ch>
 --
+-- DEPRECATED legacy. Instance a vfifo instead.
 --
 
 library ieee;

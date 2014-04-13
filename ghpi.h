@@ -177,19 +177,20 @@ void hexdump(char *buf, unsigned long n);
  * a serial interface.
  *
  * For example to access the virtual FIFO on the simulation, start
- * 'simfifo':
+ * 'simboard'. This will, among other things, output something like:
  *
  * \code
+Reserved FIFO ':simboard:nfifo(0):fifo:' with word size 1, size 0x400
 Initialize FIFO with word width of 8 bits
 Initialize FIFO with word width of 8 bits
 ProbeServer listening on UDP Port 7208...
 Listening on UDP Port 2008...
 Listening on TCP Port 2008...
 \endcode
- * Then run the python script py/fifo.py from another console:
+ * Then run the python script test.py from another console:
  *
  * \code
-python py/fifo.py
+python test.py
 \endcode
  *
  * You will now see a simple loop back of the bytes sent from the
@@ -374,11 +375,18 @@ ram0 = getattr(root_node, ":simram:ram0:") \endcode
  * Some other entities that may not be contained in the free ghdlex
  * distribution use the global_throttle signal. The user has to assign
  * this signal himself on the top level implementation.
- * The example simboard.vhdl demonstrates how the global_throttle signal
+ * The example board.vhdl demonstrates how the global_throttle signal
  * is controlled from outside via netpp via a property definition.
  *
  * When using the netpp.vpi module, you can manipulate this signal
  * automatically from the netpp side by its name in the hierarchy.
+ *
+ * Also, there might be a global_dbgclk signal for some debugger entities.
+ * Make sure this signal is driven from the top level simulation, otherwise
+ * your units may not act. For most of these debugger units, there is
+ * a USE_GLOBAL_CLK generic flag that is false by default, i.e. you will
+ * have to use a clock specification. For detailed information, please
+ * refer to the specific debug module section.
  *
  * \subsection Extending Extending Autowrapping
  *
@@ -423,5 +431,17 @@ ram0 = getattr(root_node, ":simram:ram0:") \endcode
  *      given with netpp integers and of course byte wide buffers.
  *
  * \bug Not all top level signals can be exported to netpp.
+ *
+ * \bug GHDL is not fully thread safe. You might need a modified version,
+ *      if manipulation through netpp.vpi causes weird behaviour.
+ *
+ * \example board.vhdl
+ * \example netpp.vhdl
+ * \example pipe.vhdl
+ * \example fb.vhdl
+ * \example dpram16.vhdl
+ * \example vfifo.vhdl
+ *
+*
  *
  */

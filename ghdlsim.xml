@@ -89,6 +89,10 @@ Including a header is necessary when implementing access to global variables.-->
       <info>Bad machine state. Your code has a bug!</info>
     </errorspec>
 
+    <errorspec name="VBUS_TIMEOUT">
+      <info>Timeout on virtual Bus!</info>
+    </errorspec>
+
     <errorspec name="I2C">
       <info>Could not access i2c bus</info>
     </errorspec>

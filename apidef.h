@@ -41,13 +41,6 @@
  * For all other type definitions, omit the _ghdl suffix when using it in
  * VHDL.
  *
- * \example simboard.vhdl
- * \example simnetpp.vhdl
- * \example simpipe.vhdl
- * \example simfb.vhdl
- * \example dpram16.vhdl
- * \example vfifo.vhdl
- *
  */
 
 #define _C1 /
@@ -192,7 +185,7 @@ VHDL_COMMENT("Initialize remote frame buffer device")
 VHDL_COMMENT("@param dev      A netpp framebuffer capable device handle")
 VHDL_COMMENT("@param w        Width of the framebuffer")
 VHDL_COMMENT("@param h        Height of the frame buffer")
-VHDL_COMMENT("@param buftype  One of VIDEOMODE_8BIT, VIDEOMODE_UYVY, VIDEOMODE_INDEXED")
+VHDL_COMMENT("@param buftype  One of #VIDEOMODE_8BIT, #VIDEOMODE_UYVY, #VIDEOMODE_INDEXED")
 VHDL_COMMENT("               For supported video modes, see display/videomodes.h")
 API_DEFFUNC( initfb,          _T(framebuffer_t),
 	ARG(dev, netpphandle_t),
