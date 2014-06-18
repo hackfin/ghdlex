@@ -12,17 +12,16 @@
 
 	<xsl:output method="text" encoding="ISO-8859-1"/>	
 
-
 <!-- Source file name -->
 <xsl:param name="srcfile">"-UNKNOWN-"</xsl:param>
-<!-- Index of desired device -->
+<!-- ID (string) or index of desired device -->
 <xsl:param name="selectDevice">1</xsl:param>
 <!-- If 1, use parent register map's name as prefix -->
 <xsl:param name="useMapPrefix">0</xsl:param>
 <!-- Register prefix -->
 <xsl:param name="regprefix">R_</xsl:param>
 <!-- Entity prefix -->
-<xsl:param name="entprefix">decode</xsl:param>
+<xsl:param name="entprefix">decode_</xsl:param>
 <!-- most significant byte to define address width -->
 <xsl:param name="msb">7</xsl:param>
 <!-- Interface type -->
@@ -40,11 +39,10 @@
 	<!-- Register definition/declaration and reference -->
 
 <xsl:template match="my:registermap" mode="reg_record">
-<!-- HACK: If registermap has id soc_mmr, do not emit -->
-<xsl:if test="not(@id='soc_mmr') and not(@nodecode='true')">
 <xsl:if test="./my:register[@access='RO']">
 	type <xsl:value-of select="@id"/>_ReadPort is record
-<xsl:apply-templates select=".//my:register[@access='RO']" mode="reg_record"/>
+<!-- When read only or explicit RW, emit read port member -->
+<xsl:apply-templates select=".//my:register[@access='RO' or @access='RW']" mode="reg_record"/>
 <xsl:text>	end record;
 </xsl:text>
 </xsl:if>
@@ -54,7 +52,6 @@
 <xsl:apply-templates select=".//my:register[@volatile='true']" mode="reg_notify"/>
 <xsl:text>	end record;
 </xsl:text>
-</xsl:if>
 </xsl:if>
 </xsl:template>
 
@@ -69,12 +66,12 @@
 </xsl:template>
 
 <xsl:template match="my:registermap" mode="comp_decl">
-<xsl:if test="not(@id='soc_mmr') and not(@nodecode='true')">
+<xsl:if test="not(@hidden='true') and not(@nodecode='true')">
 
 ---------------------------------------------------------
 -- Decoder unit for '<xsl:value-of select="@name"/>'
 
-component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id"/> is
+component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id"/> is
 	port (
 		ce        : in  std_logic;
 		ctrl      : out <xsl:value-of select="@id"/>_WritePort;
@@ -85,7 +82,7 @@ component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id"/> is
 		we        : in  std_logic;
 		clk       : in  std_logic
 	);
-end component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id" />;
+end component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id" />;
 </xsl:if>
 </xsl:template>
 
@@ -194,8 +191,37 @@ end component <xsl:value-of select="$entprefix"/>_<xsl:value-of select="@id" />;
 	<xsl:apply-templates select="./my:bitfield" mode="reg_decl"/>
 </xsl:template>
 
+<xsl:template match="my:device" mode="package">
+
+
+package <xsl:value-of select="@id"/> is
+	subtype  regaddr_t is unsigned(<xsl:value-of select="$msb"/> downto 0);
+
+	subtype  REG_SIZE1B is integer range 7 downto 0;
+	subtype  REG_SIZE2B is integer range 15 downto 0;
+	subtype  REG_SIZE3B is integer range 23 downto 0;
+	subtype  REG_SIZE4B is integer range 31 downto 0;
+
+	-- Register and bitfield constants:
+<xsl:apply-templates select="my:registermap[not(@hidden='true')]" mode="reg_decl"/>
+-- Special MMR node declarations:
+
+	-- Access records:
+<xsl:apply-templates select="my:registermap[not(@hidden='true') and not(@nodecode='true')]" mode="reg_record"/>
+	-- Register maps that explicitely have hidden="false"
+<xsl:apply-templates select="my:registermap[@hidden='false' and @nodecode='true']" mode="reg_record"/>
+
+<xsl:if test="$output_decoder=1">
+	-- Decoder components:
+<xsl:apply-templates select="my:registermap[not(@nodecode='true') and not(@hidden='true')]" mode="comp_decl"/>
+</xsl:if>
+
+end <xsl:value-of select="@id"/>;
+</xsl:template>
+
 <xsl:template match="/">--
--- This is a VHDL package file generated from <xsl:value-of select="$srcfile"/>
+-- This is a VHDL package file generated from
+-- <xsl:value-of select="$srcfile"/>
 -- using vhdlregs.xsl
 -- Changes to this file WILL BE LOST. Edit the source file.
 --
@@ -213,28 +239,17 @@ use ieee.numeric_std.all;
 
 <xsl:apply-templates select=".//my:header"/>
 
+<!-- Stay backward compatible (now support id string as well): -->
 <xsl:variable name="index" select="number($selectDevice)"></xsl:variable>
 
-package <xsl:value-of select="my:devdesc/my:device[$index]/@id"/> is
-	subtype  regaddr_t is unsigned(<xsl:value-of select="$msb"/> downto 0);
-
-	subtype  REG_SIZE1B is integer range 7 downto 0;
-	subtype  REG_SIZE2B is integer range 15 downto 0;
-	subtype  REG_SIZE3B is integer range 23 downto 0;
-	subtype  REG_SIZE4B is integer range 31 downto 0;
-
-
-<xsl:apply-templates select="my:devdesc/my:device[$index]/my:registermap" mode="reg_decl"/>
-
-	-- Access records:
-<xsl:apply-templates select="my:devdesc/my:device[$index]/my:registermap[not(@hidden='true')]" mode="reg_record"/>
-
-<xsl:if test="$output_decoder=1">
-	-- Decoder components:
-<xsl:apply-templates select="my:devdesc/my:device[$index]/my:registermap[not(@hidden='true')]" mode="comp_decl"/>
-</xsl:if>
-
-end <xsl:value-of select="my:devdesc/my:device[$index]/@id"/>;
+	<xsl:choose>
+	<xsl:when test="string(index) != 'NaN'">
+		<xsl:apply-templates select=".//my:device[$index]" mode="package"/>
+	</xsl:when>
+	<xsl:otherwise>
+		<xsl:apply-templates select=".//my:device[@name=$selectDevice]" mode="package"/>
+	</xsl:otherwise>
+	</xsl:choose>
 
 <xsl:text>
 </xsl:text>

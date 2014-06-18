@@ -11,6 +11,9 @@
 <!-- Key for register map reference -->
 <xsl:key name="mapkey" match="my:registermap" use="@id"/>
 
+<!-- Key for register reference -->
+<xsl:key name="regkey" match="my:register" use="@id"/>
+
 <xsl:variable name="lcase">abcdefghijklmnopqrstuvwxyz</xsl:variable>
 <xsl:variable name="ucase">ABCDEFGHIJKLMNOPQRSTUVWXYZ</xsl:variable>
 

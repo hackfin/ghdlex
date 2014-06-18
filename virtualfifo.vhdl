@@ -59,9 +59,9 @@ entity VirtualFIFO is
 		signal wr_enable   : in  std_logic;
 		--! When '1', assert next data word from FIFO to data_out
 		signal rd_enable   : in  std_logic;
-		--! Data input
+		--! Data input (from FIFO to logic)
 		signal data_in     : out std_logic_vector(8*WORDSIZE-1 downto 0);
-		--! Data output
+		--! Data output (from logic to FIFO)
 		signal data_out    : in  std_logic_vector(8*WORDSIZE-1 downto 0)
 	);
 end entity;

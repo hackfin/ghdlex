@@ -269,10 +269,11 @@ python test.py
  * \subsection FuncSlave      Generic data I/O with external applications
  *
  * In this case, a GHDL simulation acts as slave (or server).
- * For data I/O with external programs, there are two examples:
+ * For data I/O with external programs, there are two examples
+ * (see example/ folder):
  *
- * - simpipe.vhdl : Simple file based I/O using named Unix pipes
- * - simfifo.vhdl : A thread based software FIFO implementation, that
+ * - pipe.vhdl : Simple file based I/O using named Unix pipes
+ * - fifo.vhdl : A thread based software FIFO implementation, that
  *                  can be compiled to accept data over the network from
  *                  a netpp client (virtual driver)
  *
@@ -281,9 +282,9 @@ python test.py
  * In the following examples, GHDL is used as a master (or client),
  * talking to external devices.
  *
- * - simnetpp.vhdl: A simple example for setting a register value on a
+ * - netpp.vhdl: A simple example for setting a register value on a
  *                  remote device.
- * - simfb.vhdl:    Demonstrates a YUV format display output to a remote
+ * - fb.vhdl:    Demonstrates a YUV format display output to a remote
  *                  framebuffer (the netpp display server)
  *
  * These examples can easily be modified to write directly to local devices
