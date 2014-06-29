@@ -51,7 +51,7 @@
 		<xsl:otherwise>
 			<xsl:value-of select="$iface_type"/>(<xsl:value-of select="@msb"/> downto <xsl:value-of select="@lsb"/>);</xsl:otherwise>
 	</xsl:choose>
-	<xsl:if test="my:info">--! <xsl:value-of select="my:info"/></xsl:if>
+	<xsl:if test="my:info"> --! <xsl:value-of select="my:info"/></xsl:if>
 	<xsl:text>
 </xsl:text>
 </xsl:template>
@@ -75,7 +75,7 @@
 				<xsl:with-param name="access" select="@access"/>
 			</xsl:call-template>
 			<xsl:text>  </xsl:text>
-<xsl:value-of select="$iface_type"/>(<xsl:value-of select="@size"/>*8-1 downto 0);<xsl:if test="my:info">--! <xsl:value-of select="my:info"/></xsl:if></xsl:otherwise>
+<xsl:value-of select="$iface_type"/>(<xsl:value-of select="@size"/>*8-1 downto 0);<xsl:if test="my:info"> --! <xsl:value-of select="my:info"/></xsl:if></xsl:otherwise>
 	</xsl:choose>
 	<xsl:text>
 </xsl:text>

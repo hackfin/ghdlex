@@ -16,8 +16,9 @@
 <xsl:param name="srcfile">"-UNKNOWN-"</xsl:param>
 <!-- ID (string) or index of desired device -->
 <xsl:param name="selectDevice">1</xsl:param>
-<!-- If 1, use parent register map's name as prefix -->
-<xsl:param name="useMapPrefix">0</xsl:param>
+<!-- If 1, use parent register map's name as prefix.
+     When 2, use this prefix for bit fields as well. -->
+<xsl:param name="useMapPrefix">2</xsl:param>
 <!-- Register prefix -->
 <xsl:param name="regprefix">R_</xsl:param>
 <!-- Entity prefix -->
@@ -26,6 +27,8 @@
 <xsl:param name="msb">7</xsl:param>
 <!-- Interface type -->
 <xsl:param name="iface_type">std_logic_vector</xsl:param>
+<!-- If 1, implement ACK pin -->
+<xsl:param name="useAck">0</xsl:param>
 
 <xsl:param name="output_decoder">0</xsl:param>
 <xsl:param name="dwidth">16</xsl:param>
@@ -72,12 +75,14 @@
 -- Decoder unit for '<xsl:value-of select="@name"/>'
 
 component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id"/> is
+	generic ( DATA_WIDTH : natural := <xsl:value-of select="$dwidth"/> );
 	port (
 		ce        : in  std_logic;
+		<xsl:if test="$useAck = 1">ack       : out std_logic;</xsl:if>
 		ctrl      : out <xsl:value-of select="@id"/>_WritePort;
 		stat      : in  <xsl:value-of select="@id"/>_ReadPort;
-		data_in   : in  <xsl:value-of select="$iface_type"/>(<xsl:value-of select="$dwidth"/>-1 downto 0);
-		data_out  : out <xsl:value-of select="$iface_type"/>(<xsl:value-of select="$dwidth"/>-1 downto 0);
+		data_in   : in  <xsl:value-of select="$iface_type"/>(DATA_WIDTH-1 downto 0);
+		data_out  : out <xsl:value-of select="$iface_type"/>(DATA_WIDTH-1 downto 0);
 		addr      : in  <xsl:value-of select="$iface_type"/>(BV_MMR_CFG_<xsl:value-of select="@id"/>);
 		we        : in  std_logic;
 		clk       : in  std_logic
@@ -88,6 +93,10 @@ end component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id" />;
 
 <!-- bitfield -->
 <xsl:template match="my:bitfield" mode="reg_record">
+
+	<xsl:variable name="prefix">
+	<xsl:if test="$useMapPrefix &gt; 1"><xsl:value-of select="../../@name"/>_</xsl:if>
+	</xsl:variable>
 
 	<xsl:text>		--! Exported value for bit (vector) '</xsl:text>
 	<xsl:value-of select="@name"/>
@@ -102,7 +111,7 @@ end component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id" />;
 
 		</xsl:when>
 		<xsl:otherwise>
-			<xsl:text>		</xsl:text><xsl:value-of select="translate(@name, $ucase, $lcase)"/> : <xsl:value-of select="$iface_type"/>(BV_<xsl:value-of select="@name"/>
+			<xsl:text>		</xsl:text><xsl:value-of select="translate(@name, $ucase, $lcase)"/> : <xsl:value-of select="$iface_type"/>(BV_<xsl:value-of select="$prefix"/><xsl:value-of select="@name"/>
 			<xsl:text>);
 </xsl:text>
 		</xsl:otherwise>
@@ -119,9 +128,13 @@ end component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id" />;
 
 <xsl:template match="my:bitfield" mode="reg_decl">
 <xsl:call-template name="emit_info"/>
+<xsl:variable name="prefix">
+<xsl:if test="$useMapPrefix &gt; 1"><xsl:value-of select="../../@name"/>_</xsl:if>
+</xsl:variable>
+
 	<xsl:choose>
 		<xsl:when test="@msb = @lsb">
-			<xsl:text>	constant </xsl:text><xsl:value-of select="substring(concat(@id, '            '), 1, 12)"/><xsl:text> B_</xsl:text><xsl:value-of select="@name"/> : natural := <xsl:value-of select="@msb"/>
+			<xsl:text>	constant </xsl:text><xsl:value-of select="substring(concat(@id, '            '), 1, 12)"/><xsl:text> B_</xsl:text><xsl:value-of select="$prefix"/><xsl:value-of select="@name"/> : natural := <xsl:value-of select="@msb"/>
 			<xsl:text>;
 </xsl:text>
 		</xsl:when>
@@ -129,6 +142,7 @@ end component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id" />;
 			<xsl:text>	subtype  </xsl:text>
 			<xsl:value-of select="substring(concat(@id, '             '), 1, 12)"/>
 			<xsl:text> BV_</xsl:text>
+			<xsl:value-of select="$prefix"/>
 			<xsl:value-of select="@name"/> is integer range <xsl:value-of select="@msb"/> downto <xsl:value-of select="@lsb"/>
 			<xsl:text>;
 </xsl:text>
@@ -145,7 +159,7 @@ end component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id" />;
 
 	<xsl:text>		--! Exported value for register '</xsl:text>
 	<xsl:value-of select="$regprefix"/>
-	<xsl:if test="$useMapPrefix = 1"><xsl:value-of select="../@name"/>_</xsl:if>
+	<xsl:if test="$useMapPrefix &gt; 0"><xsl:value-of select="../@name"/>_</xsl:if>
 	<xsl:value-of select="@id"/>
 	<xsl:text>'
 </xsl:text>
@@ -183,7 +197,7 @@ end component <xsl:value-of select="$entprefix"/><xsl:value-of select="@id" />;
 <xsl:call-template name="emit_info"/>
 	<xsl:text>	constant </xsl:text>
 	<xsl:value-of select="$regprefix"/>
-	<xsl:if test="$useMapPrefix = 1"><xsl:value-of select="../@name"/>_</xsl:if>
+	<xsl:if test="$useMapPrefix &gt; 0"><xsl:value-of select="../@name"/>_</xsl:if>
 	<xsl:value-of select="substring(concat(@id, '                '), 1, 16)"/>
 	<xsl:text> </xsl:text> : regaddr_t := x"<xsl:value-of select="substring(@addr, 3, 4)"/>
 	<xsl:text>";

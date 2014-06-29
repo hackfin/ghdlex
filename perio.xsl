@@ -27,9 +27,10 @@
 <xsl:param name="msb">15</xsl:param>
 <!-- register map to be output -->
 <xsl:param name="regmap">default</xsl:param>
-
 <!-- Interface type (std_logic_vector or unsigned) -->
 <xsl:param name="iface_type">std_logic_vector</xsl:param>
+<!-- If 1, implement ACK pin -->
+<xsl:param name="useAck">0</xsl:param>
 
 <xsl:param name="dwidth">16</xsl:param>
 
@@ -48,12 +49,14 @@ use work.<xsl:value-of select="@id"/>.all;
 <xsl:variable name="entityname" select="my:registermap[@id=$regmap]/@id"></xsl:variable>
 
 entity <xsl:value-of select="$entprefix"/><xsl:value-of select="$entityname"/> is
+	generic ( DATA_WIDTH : natural := <xsl:value-of select="$dwidth"/> );
 	port (
 		ce        : in  std_logic;
+		<xsl:if test="$useAck = 1">ack       : out std_logic;</xsl:if>
 		ctrl      : out <xsl:value-of select="$entityname"/>_WritePort;
 		stat      : in  <xsl:value-of select="$entityname"/>_ReadPort;
-		data_in   : in  <xsl:value-of select="$iface_type"/>(<xsl:value-of select="$dwidth"/>-1 downto 0);
-		data_out  : out <xsl:value-of select="$iface_type"/>(<xsl:value-of select="$dwidth"/>-1 downto 0);
+		data_in   : in  <xsl:value-of select="$iface_type"/>(DATA_WIDTH-1 downto 0);
+		data_out  : out <xsl:value-of select="$iface_type"/>(DATA_WIDTH-1 downto 0);
 		addr      : in  <xsl:value-of select="$iface_type"/>(BV_MMR_CFG_<xsl:value-of select="$entityname"/>);
 		we        : in  std_logic;
 		clk       : in  std_logic
@@ -109,7 +112,7 @@ end behaviour;
 	<xsl:if test="not(@access) or @access = 'RW' or @access = 'RO'">
 		<xsl:text>				when </xsl:text>
 		<xsl:value-of select="$regprefix"/>
-		<xsl:if test="$useMapPrefix = 1">
+		<xsl:if test="$useMapPrefix &gt; 0">
 			<xsl:value-of select="../@name"/>_</xsl:if>
 		<xsl:value-of select="@id"/>
 		<xsl:text> =&gt;
@@ -122,7 +125,7 @@ end behaviour;
 				<xsl:choose>
 					<xsl:when test="@size">
 					<xsl:text>					data_out(REG_SIZE</xsl:text>
-					<xsl:value-of select="@size"/>B) &lt;= reg_<xsl:value-of select="@id"/>
+					<xsl:value-of select="@size"/>B) &lt;= reg_<xsl:value-of select="translate(@id, $ucase, $lcase)"/>
 					</xsl:when>
 					<xsl:otherwise>
 					<xsl:text>					data_out &lt;= reg_</xsl:text>
@@ -140,7 +143,7 @@ end behaviour;
 <xsl:param name="regid"><xsl:value-of select="translate(@id, $ucase, $lcase)"/></xsl:param>
 <xsl:text>				when </xsl:text>
 	<xsl:value-of select="$regprefix"/>
-	<xsl:if test="$useMapPrefix = 1"><xsl:value-of select="../@name"/>_</xsl:if>
+	<xsl:if test="$useMapPrefix &gt; 0"><xsl:value-of select="../@name"/>_</xsl:if>
 	<xsl:value-of select="@id"/>
 	<xsl:text> =&gt;
 </xsl:text>
@@ -206,7 +209,7 @@ end behaviour;
 	<xsl:param name="regid"><xsl:value-of select="translate(@id, $ucase, $lcase)"/></xsl:param>
 	<xsl:text>				when </xsl:text>
 		<xsl:value-of select="$regprefix"/>
-		<xsl:if test="$useMapPrefix = 1">
+		<xsl:if test="$useMapPrefix &gt; 0">
 			<xsl:value-of select="../@name"/>_</xsl:if>
 			<xsl:value-of select="@id"/>
 		<xsl:text> =&gt;
@@ -269,6 +272,11 @@ end behaviour;
 
 <xsl:template match="my:bitfield" mode="sig_decl" >
 <xsl:param name="bfid"><xsl:value-of select="translate(@name, $ucase, $lcase)"/></xsl:param>
+	<xsl:variable name="name">
+		<xsl:if test="$useMapPrefix &gt; 1">
+			<xsl:value-of select="../../@name"/>_</xsl:if>
+			<xsl:value-of select="@name"/>
+	</xsl:variable>
 	<xsl:choose>
 	<xsl:when test="@msb = @lsb">
 		<xsl:text>	signal bit_</xsl:text>
@@ -282,7 +290,7 @@ end behaviour;
 	</xsl:when>
 	<xsl:otherwise>
 		<xsl:text>	signal reg_</xsl:text>
-		<xsl:value-of select="$bfid"/> : <xsl:value-of select="$iface_type"/>(BV_<xsl:value-of select="@name"/>
+		<xsl:value-of select="$bfid"/> : <xsl:value-of select="$iface_type"/>(BV_<xsl:value-of select="$name"/>
 			<xsl:text>)</xsl:text>
 			<xsl:if test="../my:default">
 			<xsl:call-template name="b_assign"/>
@@ -295,16 +303,22 @@ end behaviour;
 
 <xsl:template match="my:bitfield" mode="impl_read" >
 <xsl:param name="bfid"><xsl:value-of select="translate(@name, $ucase, $lcase)"/></xsl:param>
+	<xsl:variable name="name">
+		<xsl:if test="$useMapPrefix &gt; 1">
+			<xsl:value-of select="../../@name"/>_</xsl:if>
+			<xsl:value-of select="@name"/>
+	</xsl:variable>
+
 	<xsl:choose>
 		<xsl:when test="@msb = @lsb">
 			<xsl:text>					data_out(B_</xsl:text>
-			<xsl:value-of select="@name"/>) &lt;= bit_<xsl:value-of select="$bfid"/>
+			<xsl:value-of select="$name"/>) &lt;= bit_<xsl:value-of select="$bfid"/>
 			<xsl:text>;
 </xsl:text>
 		</xsl:when>
 		<xsl:otherwise>
 			<xsl:text>					data_out(BV_</xsl:text>
-			<xsl:value-of select="@name"/>) &lt;= reg_<xsl:value-of select="$bfid"/>
+			<xsl:value-of select="$name"/>) &lt;= reg_<xsl:value-of select="$bfid"/>
 			<xsl:text>;
 </xsl:text>
 		</xsl:otherwise>
@@ -313,22 +327,28 @@ end behaviour;
 
 <xsl:template match="my:bitfield" mode="impl_write" >
 <xsl:param name="bfid"><xsl:value-of select="translate(@name, $ucase, $lcase)"/></xsl:param>
+	<xsl:variable name="name">
+		<xsl:if test="$useMapPrefix &gt; 1">
+			<xsl:value-of select="../../@name"/>_</xsl:if>
+			<xsl:value-of select="@name"/>
+	</xsl:variable>
+
 	<xsl:choose>
 		<xsl:when test="../@volatile">
 			<xsl:text>					ctrl.</xsl:text>
-			<xsl:value-of select="$bfid"/> &lt;= data_in(B_<xsl:value-of select="@name"/>
+			<xsl:value-of select="$bfid"/> &lt;= data_in(B_<xsl:value-of select="$name"/>
 			<xsl:text>);
 </xsl:text>
 		</xsl:when>
 		<xsl:when test="@msb = @lsb">
 			<xsl:text>					bit_</xsl:text>
-			<xsl:value-of select="$bfid"/> &lt;= data_in(B_<xsl:value-of select="@name"/>
+			<xsl:value-of select="$bfid"/> &lt;= data_in(B_<xsl:value-of select="$name"/>
 			<xsl:text>);
 </xsl:text>
 		</xsl:when>
 		<xsl:otherwise>
 			<xsl:text>					reg_</xsl:text>
-			<xsl:value-of select="$bfid"/> &lt;= data_in(BV_<xsl:value-of select="@name"/>
+			<xsl:value-of select="$bfid"/> &lt;= data_in(BV_<xsl:value-of select="$name"/>
 			<xsl:text>);
 </xsl:text>
 		</xsl:otherwise>
@@ -337,16 +357,22 @@ end behaviour;
 
 <xsl:template match="my:bitfield" mode="sig_assign_ro" >
 <xsl:param name="bfid"><xsl:value-of select="translate(@name, $ucase, $lcase)"/></xsl:param>
+	<xsl:variable name="name">
+		<xsl:if test="$useMapPrefix &gt; 1">
+			<xsl:value-of select="../../@name"/>_</xsl:if>
+			<xsl:value-of select="@name"/>
+	</xsl:variable>
+
 	<xsl:choose>
 		<xsl:when test="@msb = @lsb">
 			<xsl:text>					data_out(B_</xsl:text>
-		<xsl:value-of select="@name"/>) &lt;= stat.<xsl:value-of select="$bfid"/>
+		<xsl:value-of select="$name"/>) &lt;= stat.<xsl:value-of select="$bfid"/>
 			<xsl:text>;
 </xsl:text>
 		</xsl:when>
 		<xsl:otherwise>	
 			<xsl:text>					data_out(BV_</xsl:text>
-			<xsl:value-of select="@name"/>) &lt;= stat.<xsl:value-of select="$bfid"/>
+			<xsl:value-of select="$name"/>) &lt;= stat.<xsl:value-of select="$bfid"/>
 			<xsl:text>;
 </xsl:text>
 		</xsl:otherwise>
@@ -402,6 +428,7 @@ ioproc_<xsl:value-of select="@id"/>:
 		if rising_edge(clk) then
 <xsl:apply-templates select=".//my:register[@volatile='true']" mode="sig_set_default" />
 		if ce = '1' then
+			<xsl:if test="$useAck = 1">ack       &lt;= '1';</xsl:if>
 			addr := ZEROPAD &amp; uaddr;
 			-- WRITE
 			if we = '1' then
@@ -409,6 +436,8 @@ ioproc_<xsl:value-of select="@id"/>:
 <xsl:apply-templates select=".//my:register[not(@access) or @access = 'RW']" mode="impl_write" />
 <xsl:apply-templates select=".//my:register[@access = 'WO']" mode="impl_write" />
 				when others =>
+				<xsl:if test="$useAck = 1">ack       &lt;= '0';</xsl:if>
+					assert false report "Bad Write I/O address" severity failure;
 				end case;
 			-- READ
 			else
@@ -416,6 +445,8 @@ ioproc_<xsl:value-of select="@id"/>:
 <xsl:apply-templates select=".//my:register[@access='RO']" mode="sig_assign_ro" />
 <xsl:apply-templates select=".//my:register[not(@access='RO')]" mode="impl_read" />
 				when others =>
+					<xsl:if test="$useAck = 1">ack       &lt;= '0';</xsl:if>
+					assert false report "Bad Read I/O address";
 					data_out &lt;= (others => '<xsl:value-of select="$defaultvalue"/>');
 				end case;
 			end if;
