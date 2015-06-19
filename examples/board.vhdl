@@ -28,15 +28,31 @@ architecture simulation of simboard is
 	signal data1: unsigned(15 downto 0);
 	signal data2: unsigned(15 downto 0);
 
+	-- Global, netpp 'property exported' bus:
 	signal vbus_wr   : std_logic;
 	signal vbus_rd   : std_logic;
 	signal vbus_din  : std_logic_vector(31 downto 0) := (others => '0');
 	signal vbus_dout : std_logic_vector(31 downto 0) := (others => '0');
 	signal vbus_addr : std_logic_vector(ADDR_W-1 downto 0) := (others => '0');
 
+	-- Virtual local bus, without netpp device read/write access:
+	signal lbus_wr   : std_logic;
+	signal lbus_rd   : std_logic;
+	signal lbus_din  : std_logic_vector(31 downto 0) := (others => '0');
+	signal lbus_dout : std_logic_vector(31 downto 0) := (others => '0');
+	signal lbus_addr : std_logic_vector(ADDR_W-1 downto 0)
+		:= (others => '0');
+
+
 	signal tap_ce    : std_logic;
 	signal tap_ctrl  : tap_registers_WritePort;
 	signal tap_stat  : tap_registers_ReadPort;
+
+	signal lbus_ce    : std_logic;
+	signal lbus_ctrl  : fpga_registers_WritePort;
+	signal lbus_stat  : fpga_registers_ReadPort;
+
+
 
 	constant NFIFOS  : natural := 2;
  
@@ -104,7 +120,7 @@ ram1:
 
 nfifo:
 	for i in 0 to 1 generate
-fifo: VFIFO
+fifo: VirtualFIFO
 	generic map (WORDSIZE => FIFO_WORDWIDTH)
 	port map (
 		clk         => clk,
@@ -136,7 +152,7 @@ loopback:
 
 -- Disabled, we play with the procedural generation above.
 
--- fifo_single: VFIFO
+-- fifo_single: VirtualFIFO
 -- 	generic map (WORDSIZE => 1)
 -- 	port map (
 -- 		clk         => clk,
@@ -149,9 +165,11 @@ loopback:
 -- 		data_out    => fifo_din(2)
 -- 	);
 
-vbus:
+	-- Instancing the global bus that is accessible by netpp
+	-- device_read() and device_write()
+netpp_vbus:
 	VirtualBus
-	generic map ( ADDR_W => ADDR_W)
+	generic map ( ADDR_W => ADDR_W, BUSTYPE => BUS_GLOBAL )
 	port map (
 		clk         => clk,
 		wr          => vbus_wr,
@@ -164,11 +182,43 @@ vbus:
 	tap_ce <= vbus_wr or vbus_rd;
 
 	tap_stat.tap_idcode <= x"deadbeef";
-	tap_stat.emuack <= '0';
-	tap_stat.emurdy <= '0';
-	tap_stat.core_spec <= x"aa";
 
 	global_throttle <= tap_ctrl.sim_throttle;
+
+	-- Local bus: This one does is local, i.e. the netpp device layer
+	-- has no notion of it.
+virtual_local_bus:
+	VirtualBus
+	generic map ( ADDR_W => ADDR_W, BUSTYPE => BUS_LOCAL, NETPP_NAME => "localbus" )
+	port map (
+		clk         => clk,
+		wr          => lbus_wr,
+		rd          => lbus_rd,
+		addr        => lbus_addr,
+		data_in     => lbus_din,
+		data_out    => lbus_dout
+	);
+
+	lbus_ce <= lbus_wr or lbus_rd;
+
+	lbus_stat.magicid <= x"baadf00d";
+	lbus_stat.fwrev_maj <= std_logic_vector(to_unsigned(HWREV_ghdlsim_MAJOR, 4));
+	lbus_stat.fwrev_min <= std_logic_vector(to_unsigned(HWREV_ghdlsim_MINOR, 4));
+
+local_decoder:
+	decode_fpga_registers
+	port map (
+		ce        => lbus_ce,
+		
+		ctrl      => lbus_ctrl,
+		stat      => lbus_stat,
+		data_in   => lbus_din,
+		data_out  => lbus_dout,
+		addr      => lbus_addr(BV_MMR_CFG_fpga_registers),
+		we        => lbus_wr,
+		clk       => clk
+	);
+
 
 reg_decode:
 	decode_tap_registers

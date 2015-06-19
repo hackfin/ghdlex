@@ -38,8 +38,12 @@ library work;
 
 entity VirtualBus is
 	generic (
-		ADDR_W   : natural := 8;   --! Address bus width
-		DATA_W   : natural := 32   --! Data bus width
+		--! Name, as visible from netpp. If 'DEFAULT', the instanciation
+		--! uses a generated name from the hierarchy.
+		NETPP_NAME   : string  := "DEFAULT";
+		ADDR_W       : natural := 8;   --! Address bus width
+		DATA_W       : natural := 32;  --! Data bus width
+		BUSTYPE      : natural := 1    --! 1 when global netpp bus
 	);
 	port (
 		clk         : in  std_logic; --! The input master clock
@@ -64,7 +68,11 @@ begin
 	process
 		variable ret : integer;
 	begin
-		bus_handle := bus_new(simulation'path_name, DATA_W);
+		if NETPP_NAME = "DEFAULT" then
+			bus_handle := bus_new(simulation'path_name, DATA_W, BUSTYPE);
+		else
+			bus_handle := bus_new(NETPP_NAME, DATA_W, BUSTYPE);
+		end if;
 		if bus_handle = null then
 			assert false report "Failed to register VirtualBus";
 		end if;

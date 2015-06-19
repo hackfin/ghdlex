@@ -18,6 +18,8 @@
 
 void init_registermap(void);
 
+extern uint32_t g_vbus_addr;
+
 extern
 struct fifoconfig {
 	int timeout;

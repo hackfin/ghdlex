@@ -96,6 +96,9 @@ package ghpi_netpp is
 	constant TX_EMPTY : natural := 1;
 	constant RX_FULL  : natural := 2;
 
+	-- BUS options:
+	constant BUS_LOCAL    : natural := 0;
+	constant BUS_GLOBAL   : natural := 1;
 
 	--! Access type. These do not directly map into C struct pointers,
 	--! see functions using duplexfifo_t_ghdl as arguments for example
@@ -122,7 +125,7 @@ package ghpi_netpp is
 	--! Create a new virtual bus.
 	--! @param name      Name in the netpp root hierarchy
 	--! @param wordsize  Data word width in bytes
-	function bus_new(name : string; wordsize : integer)
+	function bus_new(name : string; wordsize : integer; bustype : integer)
 		return bus_t;
 
 	--! \}
@@ -189,10 +192,10 @@ package body ghpi_netpp is
 		return fifo_new_wrapped(name & NUL, size, wordsize);
 	end function;
 
-	function bus_new(name : string; wordsize : integer )
+	function bus_new(name : string; wordsize : integer; bustype : integer )
 		return bus_t is
 	begin
-		return bus_new_wrapped(name & NUL, wordsize);
+		return bus_new_wrapped(name & NUL, wordsize, bustype);
 	end function;
 
 #include "func_body.chdl"

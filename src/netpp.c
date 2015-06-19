@@ -31,6 +31,8 @@ static int g_is_dynamic = 0;
 
 // External token in prop list:
 extern TOKEN g_t_fifo;
+extern TOKEN g_t_bus;
+// extern TOKEN g_t_pty;
 
 #ifdef __WIN32__
 #define THREAD_RETURN DWORD
@@ -263,12 +265,25 @@ int ghdlname_to_propname(const char *name, char *propname, int len)
 }
 #endif
 
-PropertyDesc *property_desc_new(PropertyDesc *template)
+PropertyDesc *property_desc_new(const PropertyDesc *template)
 {
 	PropertyDesc *p;
 	p = (PropertyDesc*) malloc(sizeof(PropertyDesc));
 	if (p) {
-		*p = *template;
+		memcpy(p, template, sizeof(PropertyDesc));
+	}
+	return p;
+}
+
+PropertyDesc *property_string_new(int size)
+{
+	PropertyDesc *p;
+	p = (PropertyDesc*) malloc(sizeof(PropertyDesc) + size);
+	if (p) {
+		p->type = DC_STRING;
+		p->flags = F_RO;
+		p->where = DC_STATIC;
+		p->access.s_string = (char *) &p[1];
 	}
 	return p;
 }
@@ -299,8 +314,9 @@ TOKEN property_from_entity(TOKEN parent, void *entity,
 	TOKEN template, const char *name)
 {
 	TOKEN t, walk;
-	PropertyDesc *p, *child;
-	PropertyDesc *tdesc = getProperty_ByToken(template);
+	PropertyDesc *p;
+	const PropertyDesc *child;
+	const PropertyDesc *tdesc = getProperty_ByToken(template);
 
 	p = property_desc_new(tdesc);
 	if (!p) return TOKEN_INVALID;
@@ -314,12 +330,12 @@ TOKEN property_from_entity(TOKEN parent, void *entity,
 		dynprop_append(parent, t);
 		// and create its children:
 		// Select first child from template:
-		walk = property_select(template, template);
+		walk = property_select(0, template, template);
 		while (walk != TOKEN_INVALID) {
 			child = getProperty_ByToken(walk);
 			property_from_entity(t, entity, walk, child->name);
 			// Get successor:
-			walk = property_select(template, walk);
+			walk = property_select(0, template, walk);
 		}
 	}
 	return t;
@@ -360,6 +376,50 @@ int register_ram(void *entity, char *name)
 	return 0;
 }
 
+int register_bus(void *entity, char *name)
+{
+	TOKEN t;
+	TOKEN root;
+	root = local_getroot(NULL);
+	if (root == TOKEN_INVALID) return -1;
+	// Clone a property instance from the buffer template:
+	t = property_from_entity(root, entity, g_t_bus, name);
+	if (t == TOKEN_INVALID) {
+		printf("Unable to register bus, out of properties?\n");
+		return -1;
+	}
+	printf("Registered BUS property with name '%s'\n", name);
+	return 0;
+}
+
+#if 0
+int register_pty(void *entity, char *name)
+{
+	PropertyDesc *pname;
+	TOKEN t;
+	TOKEN root;
+	int size = strlen(name) + 1;
+	
+	pname = property_string_new(size);
+	if (!pname) {
+		return 0;
+	}
+	strcpy(pname->access.s_string, name);
+
+	root = local_getroot(NULL);
+	if (root == TOKEN_INVALID) return -1;
+	// Clone a property instance from the buffer template:
+	t = property_from_entity(root, entity, g_t_pty, name);
+
+	if (t == TOKEN_INVALID) {
+		printf("Unable to register PTY, out of properties?\n");
+		return -1;
+	}
+	printf("Registered PTY property with name '%s'\n", name);
+	return 0;
+}
+#endif
+
 
 extern DeviceDesc g_devices[];
 extern int g_ndevices;
@@ -398,7 +458,9 @@ THREAD_RETURN THREAD_DECO netpp_thread(void *arg)
 		"", (char *) arg
 	};
 
+#ifdef SUPPORT_LEGACY_REGISTERMAP
 	init_registermap();
+#endif
 	error = start_server(1, argv);
 	if (error < 0) return 0;
 
@@ -421,7 +483,7 @@ int create_thread(const char *name)
 
 #ifdef __WIN32__
 	DWORD thid;
-	g_thread = CreateThread(NULL, 0x20000, netpp_thread, (PVOID) 0
+	g_thread = CreateThread(NULL, 0x20000, netpp_thread, (PVOID) 0,
 		0, &thid);
 	if (!g_thread) {
 		error = -1;

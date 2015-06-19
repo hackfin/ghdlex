@@ -9,6 +9,7 @@
          xmlns:ns3="http://www.xmlmind.com/xmleditor/schema/bugreport"
          xmlns:ns2="http://www.w3.org/1999/xhtml"
          xmlns:ns="http://www.section5.ch/dclib/schema/devdesc"
+         xmlns:memmap="http://www.section5.ch/dclib/schema/memmap"
          xmlns:interfaces="http://www.section5.ch/dclib/schema/interfaces"
          xmlns:html="http://www.xmlmind.com/xmleditor/schema/xhtml"
          xmlns:hfp="http://www.w3.org/2001/XMLSchema-hasFacetAndProperty">
@@ -102,13 +103,13 @@ Including a header is necessary when implementing access to global variables.-->
     <revision>
       <major>0</major>
 
-      <minor>0</minor>
+      <minor>2</minor>
     </revision>
 
     <!--A (virtual) register map:-->
 
-    <registermap addrsize="16" endian="LITTLE" hidden="true" id="fake"
-                 name="Fake MMR">
+    <registermap addrsize="16" endian="LITTLE" id="fake" name="MMR"
+                 nodecode="true">
       <register access="RO" addr="0x00" id="decode_dummy">
         <info>The bit fields in this register are dummies with respect to address decoding.
 They are used as bit slice defines within the VHDL top decoder section to
@@ -117,9 +118,9 @@ For each I/O unit, a MMR_CFG_ entry is defined.
 Later, these slice defines will be moved to the iomap definitions for the entire SoC
 (see also memmap.xml for memory map)</info>
 
-        <bitfield lsb="0" msb="6" name="MMR_CFG_fpga_registers"></bitfield>
+        <bitfield lsb="0" msb="6" name="CFG_fpga_registers"></bitfield>
 
-        <bitfield lsb="0" msb="4" name="MMR_CFG_tap_registers"></bitfield>
+        <bitfield lsb="0" msb="4" name="CFG_tap_registers"></bitfield>
       </register>
     </registermap>
 
@@ -127,9 +128,9 @@ Later, these slice defines will be moved to the iomap definitions for the entire
                  name="FPGA_Registers" offset="0x000">
       <info>This register map definition with maximum register address VBUS_ADDR_OFFSET-1 refers to an internal simulated RAM that is repeatedly read by regmap_read().</info>
 
-      <register access="RO" addr="0x00" id="MagicId"></register>
+      <register access="RO" addr="0x00" id="MagicId" size="4"></register>
 
-      <register addr="0x02" id="Control">
+      <register addr="0x04" id="Control">
         <info>Control register</info>
 
         <bitfield lsb="0" msb="0" name="ENABLE">
@@ -148,11 +149,19 @@ Later, these slice defines will be moved to the iomap definitions for the entire
           <info>RESET FPGA engine</info>
         </bitfield>
       </register>
+
+      <register access="RO" addr="0x7f" id="FwRev" size="1">
+        <info>Firmware Revision MSB: major, LSB: Minor. Always at the end of the register map.</info>
+
+        <bitfield lsb="0" msb="3" name="FWREV_MIN"></bitfield>
+
+        <bitfield lsb="4" msb="7" name="FWREV_MAJ"></bitfield>
+      </register>
     </registermap>
 
-    <registermap addrsize="4" endian="BIG" id="tap_registers" name="TAP"
-                 offset="VBUS_ADDR_OFFSET">
-      <!--We use the VBUS address offset from the C header.-->
+    <registermap addrsize="4" endian="LITTLE" id="tap_registers" name="TAP"
+                 offset="0x100">
+      <info>Important: Little endian when accessing through a VirtualBus</info>
 
       <register access="RO" addr="0x00" id="TAP_IDCODE" size="4">
         <info>IDCODE register. Contains IDCODE of attached CPU.</info>
@@ -329,12 +338,6 @@ It does not require any extra handshake logic.</info>
         <variable>g_fifoconfig.retry</variable>
       </property>
 
-      <property access="RW" name="Throttle" type="BOOL">
-        <info>Throttle bit. Typically mapped to the global_throttle signal. If set, simulation will sleep (therefore run slower) while there is no FIFO activity</info>
-
-        <regref bits="THROTTLE" ref="Control" />
-      </property>
-
       <property access="RW" name="Irq" type="BOOL">
         <info>Simulates an IRQ pin. High active. Might not be implemented in all cores.</info>
 
@@ -361,6 +364,32 @@ It does not require any extra handshake logic.</info>
 
         <property access="RO" id="fifo_outfill" name="OutFill" type="INT">
           <handler type="DYNAMIC">fifo_outfill</handler>
+        </property>
+      </struct>
+
+      <struct hidden="true" id="bus" name="Vbus">
+        <info>Virtual Bus structure export to netpp.</info>
+
+        <property access="RO" name="Width" type="INT">
+          <handler type="DYNAMIC">vbus_width</handler>
+        </property>
+
+        <property name="Addr" type="REGISTER">
+          <info>32 bit address, written first</info>
+
+          <handler type="DYNAMIC">vbus_addr</handler>
+        </property>
+
+        <property name="DataBurst" type="BUFFER">
+          <info>Buffer whose size must be a multiple of BusWidth. When read or written, a bus burst access is triggered.</info>
+
+          <handler type="DYNAMIC">vbus_data</handler>
+        </property>
+
+        <property name="Data" type="REGISTER">
+          <info>Data word. When read or written, a bus access is triggered.</info>
+
+          <handler type="DYNAMIC">vbus_data</handler>
         </property>
       </struct>
     </group>

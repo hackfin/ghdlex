@@ -1,3 +1,4 @@
+#include <windef.h>
 #include "threadaux.h"
 
 int my_mutex_init(MUTEX *mutex)

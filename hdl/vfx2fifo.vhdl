@@ -1,4 +1,4 @@
---! \file vfx2fifo.vhdl    Virtual FX2 FIFO Wrapper for VFIFO
+--! \file vfx2fifo.vhdl    Virtual FX2 FIFO Wrapper for VirtualFIFO
 -- Software FIFO interface for GHDL simulator
 --
 -- (c) 2011, Martin Strubel <hackfin@section5.ch>
@@ -79,7 +79,7 @@ oectrl:
 		end if;
 	end process;
 
-	virtual_fifo: VFIFO
+	virtual_fifo: VirtualFIFO
 	generic map (
 		NETPP_NAME => NETPP_NAME,
 		WORDSIZE => WORDSIZE

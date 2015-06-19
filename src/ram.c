@@ -2,10 +2,13 @@
  *
  * 2012, Martin Strubel <hackfin@section5.ch>
  *
- * Note: We assume that client and server are running on the same
+ * Note 1: We assume that client and server are running on the same
  * endianness (typically little). This will turn out in a mess when
  * porting ghdlex to other endian architectures.
  * For now, we live with it.
+ * 
+ * Note 2: netpp handles endianness, however, the raw FIFO code does
+ * not. Transferred buffers are always byte-oriented!
  *
  */
 

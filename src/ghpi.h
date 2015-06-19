@@ -137,14 +137,14 @@ void hexdump(char *buf, unsigned long n);
  * The second method is almost as simple. Typically, you add a virtualized
  * entity to your design or you just flip a configuration statement to
  * use the simulation architecture of an entity. For example, you instance
- * the VFIFO entity in your design and a separate netpp thread is
+ * the VirtualFIFO entity in your design and a separate netpp thread is
  * automatically started when you run the simulation.
  *
  * The third method is the direct access to netpp. This can be tricky, as
  * netpp can have the role of a master, of a slave, or both.
  * For example, the simulation would be a master in case it drives a virtual
  * frame buffer and requires no more interaction. Typically it acts as a
- * slave when it uses the VFIFO only. 
+ * slave when it uses the VirtualFIFO only. 
  * You'll have to somewhat dig into the netpp internals. Quite a few netpp data
  * structures can be accessed from VHDL. This method requires you to become
  * familiar with the \subpage GHPI_Wrap module.
@@ -153,10 +153,9 @@ void hexdump(char *buf, unsigned long n);
  *
  * There are only a few default virtual entities that come with ghdlex:
  *
- *  - VFIFO:       A multiply instanceable virtual FIFO
+ *  - VirtualFIFO: A multiply instanceable virtual FIFO
  *  - DualPort16:  Dual port RAM simulation
  *  - VirtualBus:  A simple virtual bus master for testing slave devices
- *  - VirtualFIFO: A FIFO buffer (standalone, one instance): DEPRECATED!
  *
  * They all depend on netpp, so they call netpp_init() at start up of
  * the simulation.
@@ -171,7 +170,7 @@ void hexdump(char *buf, unsigned long n);
  * initialized netpp server, but you will also get a warning on the
  * console. Future versions may run an extra server on a separate port.
  *
- * The VFIFO is normally the first thing to implement for testing
+ * The VirtualFIFO is normally the first thing to implement for testing
  * a hardware and software design in cooperation. From the host side, it
  * works like a typical FIFO adapter that is accessed through USB or
  * a serial interface.
@@ -201,9 +200,6 @@ python test.py
  *  - An interface to measurement devices to read a waveform from a
  *    scope using the TMC protocol
  *
- * If you wish to used more FIFOs and other virtual entities in your design,
- * you might rather use the VFIFO instead. See also \ref VPIwrapper.
- * 
  * \section GHDLIntf   GHDL interfacing
  *
  * \subsection GHPI The VHPI interface (GHPI)
@@ -270,9 +266,10 @@ python test.py
  *
  * In this case, a GHDL simulation acts as slave (or server).
  * For data I/O with external programs, there are two examples
- * (see example/ folder):
+ * (see examples/ folder):
  *
  * - pipe.vhdl : Simple file based I/O using named Unix pipes
+ * - pty.vhdl  : File I/O via a bidirectional pipe (virtual UART, etc.)
  * - fifo.vhdl : A thread based software FIFO implementation, that
  *                  can be compiled to accept data over the network from
  *                  a netpp client (virtual driver)
@@ -389,7 +386,7 @@ ram0 = getattr(root_node, ":simram:ram0:") \endcode
  * have to use a clock specification. For detailed information, please
  * refer to the specific debug module section.
  *
- * \subsection Extending Extending Autowrapping
+ * \subsection Extending Extending and Autowrapping
  *
  * Because a lot of manual coding needs to be done in order to wrap
  * a C routine by a VHDL call, some highly experimental tricks to abuse
@@ -425,7 +422,6 @@ ram0 = getattr(root_node, ":simram:ram0:") \endcode
  *
  * \section Restrictions Restrictions or bugs
  *
- *
  * \bug ghdlex is not endian safe! For all buffer properties, it is assumed
  *      that the host the simulation is running on has the same endianness
  *      as the client (tested is little endian only). Endian safety is only
@@ -439,10 +435,9 @@ ram0 = getattr(root_node, ":simram:ram0:") \endcode
  * \example board.vhdl
  * \example netpp.vhdl
  * \example pipe.vhdl
+ * \example pty.vhdl
  * \example fb.vhdl
  * \example dpram16.vhdl
  * \example vfifo.vhdl
- *
-*
  *
  */

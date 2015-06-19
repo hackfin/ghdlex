@@ -42,6 +42,12 @@ int ghdlname_to_propname(const char *name, char *propname, int len);
  */
 int register_ram(void *entity, char *name);
 
+/** Register Virtual Bus entity 
+ * \param entity      Pointer to a Virtual Bus structure
+ * \param name        The unique property name for the entity
+ */
+int register_bus(void *entity, char *name);
+
 /** Register a Virtual FIFO entity.
  * \param entity      Pointer to a FIFO descriptor structure
  * \param name        The unique property name for the entity
@@ -61,4 +67,5 @@ int set_property(DEVICE d, const char *name, void *val, int type);
 
 int set_buffer(DEVICE d, TOKEN t, void  *buf, int len);
 
-struct _propertydesc *property_desc_new(struct _propertydesc *template);
+struct _propertydesc *property_desc_new(const struct _propertydesc *template);
+struct _propertydesc *property_string_new(int size);

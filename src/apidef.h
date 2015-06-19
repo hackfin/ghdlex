@@ -281,7 +281,8 @@ VHDL_COMMENT("\\}") // }
 /* Wrapped function, see bus_new in libnetpp.chdl */
 API_DEFFUNC( bus_new_wrapped, _T(bus_t),
 	ARG(name, string),
-	ARG(width, integer)
+	ARG(width, integer),
+	ARG(bustype, integer)
 	)
 
 VHDL_COMMENT("\\addtogroup VBusAPI")

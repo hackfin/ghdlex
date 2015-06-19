@@ -34,7 +34,9 @@ struct vpi_handle_cache {
 	vpiHandle emuir;
 };
 
-Bus *g_bus;
+// Global netpp accessible bus:
+Bus *g_bus = 0;
+
 
 /*
 int get_uint32(DEVICE d, DCValue *out)
@@ -158,10 +160,17 @@ int handle_fifo_outfill(DuplexFifo *df, int write, DCValue *out)
 	return 0;
 }
 
+int handle_pty(void *pty, int write, DCValue *out)
+{
+	return DCERR_PROPERTY_HANDLER;
+}
+
 
 /** Dummy register space. Just a RAM.
  * This is accessed by sim_regmap_read()/sim_regmap_write()
  */
+
+#ifdef SUPPORT_LEGACY_REGISTERMAP
 
 static unsigned char _registermap[256] = {
 	0xaa, 0x55, 
@@ -178,10 +187,14 @@ void init_registermap(void)
 	_registermap[R_FPGA_Registers_Control] = THROTTLE;
 }
 
+#endif
+
 int device_write(RemoteDevice *d,
 		uint32_t addr, const unsigned char *buf,
 		unsigned long size)
 {
+#ifdef SUPPORT_LEGACY_REGISTERMAP
+
 	if (addr < VBUS_ADDR_OFFSET) {
 		printf("Write to register %04x:", addr);
 
@@ -194,31 +207,16 @@ int device_write(RemoteDevice *d,
 		}
 		printf("\n");
 	} else {
+#endif
 		// printf("Write from VBUS %04x (%lu bytes)\n", addr, size);
+		// hexdump(buf, size);
 		if (!g_bus) return DCERR_BADPTR;
-		uint32_t val;
-		val = 0;
-		while (size--) {
-			val <<= 8;
-			val |= *buf++;
-		}
-		// Wait until slave has read previous data sent
-		int retry = 0;
-		while (g_bus->flags & TX_PEND ) {
-			// printf("Poll until slave ready\n");
-			USLEEP(1000); // Wait 1 ms
-			retry++;
-			if (retry > g_bus->timeout_ms) {
-				fprintf(stderr, "Bus timeout. No response from Simulation?\n");
-				return DCERR_COMM_TIMEOUT;
-			}
-		}
-		MUTEX_LOCK(&g_bus->mutex);
-			g_bus->addr = addr & 0xff;
-			g_bus->data = val;
-			g_bus->flags |= TX_PEND;
-		MUTEX_UNLOCK(&g_bus->mutex);
+
+		return bus_write(g_bus, addr, buf, size);
+
+#ifdef SUPPORT_LEGACY_REGISTERMAP
 	}
+#endif
 	return 0;
 }
 
@@ -233,48 +231,27 @@ int device_write(RemoteDevice *d,
 int device_read(RemoteDevice *d,
 		uint32_t addr, unsigned char *buf, unsigned long size)
 {
+#ifdef SUPPORT_LEGACY_REGISTERMAP
 	if (addr < VBUS_ADDR_OFFSET) {
 		printf("Read from register %04x (%lu bytes)\n", addr, size);
 		MUTEX_LOCK(&reg_mutex);
 		memcpy(buf, &_registermap[addr & 0xff], size);
 		MUTEX_UNLOCK(&reg_mutex);
 	} else {
+#endif
 		// printf("Read from VBUS %04x (%lu bytes)\n", addr, size);
 		// Make sure no write is still pending:
 		if (!g_bus) return DCERR_BADPTR;
-		while ((g_bus->flags & (TX_PEND))) USLEEP(1000);
 
-		uint32_t val;
-		g_bus->addr = addr & 0xff;
-		MUTEX_LOCK(&g_bus->mutex);
-			g_bus->flags |= RX_PEND;
-		MUTEX_UNLOCK(&g_bus->mutex);
-		int retry = 0;
-		while ((g_bus->flags & (RX_PEND))) {
-			// printf("Poll read...\n");
-			USLEEP(1000);
-			retry++;
-			if (retry > g_bus->timeout_ms) {
-				fprintf(stderr, "Bus timeout. No response from Simulation?\n");
-				return DCERR_COMM_TIMEOUT;
-			}
+		return bus_read(g_bus, addr, buf, size);
 
-		}
-		// printf("Read %08x\n", g_bus->data);
-		MUTEX_LOCK(&g_bus->mutex);
-			g_bus->flags &= ~RX_BUSY;
-		MUTEX_UNLOCK(&g_bus->mutex);
-
-		buf += size - 1;
-		val = g_bus->data;
-		while (size--) {
-			*buf-- = val;
-			val >>= 8;
-		}
+#ifdef SUPPORT_LEGACY_REGISTERMAP
 	}
+#endif
 	return 0;
 }
 
+#ifdef SUPPORT_LEGACY_REGISTERMAP
 void sim_regmap_read(regaddr_t_ghdl address, unsigned_ghdl data)
 {
 	int nbytes;
@@ -312,50 +289,54 @@ void sim_regmap_write(regaddr_t_ghdl address, unsigned_ghdl data)
 	}
 	MUTEX_UNLOCK(&reg_mutex);
 }
+#endif
 
-bus_t_ghdl sim_bus_new_wrapped(string_ghdl name, integer_ghdl width)
+int handle_vbus_width(Bus *b, int write, DCValue *val)
 {
-	Bus *b =
-		(Bus *) malloc(sizeof(Bus));
-	printf("Reserved Bus '%s' with word size %d\n", (char *) name->base,
-		width);
-	MUTEX_INIT(&b->mutex);
-	b->flags = 0;
-	b->timeout_ms = 3000;
-
-	g_bus = b; // XXX
-	
-	return (bus_t_ghdl) b;
+	val->value.i = b->width;
+	return 0;
 }
 
-void sim_bus_rxtx(bus_t_ghdl *bus, unsigned_ghdl addr, unsigned_ghdl data,
-	char *flag)
+int handle_vbus_addr(Bus *b, int write, DCValue *val)
 {
-	Bus *b = (Bus *) *bus;
-
-	MUTEX_LOCK(&b->mutex);
-
-	if (b->flags & TX_PEND) {
-		flag[1] = HIGH; b->flags &= ~TX_PEND;
-		// printf("Write %x\n", b->data);
-		uint_to_logic(data->base, data->bounds->len, b->data);
-		uint_to_logic(addr->base, addr->bounds->len, b->addr);
+	if (write) {
+		b->addr = (uint32_t) val->value.i;
 	} else {
-		flag[1] = LOW;
+		val->value.i = b->addr;
 	}
-
-	if ((b->flags & (RX_BUSY | RX_PEND)) == RX_PEND) {
-		flag[0] = HIGH;
-		b->flags |= RX_BUSY;
-		uint_to_logic(addr->base, addr->bounds->len, b->addr);
-	}
-	else        { flag[0] = LOW; }
-
-	if (flag[2] == HIGH) {
-		logic_to_uint(data->base, data->bounds->len, &b->data);
-		b->flags &= ~(RX_PEND);
-		flag[2] = LOW;
-	}
-
-	MUTEX_UNLOCK(&b->mutex);
+	return 0;
 }
+
+int handle_vbus_data(Bus *b, int write, DCValue *val)
+{
+	int error;
+	switch (val->type) {
+		case DC_BUFFER:
+		case DC_STRING:
+			val->value.p = b->tmpbuf;
+			if (val->len > b->bufsize) {
+				val->len = b->bufsize;
+				error = DCWARN_PROPERTY_MODIFIED;
+			}
+			break;
+		case DC_COMMAND:
+			if (write) {
+				error = bus_write(b, b->addr, b->tmpbuf, val->len);
+			} else {
+				error = bus_read(b, b->addr, b->tmpbuf, val->len);
+			}
+			break;
+		case DC_REGISTER:
+			if (write) {
+				error = bus_val_wr(b, b->addr, val->value.i);
+			} else {
+				error = bus_val_rd(b, b->addr, (uint32_t *) &val->value.i);
+			}
+			error = 0;
+			break;
+		default:
+			error = DCERR_PROPERTY_TYPE_MATCH;
+		}
+	return error;
+}
+

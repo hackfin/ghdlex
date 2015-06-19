@@ -11,7 +11,7 @@ library ieee;
 
 package virtual is
 
-	component VFIFO is
+	component VirtualFIFO is
 		generic (
 			NETPP_NAME   : string   := "DEFAULT";
 			FIFOSIZE     : natural     := 512;
@@ -71,8 +71,10 @@ package virtual is
 
 	component VirtualBus
 		generic (
-			ADDR_W   : natural := 8;
-			DATA_W   : natural := 32
+			NETPP_NAME   : string  := "DEFAULT";
+			ADDR_W       : natural := 8;
+			DATA_W       : natural := 32;
+			BUSTYPE      : natural := 1
 		);
 		port (
 			clk         : in  std_logic;

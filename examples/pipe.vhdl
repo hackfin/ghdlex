@@ -18,9 +18,7 @@ entity simpipe is end simpipe;
 architecture behaviour of simpipe is
 	signal clk : std_ulogic := '0';
 	signal count : unsigned(7 downto 0) := x"05";
-	signal data : unsigned(7 downto 0);
 	signal sigterm : std_logic := '0';
-	signal data_valid : std_logic := '0';
 	signal pipe_flags : pipeflag_t;
 	-- Pipe handles:
 	shared variable inpipe : pipehandle_t;
