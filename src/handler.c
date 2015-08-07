@@ -27,7 +27,7 @@ int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n);
 
 struct fifoconfig g_fifoconfig = {
 	.timeout = 100000, // Default FIFO timeout
-	.retry = 20
+	.retry = 30
 };
 
 struct vpi_handle_cache {
@@ -211,8 +211,8 @@ int device_write(RemoteDevice *d,
 		// printf("Write from VBUS %04x (%lu bytes)\n", addr, size);
 		// hexdump(buf, size);
 		if (!g_bus) return DCERR_BADPTR;
-
-		return bus_write(g_bus, addr, buf, size);
+		g_bus->addr = addr;
+		return bus_write(g_bus, buf, size);
 
 #ifdef SUPPORT_LEGACY_REGISTERMAP
 	}
@@ -242,8 +242,8 @@ int device_read(RemoteDevice *d,
 		// printf("Read from VBUS %04x (%lu bytes)\n", addr, size);
 		// Make sure no write is still pending:
 		if (!g_bus) return DCERR_BADPTR;
-
-		return bus_read(g_bus, addr, buf, size);
+		g_bus->addr = addr;
+		return bus_read(g_bus, buf, size);
 
 #ifdef SUPPORT_LEGACY_REGISTERMAP
 	}
@@ -309,7 +309,7 @@ int handle_vbus_addr(Bus *b, int write, DCValue *val)
 
 int handle_vbus_data(Bus *b, int write, DCValue *val)
 {
-	int error;
+	int error = 0;
 	switch (val->type) {
 		case DC_BUFFER:
 		case DC_STRING:
@@ -317,14 +317,24 @@ int handle_vbus_data(Bus *b, int write, DCValue *val)
 			if (val->len > b->bufsize) {
 				val->len = b->bufsize;
 				error = DCWARN_PROPERTY_MODIFIED;
+			// Python "dump" query support:
+			}  else
+			// Are we reading? Then fire a request.
+			if (val->len == 0) {
+				val->len = 16; // Packet of 16 bytes is default
+				error = DCERR_PROPERTY_SIZE_MATCH;
 			}
+
+			if (error >= 0 && !write) {
+				error = bus_read(b, b->tmpbuf, val->len);
+			}
+			break;
+		case DC_UNDEFINED:
 			break;
 		case DC_COMMAND:
 			if (write) {
-				error = bus_write(b, b->addr, b->tmpbuf, val->len);
-			} else {
-				error = bus_read(b, b->addr, b->tmpbuf, val->len);
-			}
+				error = bus_write(b, b->tmpbuf, val->len);
+			} else error = 0;
 			break;
 		case DC_REGISTER:
 			if (write) {

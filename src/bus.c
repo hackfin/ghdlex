@@ -30,7 +30,7 @@ bus_t_ghdl sim_bus_new_wrapped(string_ghdl name, integer_ghdl width,
 	case 1:
 		if (g_bus) {
 			fprintf(stderr,
-				"You can only have one global bus (netpp accessible)\n"
+				"You can only have one global bus (property-accessible)\n"
 				"Overriding previous global bus.\n");
 		}
 		g_bus = b;
@@ -52,7 +52,6 @@ void sim_bus_rxtx(bus_t_ghdl *bus, unsigned_ghdl addr, unsigned_ghdl data,
 
 	if (b->flags & TX_PEND) {
 		flag[1] = HIGH; b->flags &= ~TX_PEND;
-		// printf("Write %x\n", b->data);
 		uint_to_logic(data->base, data->bounds->len, b->data);
 		uint_to_logic(addr->base, addr->bounds->len, b->addr);
 	} else {
@@ -66,6 +65,7 @@ void sim_bus_rxtx(bus_t_ghdl *bus, unsigned_ghdl addr, unsigned_ghdl data,
 	}
 	else        { flag[0] = LOW; }
 
+	// Data ready?
 	if (flag[2] == HIGH) {
 		logic_to_uint(data->base, data->bounds->len, &b->data);
 		b->flags &= ~(RX_PEND);
@@ -81,8 +81,8 @@ int bus_val_wr(Bus *bus, uint32_t addr, uint32_t val)
 	int error = 0;
 	// Wait until slave has read previous data sent
 	int retry = 0;
-	while (bus->flags & TX_PEND ) {
-		// printf("Poll until slave ready\n");
+	while (bus->flags & TX_PEND) {
+		printf("Poll until slave ready\n");
 		USLEEP(1000); // Wait 1 ms
 		retry++;
 		if (retry > bus->timeout_ms) {
@@ -90,11 +90,13 @@ int bus_val_wr(Bus *bus, uint32_t addr, uint32_t val)
 			return DCERR_COMM_TIMEOUT;
 		}
 	}
+
 	MUTEX_LOCK(&bus->mutex);
 		bus->addr = addr;
 		bus->data = val;
 		bus->flags |= TX_PEND;
 	MUTEX_UNLOCK(&bus->mutex);
+	// Wait for the simulation thread to actually commit the data:
 	return error;
 }
 
@@ -115,7 +117,6 @@ int bus_val_rd(Bus *bus, uint32_t addr, uint32_t *val)
 		}
 
 	}
-	// printf("Read %08x\n", bus->data);
 	MUTEX_LOCK(&bus->mutex);
 		bus->flags &= ~RX_BUSY;
 	MUTEX_UNLOCK(&bus->mutex);
@@ -124,9 +125,10 @@ int bus_val_rd(Bus *bus, uint32_t addr, uint32_t *val)
 	return 0;
 }
 
-int bus_write(Bus *bus, uint32_t addr, const unsigned char *buf, int size)
+int bus_write(Bus *bus, const unsigned char *buf, int size)
 {
 	uint32_t val;
+	uint32_t addr;
 	int n, k;
 	int s;
 	val = 0;
@@ -137,6 +139,8 @@ int bus_write(Bus *bus, uint32_t addr, const unsigned char *buf, int size)
 	k = size % bus->width;
 
 	if (k) end -= k;
+
+	addr = bus->addr;
 
 	while (buf < end) {
 		n = bus->width;
@@ -157,15 +161,23 @@ int bus_write(Bus *bus, uint32_t addr, const unsigned char *buf, int size)
 			val |= (*buf++) << s; s += 8;
 		}
 		error = bus_val_wr(bus, addr, val);
+		addr += bus->width;
 	}
-	
+
+	// Wait for last write to finish:
+	while (bus->flags & TX_PEND);
+
+	MUTEX_LOCK(&bus->mutex);
+		bus->addr = addr; // Store incremented address for subsequent writes
+	MUTEX_UNLOCK(&bus->mutex);
 	return error;
 }
 
 
-int bus_read(Bus *bus, uint32_t addr, unsigned char *buf, int size)
+int bus_read(Bus *bus, unsigned char *buf, int size)
 {
 	uint32_t val;
+	uint32_t addr;
 	int error;
 	while ((bus->flags & (TX_PEND))) USLEEP(1000);
 	int n, k;
@@ -175,6 +187,9 @@ int bus_read(Bus *bus, uint32_t addr, unsigned char *buf, int size)
 
 	unsigned char *end = &buf[size];
 	if (k) end -= k;
+
+
+	addr = bus->addr;
 
 	while (buf < end) {
 		error = bus_val_rd(bus, addr, &val);
@@ -195,64 +210,11 @@ int bus_read(Bus *bus, uint32_t addr, unsigned char *buf, int size)
 			*buf++ = val;
 			val >>= 8;
 		}
+		addr += bus->width;
 	}
 
+	MUTEX_LOCK(&bus->mutex);
+		bus->addr = addr; // Store incremented address for subsequent reads
+	MUTEX_UNLOCK(&bus->mutex);
 	return error;
 }
-
-
-#if 0
-int get_vbus_data(DEVICE d, DCValue *out)
-{
-	static unsigned char buffer[64];
-	int error, warn = 0;
-	int n;
-
-	n = out->len;
-	if (n > sizeof(buffer)) {
-		warn = DCWARN_PROPERTY_MODIFIED;
-		n = sizeof(buffer);
-		out->len = n;
-	}
-
-	switch (out->type) {
-		case DC_BUFFER:
-		case DC_STRING:
-			error = device_read(d, g_vbus_addr, buffer, n);
-			out->value.p = buffer; // only because buffer is STATIC!
-			if (error < 0) return error;
-	}
-	return warn;
-}
-
-
-
-int set_vbus_data(DEVICE d, DCValue *in)
-{
-	static unsigned char buffer[64];
-	int error, warn = 0;
-	int n = in->len;
-
-	switch (in->type) {
-		case DC_COMMAND:  // This is a buffer update action
-			error = device_write(d, g_vbus_addr, buffer, n);
-			break;
-		case DC_STRING:
-		case DC_BUFFER:
-			// You must do a buffer size check here:
-			if (n > sizeof(buffer)) {
-				n = sizeof(buffer);
-				in->len = n;
-				warn = DCWARN_PROPERTY_MODIFIED;
-			}
-			// Fill destination buffer with property data:
-			in->value.p = buffer; // ONLY BECAUSE IT'S STATIC!
-
-			break;
-		default:
-			error = DCERR_PROPERTY_TYPE_MATCH;
-	}
-	if (error < 0) return error;
-	return warn;
-}
-#endif

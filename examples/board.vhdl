@@ -165,7 +165,7 @@ loopback:
 -- 		data_out    => fifo_din(2)
 -- 	);
 
-	-- Instancing the global bus that is accessible by netpp
+	-- Instancing the global bus that is accessible by netpp properties
 	-- device_read() and device_write()
 netpp_vbus:
 	VirtualBus
@@ -174,6 +174,8 @@ netpp_vbus:
 		clk         => clk,
 		wr          => vbus_wr,
 		rd          => vbus_rd,
+		wr_busy     => '0',
+		rd_busy     => '0',
 		addr        => vbus_addr,
 		data_in     => vbus_din,
 		data_out    => vbus_dout
@@ -186,7 +188,7 @@ netpp_vbus:
 	global_throttle <= tap_ctrl.sim_throttle;
 
 	-- Local bus: This one does is local, i.e. the netpp device layer
-	-- has no notion of it.
+	-- only allows direct raw access (not through properties)
 virtual_local_bus:
 	VirtualBus
 	generic map ( ADDR_W => ADDR_W, BUSTYPE => BUS_LOCAL, NETPP_NAME => "localbus" )
@@ -194,6 +196,8 @@ virtual_local_bus:
 		clk         => clk,
 		wr          => lbus_wr,
 		rd          => lbus_rd,
+		wr_busy     => '0',
+		rd_busy     => '0',
 		addr        => lbus_addr,
 		data_in     => lbus_din,
 		data_out    => lbus_dout
@@ -202,6 +206,7 @@ virtual_local_bus:
 	lbus_ce <= lbus_wr or lbus_rd;
 
 	lbus_stat.magicid <= x"baadf00d";
+	lbus_stat.magic2 <= x"facebead";
 	lbus_stat.fwrev_maj <= std_logic_vector(to_unsigned(HWREV_ghdlsim_MAJOR, 4));
 	lbus_stat.fwrev_min <= std_logic_vector(to_unsigned(HWREV_ghdlsim_MINOR, 4));
 
@@ -216,6 +221,7 @@ local_decoder:
 		data_out  => lbus_dout,
 		addr      => lbus_addr(BV_MMR_CFG_fpga_registers),
 		we        => lbus_wr,
+		re        => lbus_rd,
 		clk       => clk
 	);
 
@@ -230,6 +236,7 @@ reg_decode:
 		data_in  => vbus_din,
 		data_out => vbus_dout,
 		addr     => vbus_addr(BV_MMR_CFG_tap_registers),
+		re       => vbus_rd,
 		we       => vbus_wr
 	);
 

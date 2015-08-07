@@ -11,7 +11,7 @@ CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 
 include ../platform.mk
 
-all: ../netpp.vpi libmysim.a
+all: netpp.vpi libmysim.so
 
 VPIOBJS = vpiwrapper.o
 VPIOBJS += vpi_proplist.o vpi_netpp.o vpi_ram.o vpi_bus.o vpi_handler.o
@@ -58,7 +58,7 @@ vpi_%.o: %.c
 	$(CC) -o $@ -c $(CFLAGS) $<
 
 # Only with netpp > v0.4
-../netpp.vpi: $(VPIOBJS)
+netpp.vpi: $(VPIOBJS)
 	$(CC) --shared -o $@ $(VPIOBJS) -lpthread -L$(LIBSLAVE) -lslave
 
 handler.c: registermap.h

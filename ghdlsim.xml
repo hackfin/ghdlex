@@ -130,7 +130,9 @@ Later, these slice defines will be moved to the iomap definitions for the entire
 
       <register access="RO" addr="0x00" id="MagicId" size="4"></register>
 
-      <register addr="0x04" id="Control">
+      <register access="RO" addr="0x1c" id="Magic2" size="4"></register>
+
+      <register addr="0x24" id="Control">
         <info>Control register</info>
 
         <bitfield lsb="0" msb="0" name="ENABLE">

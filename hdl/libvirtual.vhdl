@@ -80,6 +80,8 @@ package virtual is
 			clk         : in  std_logic;
 			wr          : out std_logic;
 			rd          : out std_logic;
+			wr_busy     : in  std_logic;
+			rd_busy     : in  std_logic;
 			addr        : out std_logic_vector(ADDR_W-1 downto 0);
 			data_in     : out std_logic_vector(DATA_W-1 downto 0);
 			data_out    : in  std_logic_vector(DATA_W-1 downto 0)

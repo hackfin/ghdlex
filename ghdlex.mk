@@ -2,6 +2,8 @@ RANLIB ?= ranlib
 
 CSRCS = helpers.c ram.c fifo.c bus.c
 
+CFLAGS = -fPIC
+
 NETPP_EXISTS = $(shell [ -e $(NETPP)/xml ] && echo yes )
 
 ifeq ($(NETPP_EXISTS),yes)

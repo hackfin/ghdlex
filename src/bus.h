@@ -37,9 +37,9 @@ struct bus_t {
 
 #define BUS_AUXBUFSIZE 0x100
 
-int bus_read(Bus *bus, uint32_t addr, unsigned char *buf, int size);
+int bus_read(Bus *bus, unsigned char *buf, int size);
 
-int bus_write(Bus *bus, uint32_t addr, const unsigned char *buf, int size);
+int bus_write(Bus *bus, const unsigned char *buf, int size);
 
 int bus_val_rd(Bus *bus, uint32_t addr, uint32_t *val);
 int bus_val_wr(Bus *bus, uint32_t addr, uint32_t val);

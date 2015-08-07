@@ -49,6 +49,8 @@ entity VirtualBus is
 		clk         : in  std_logic; --! The input master clock
 		wr          : out std_logic; --! Write request
 		rd          : out std_logic; --! Read request
+		wr_busy     : in  std_logic; --! '1' when busy writing
+		rd_busy     : in  std_logic; --! '1' when busy reading
 		--! The address bus
 		addr        : out std_logic_vector(ADDR_W-1 downto 0);
 		--! Data input
@@ -62,6 +64,9 @@ architecture simulation of VirtualBus is
 	shared variable bus_handle : bus_t;
 	signal dval     :  std_logic := '0';
 	signal iaddr    :  unsigned(ADDR_W-1 downto 0);
+
+	signal ird      :  std_logic := '0';
+	signal iwr      :  std_logic := '0';
 
 begin
 
@@ -86,8 +91,11 @@ begin
 
 bus_handler:
 	process(clk)
+		-- Flag assignment:
+		-- 0: Read request
+		-- 1: Write request
+		-- 2: in: Data valid, out: Data ready
 		variable flags : busflag_t := "000";
-		variable rx:       std_logic := '0';
 		variable d_data :  unsigned(DATA_W-1 downto 0);
 		variable d_addr :  unsigned(ADDR_W-1 downto 0);
 	begin
@@ -100,26 +108,25 @@ bus_handler:
 --			end if;
 
 
-			dval <= flags(2);
+			-- Unused:
 			bus_rxtx(bus_handle, d_addr, d_data, flags);
 
-			rd   <= flags(0);
-			wr   <= flags(1);
-			flags(2) := rx;
+			ird   <= flags(0);
+			iwr   <= flags(1);
+			flags(2) := dval;
 
-			if flags(1) = '1' then
+			if flags(1) = '1' then -- Writing, latch data
 				iaddr <= d_addr;
 				data_in <= std_logic_vector(d_data);
-			elsif flags(0) = '1' then
+			elsif flags(0) = '1' then  -- Reading, only latch address
 				iaddr <= d_addr;
-				rx := '1';
-			else
-				rx := '0';
 			end if;
 		end if;
 	end process;
 
+	rd <= ird; wr <= iwr;
 	addr <= std_logic_vector(iaddr);
-
+	-- DVAL only used for reading:
+	dval <= (not rd_busy) and (ird);
 end simulation;
 
