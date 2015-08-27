@@ -1,13 +1,15 @@
 # Makefile auxiliary to create GHDLEX library
 
+GHDLEX ?= $(CURDIR)
+
 GHDLEX_VHDL_DIR = $(GHDLEX)/hdl
 
 GHDLEX_VHDL =  \
 	$(GHDLEX)/libnetpp.vhdl \
 	$(GHDLEX)/registermap_pkg.vhdl \
-	$(GHDLEX)/decode_tap_registers.vhdl \
 	$(GHDLEX_VHDL_DIR)/libvirtual.vhdl \
 	$(GHDLEX_VHDL_DIR)/vbus.vhdl \
+	$(GHDLEX_VHDL_DIR)/vram.vhdl \
 	$(GHDLEX_VHDL_DIR)/vram16.vhdl \
 	$(GHDLEX_VHDL_DIR)/vfifo.vhdl \
 	$(GHDLEX_VHDL_DIR)/vfx2fifo.vhdl \

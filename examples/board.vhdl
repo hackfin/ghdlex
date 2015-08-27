@@ -10,8 +10,10 @@ library ieee;
 library ghdlex;
 	use ghdlex.ghpi_netpp.all;
 	use ghdlex.virtual.all;
-	use ghdlex.ghdlsim.all;
 	use ghdlex.txt_util.all;
+
+library work;
+	use work.ghdlsim.all;
 
 use std.textio.all;
 
@@ -84,9 +86,10 @@ clkgen:
 
 	end process;
 
+	-- Legacy 16 bit RAM:
 ram0:
 	DualPort16 generic map (ADDR_W => ADDR_W)
-	   port map (
+		port map (
 			clk     => clk,
 			-- Port A
 			a_we    => we,
@@ -98,11 +101,11 @@ ram0:
 			b_addr  => addr,
 			b_write => data0(15 downto 0),
 			b_read  => open
-	   );
+		);
 
 ram1:
-	DualPort16 generic map (ADDR_W => ADDR_W)
-	   port map (
+	DualPortRAM generic map (ADDR_W => ADDR_W, DATA_W => 16)
+		port map (
 			clk     => clk,
 			-- Port A
 			a_we    => we,
@@ -114,7 +117,24 @@ ram1:
 			b_addr  => addr,
 			b_write => data0(31 downto 16),
 			b_read  => open
-	   );
+		);
+
+ram32:
+	DualPortRAM generic map ( NETPP_NAME => "Shadow32bit",
+		ADDR_W => ADDR_W, DATA_W => 32)
+		port map (
+			clk     => clk,
+			-- Port A
+			a_we    => we,
+			a_addr  => addr,
+			a_write => data0,
+			a_read  => open,
+			-- Port B
+			b_we    => '0',
+			b_addr  => addr,
+			b_write => data0,
+			b_read  => open
+		);
 
 	-- Create a FIFO loopback:
 
@@ -227,7 +247,7 @@ local_decoder:
 
 
 reg_decode:
-	decode_tap_registers
+	entity work.decode_tap_registers
 	port map (
 		clk      => clk,
 		ce       => tap_ce,
@@ -247,6 +267,14 @@ stim:
 		-- Explicitely initialize netpp, thus not needing --vpi=netpp.vpi:
 		retval := netpp_init("VirtualBoard");
 		we <= '0';
+		data0 <= x"00112233";
+		addr <= "000000000000";
+		wait for 40 us;
+		we <= '1';
+		wait for 20 us;
+		we <= '0';
+		wait for 20 us;
+
 		data0 <= x"deadbeef";
 		addr <= "000000000001";
 		wait for 40 us;
@@ -256,7 +284,13 @@ stim:
 		wait for 20 us;
 
 		data0 <= x"f00dface";
-		addr <= "000000000010";
+		addr <= "000000000100";
+		wait for 40 us;
+		we <= '1';
+		wait for 20 us;
+		we <= '0';
+		wait for 20 us;
+
 		wait;
 	end process;
 

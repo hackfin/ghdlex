@@ -11,7 +11,17 @@ CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 
 include ../platform.mk
 
-all: netpp.vpi libmysim.so
+
+ifdef CONFIG_MINGW32
+DUTIES = libmysim.a
+endif
+
+ifdef CONFIG_LINUX
+DUTIES = libmysim.$(DLLEXT)
+DUTIES += netpp.vpi
+endif
+
+all: $(DUTIES)
 
 VPIOBJS = vpiwrapper.o
 VPIOBJS += vpi_proplist.o vpi_netpp.o vpi_ram.o vpi_bus.o vpi_handler.o
@@ -42,7 +52,9 @@ include $(NETPP)/xml/prophandler.mk
 endif
 
 regprops.xml: $(DEVICEFILE) $(XSLT)/regwrap.xsl
-	$(XP) -o $@ $(XSLT)/regwrap.xsl $<
+	$(XP) -o $@  \
+	--stringparam selectDevice ghdlsim \
+	$(XSLT)/regwrap.xsl $<
 
 registermap.h: $(DEVICEFILE)
 	$(XP) -o $@ --stringparam srcfile $< \
@@ -70,6 +82,9 @@ libmysim.a: $(OBJS)
 libmysim.so: $(OBJS)
 	$(CC) -shared -o $@ $(OBJS) -lpthread
 
+libmysim.dll: $(OBJS)
+	$(CC) -shared -o $@ $(OBJS)
+
 clean::
-	rm -f *.o *.a *.so
+	rm -f *.o *.a $(DUTIES)
 

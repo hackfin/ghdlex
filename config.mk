@@ -3,7 +3,7 @@
 NETPP = $(HOME)/src/netpp
 GENSOC = $(HOME)/src/vhdl/soc/gensoc
 
-ifdef MINGW32
+ifdef CONFIG_MINGW32
 	EXE = .exe
 	CROSS = i586-mingw32msvc
 	PLATFORM = mingw32

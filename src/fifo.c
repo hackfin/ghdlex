@@ -30,6 +30,7 @@
 #include "netpp.h"
 #include "netppwrap.h"
 #include "example.h"
+#include "threadaux.h"
 
 
 #ifdef SUPPORT_LEGACY_FIFO

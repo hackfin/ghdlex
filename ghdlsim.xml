@@ -31,7 +31,7 @@
 #include "threadaux.h"
 #include "bus.h"</header>
 
-  <header language="VHDL">library work; use work.iomap_config.all;</header>
+  <header language="VHDL">library ghdlex; use ghdlex.iomap_config.all;</header>
 
   <!--This is a header file specification. Statements in this field will be included
 in handler skeleton code and in the generated property list.
@@ -368,6 +368,23 @@ It does not require any extra handshake logic.</info>
           <handler type="DYNAMIC">fifo_outfill</handler>
         </property>
       </struct>
+
+      <struct hidden="true" id="ram" name="RAM">
+        <property access="RW" id="rambuf" name="Buffer" type="BUFFER">
+          <!--A buffer object that is handled via a handler function. See handler.c
+(Function get_fifo()/set_fifo() for details.)-->
+
+          <info>A RAM proxy</info>
+
+          <handler type="DYNAMIC">rambuf</handler>
+        </property>
+
+        <property access="RW" id="offset" name="Offset" type="INT">
+          <handler type="DYNAMIC">ramoffset</handler>
+        </property>
+
+      </struct>
+
 
       <struct hidden="true" id="bus" name="Vbus">
         <info>Virtual Bus structure export to netpp.</info>

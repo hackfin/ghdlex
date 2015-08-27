@@ -49,6 +49,28 @@ package virtual is
 	end component;
 
 
+	component DualPortRAM is
+		generic(
+			NETPP_NAME   : string   := "DEFAULT";
+			DATA_W       : natural  := 32;
+			ADDR_W       : natural  := 14
+		);
+		port(
+			clk     : in  std_logic;
+			-- Port A
+			a_we    : in  std_logic;
+			a_addr  : in  unsigned(ADDR_W-1 downto 0);
+			a_write : in  unsigned(DATA_W-1 downto 0);
+			a_read  : out unsigned(DATA_W-1 downto 0);
+			-- Port B
+			b_we    : in  std_logic;
+			b_addr  : in  unsigned(ADDR_W-1 downto 0);
+			b_write : in  unsigned(DATA_W-1 downto 0);
+			b_read  : out unsigned(DATA_W-1 downto 0)
+		);
+	end component DualPortRAM;
+
+
 	component DualPort16 is
 		generic(
 			NETPP_NAME   : string   := "DEFAULT";

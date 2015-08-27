@@ -65,7 +65,7 @@ package ghpi_netpp is
 	--! \{
 
 	----- RAM API -----
-	subtype  ram16_t       is unsigned(15 downto 0);
+	subtype  ram_port_t    is unsigned(31 downto 0);
 	subtype  byte_t        is unsigned(7 downto 0);
 	subtype  regaddr_t     is unsigned(7 downto 0);
 	type     rambuf_t      is access integer;
@@ -73,7 +73,7 @@ package ghpi_netpp is
 	--! Allocates a new virtual RAM
 	--! @param size  Size in words (not bytes)
 	--! @param name  A unique name, used for netpp export
-	function ram_new(name : string; size : integer) return rambuf_t;
+	function ram_new(name : string; bits: integer; size : integer) return rambuf_t;
 
 	--! \}
 
@@ -181,9 +181,9 @@ package body ghpi_netpp is
 	-- Wrap functions with string parameter: Just append a null termination
 	-- to become C standard compatible.
 
-	function ram_new(name : string; size : integer) return rambuf_t is
+	function ram_new(name : string; bits: integer; size : integer) return rambuf_t is
 	begin
-		return ram_new_wrapped(name & NUL, size);
+		return ram_new_wrapped(name & NUL, bits, size);
 	end function;
 
 	function fifo_new(name : string; size : integer; wordsize : integer )

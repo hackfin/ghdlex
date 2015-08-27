@@ -5,15 +5,15 @@
 # See LICENSE.txt for usage policies
 #
 
-VERSION = 0.053
+VERSION = 0.1dev
 
 DEVICEFILE = ghdlsim.xml
 
+include platform.mk
 -include config.mk
 
 # USE_LEGACY = yes
 
-include platform.mk
 
 ifeq ($(CONFIG_MINGW32),y)
 # We can only use a static lib, because on win32, DLLs can not call
@@ -78,7 +78,6 @@ NO_CLEANUP_DUTIES-$(CONFIG_NETPP) += $(NETPP)/common
 NO_CLEANUP_DUTIES-$(CONFIG_NETPP) += $(NETPP)/include/devlib_error.h
 
 DUTIES-y = 
-DUTIES-$(CONFIG_NETPP) += decode_tap_registers.vhdl decode_fpga_registers.vhdl
 DUTIES-$(CONFIG_NETPP) += simnetpp simfb
 DUTIES-$(CONFIG_NETPP) += simram simboard
 
@@ -92,10 +91,9 @@ LIBSLAVE = $(NETPP)/devices/libslave
 
 GHDLEX_VHDL = $(wildcard hdl/*.vhdl)
 
-GENERATED_VHDL =  registermap_pkg.vhdl \
-	decode_tap_registers.vhdl decode_fpga_registers.vhdl
-
-GENERATED_VHDL += libnetpp.vhdl
+GENERATED_VHDL =  registermap_pkg.vhdl
+GENERATED_VHDL += decode_tap_registers.vhdl
+GENERATED_GHDLEX_VHDL += libnetpp.vhdl
 
 
 ifdef USE_LEGACY
@@ -103,13 +101,14 @@ GHDLEX_VHDL += libfifo.vhdl
 VHDLFILES = examples/fifo.vhdl 
 endif
 
-GHDLEX_VHDL += $(GENERATED_VHDL)
+GHDLEX_VHDL += $(GENERATED_GHDLEX_VHDL)
 
 ifdef NETPP
 VHDLFILES += examples/netpp.vhdl 
 VHDLFILES += examples/fb.vhdl
 VHDLFILES += examples/ram.vhdl
 VHDLFILES += examples/board.vhdl
+VHDLFILES += $(GENERATED_VHDL)
 endif
 VHDLFILES += examples/pipe.vhdl
 VHDLFILES += examples/pty.vhdl
@@ -194,8 +193,10 @@ clean_duties:
 	rm -f func_decl.chdl func_body.chdl
 
 FILES = $(VHDLFILES) $(GHDLEX_VHDL) $(CSRCS) Makefile LICENSE.txt README
-FILES += fifo.h ghpi.h netppwrap.h example.h vpi_user.h bus.h
-FILES += ghdlsim.xml test.py
+FILES += src/fifo.h src/ghpi.h src/netppwrap.h src/example.h src/vpi_user.h
+FILES += src/bus.h
+FILES += ghdlsim.xml py/test.py
+FILES += lib.mk
 
 SRCFILES += libnetpp.chdl h2vhdl.c apidef.h apimacros.h
 SRCFILES += vpiwrapper.c threadaux.h threadaux.c

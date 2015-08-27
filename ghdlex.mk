@@ -1,15 +1,20 @@
+TOPDIR ?= .
+
 RANLIB ?= ranlib
 
-CSRCS = helpers.c ram.c fifo.c bus.c
+CSRCS = helpers.c
 
 CFLAGS = -fPIC
 
-NETPP_EXISTS = $(shell [ -e $(NETPP)/xml ] && echo yes )
+CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 
-ifeq ($(NETPP_EXISTS),yes)
-	CSRCS += netpp.c framebuf.c
-	CSRCS += handler.c 
-endif
+CSRCS-$(CONFIG_NETPP) += netpp.c framebuf.c ram.c fifo.c bus.c
+CSRCS-$(CONFIG_NETPP) += handler.c 
+
+CSRCS-$(CONFIG_MINGW32) += threadaux.c
+CSRCS-$(CONFIG_LINUX)   += pipe.c
+
+CSRCS += $(CSRCS-y)
 
 GHDLEXSRCS = $(CSRCS:%.c=$(GHDLEX)/src/%.c)
 

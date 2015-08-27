@@ -52,9 +52,9 @@ begin
 	process
 	begin
 		if NETPP_NAME = "DEFAULT" then
-			ram_handle := ram_new(simulation'path_name, ADDR_W);
+			ram_handle := ram_new(simulation'path_name, 16, ADDR_W);
 		else
-			ram_handle := ram_new(NETPP_NAME, ADDR_W);
+			ram_handle := ram_new(NETPP_NAME, 16, ADDR_W);
 		end if;
 		if ram_handle = null then
 			assert false report "Failed to reserve RAM buffer";
@@ -67,15 +67,15 @@ begin
 		variable err: integer;
 		variable addr_a: unsigned(ADDR_W-1 downto 0);
 		variable addr_b: unsigned(ADDR_W-1 downto 0);
-		variable wdata_a: unsigned(15 downto 0);
-		variable wdata_b: unsigned(15 downto 0);
-		variable rdata_a: unsigned(15 downto 0);
-		variable rdata_b: unsigned(15 downto 0);
+		variable wdata_a: ram_port_t;
+		variable wdata_b: ram_port_t;
+		variable rdata_a: ram_port_t;
+		variable rdata_b: ram_port_t;
 	begin
 		addr_a := a_addr;
 		addr_b := b_addr;
-		wdata_a := a_write;
-		wdata_b := b_write;
+		wdata_a := resize(a_write, wdata_a'length);
+		wdata_b := resize(b_write, wdata_b'length);
 		if rising_edge(clk) then
 			if a_we = '1' then
 				ram_write(ram_handle, addr_a, wdata_a);
@@ -86,8 +86,8 @@ begin
 				ram_read(ram_handle, addr_b, rdata_b);
 			end if;
 		end if;
-		a_read <= rdata_a;
-		b_read <= rdata_b;
+		a_read <= rdata_a(a_read'range);
+		b_read <= rdata_b(b_read'range);
 	end process;
 
 end simulation;

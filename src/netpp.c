@@ -32,6 +32,7 @@ static int g_is_dynamic = 0;
 // External token in prop list:
 extern TOKEN g_t_fifo;
 extern TOKEN g_t_bus;
+extern TOKEN g_t_ram;
 // extern TOKEN g_t_pty;
 
 #ifdef __WIN32__
@@ -47,7 +48,7 @@ extern TOKEN g_t_bus;
 
 // handler.c:
 
-int buffer_handler(void *p, int write, DCValue *val);
+int handle_rambuf(void *p, int write, DCValue *val);
 void init_registermap(void);
 
 // Templates:
@@ -66,7 +67,7 @@ PropertyDesc s_buffer_template = {
 	.type = DC_BUFFER,
 	.flags = F_RW,
 	.where = DC_CUSTOM,
-	.access = { .custom = { buffer_handler, 0 } },
+	.access = { .custom = { handle_rambuf, 0 } },
 };
 
 DEVICE get_device(DEVHANDLE dev)
@@ -177,7 +178,6 @@ int sim_device_set_register(DEVHANDLE handle, TOKEN t, int v)
 	return error;
 	
 }
-
 
 int set_buffer(DEVICE d, TOKEN t, void  *buf, int len)
 {
@@ -367,7 +367,10 @@ int register_ram(void *entity, char *name)
 	root = local_getroot(NULL);
 	if (root == TOKEN_INVALID) return -1;
 	// Clone a property instance from the buffer template:
-	t = property_from_template(root, entity, name, &s_buffer_template);
+	// t = property_from_template(root, entity, name, &s_buffer_template);
+
+	t = property_from_entity(root, entity, g_t_ram, name);
+
 	if (t == TOKEN_INVALID) {
 		printf("Unable to register ram, out of properties?\n");
 		return -1;
@@ -495,7 +498,6 @@ int create_thread(const char *name)
 	if (error < 0) return error;
 	return 0;
 }
-
 
 integer_ghdl sim_netpp_init_wrapped(struct ghdl_string *name)
 {

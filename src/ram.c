@@ -1,6 +1,6 @@
-/** Virtual RAM implementation
+/** Virtual RAM implementation v2
  *
- * 2012, Martin Strubel <hackfin@section5.ch>
+ * 2015, Martin Strubel <hackfin@section5.ch>
  *
  * Note 1: We assume that client and server are running on the same
  * endianness (typically little). This will turn out in a mess when
@@ -9,6 +9,10 @@
  * 
  * Note 2: netpp handles endianness, however, the raw FIFO code does
  * not. Transferred buffers are always byte-oriented!
+ *
+ * Note 3: This RAM, due to configureable address widths, has
+ * BIG ENDIAN conversion routines. Otherwise, the I/O conversion will
+ * follow the hosts endianness, which caused a mess in the v1 implementation.
  *
  */
 
@@ -20,20 +24,53 @@
 
 typedef struct RamDesc {
 	unsigned short addrsize;
+	uint32_t offset;
+	short bitwidth;
+	short width;
 	int size;
 } Ram;
 
-rambuf_t_ghdl sim_ram_new_wrapped(string_ghdl name, integer_ghdl size)
+void endian_safe_memory_copy(unsigned char *dest, uint32_t v, int sz)
+{
+	int s = sz * 8;
+	while (sz--) {
+		s -= 8;
+		*dest++ = (v >> s) & 0xff;
+	}
+}
+
+void endian_safe_value_copy(uint32_t *v, unsigned char *dest, int sz)
+{
+	uint32_t val = 0;
+	while (sz--) {
+		val <<= 8;
+		val |= *dest++;
+	}
+	*v = val;
+}
+
+
+rambuf_t_ghdl sim_ram_new_wrapped(string_ghdl name, integer_ghdl bits,
+	integer_ghdl size)
 {
 	char propname[64];
 	int error;
 	int n = 1 << size;
-	Ram *r = (Ram *) malloc(n * sizeof(uint16_t) + sizeof(Ram));
+	int ws = (bits + 7) / 8;
+	if (bits > 32) {
+		fprintf(stderr, "More than 32 bits not supported. Abort.\n");
+		return NULL;
+	}
+	Ram *r = (Ram *) malloc(n * ws + sizeof(Ram));
 	r->addrsize = size;
+	r->bitwidth = bits;
+	r->width = ws;
+	r->offset = 0;
 	r->size = n;
 	ghdlname_to_propname(name->base, propname, sizeof(propname));
-	printf("Reserved RAM '%s' with word size 0x%x(%ld bytes)\n", propname,
-		r->size, r->size * sizeof(uint16_t));
+	printf("Reserved RAM '%s' with word size 0x%x(%d bytes), width: %d bits\n",
+		propname,
+		r->size, r->size * ws, bits);
 
 	error = register_ram(r, propname);
 	if (error < 0) return 0;
@@ -41,36 +78,36 @@ rambuf_t_ghdl sim_ram_new_wrapped(string_ghdl name, integer_ghdl size)
 }
 
 void_ghdl sim_ram_write(rambuf_t_ghdl *ram,
-	struct fat_pointer *addr, ram16_t_ghdl data)
+	struct fat_pointer *addr, ram_port_t_ghdl data)
 {
-	uint16_t *p;
+	unsigned char *p;
 	uint32_t i, val;
 	Ram *r = (Ram *) ram[0];
 
-	p = (uint16_t *) &r[1];
-	logic_to_uint(data, 16, &val);
+	p = (unsigned char *) &r[1];
+	logic_to_uint(data, 8 * sizeof(val), &val);
 	logic_to_uint(addr->base, r->addrsize, &i);
 	if (i > r->size) {
 		fprintf(stderr, "write: Bad boundaries; addr = %08x\n", i);
 		return;
 	}
-	p[i] = val;
+	endian_safe_memory_copy(&p[i * r->width], val, r->width);
 }
 
 void_ghdl sim_ram_read(rambuf_t_ghdl *ram,
-	struct fat_pointer *addr, ram16_t_ghdl data)
+	struct fat_pointer *addr, ram_port_t_ghdl data)
 {
-	uint16_t *p;
+	unsigned char *p;
 	uint32_t i, val;
 	Ram *r = (Ram *) ram[0];
-	p = (uint16_t *) &r[1];
+	p = (unsigned char *) &r[1];
 	logic_to_uint(addr->base, r->addrsize, &i);
 	if (i > r->size) {
 		fprintf(stderr, "read: Bad boundaries; addr = %08x\n", i);
 		return;
 	}
-	val = p[i];
-	uint_to_logic(data, 16, val);
+	endian_safe_value_copy(&val, &p[i * r->width], r->width);
+	uint_to_logic(data, 8 * sizeof(val), val);
 }
 
 void_ghdl sim_ram_del(rambuf_t_ghdl *ram)
@@ -85,7 +122,9 @@ int set_ram(DEVICE d, DCValue *in)
 {
 	Ram *r = (Ram *) d;
 	if (!r) return DCERR_BADPTR;
-	int size = r->size * sizeof(uint16_t);
+	int size = r->size * r->width;
+
+	size -= r->offset;
 
 	switch (in->type) {
 		case DC_COMMAND:  // This is a buffer update action
@@ -100,7 +139,7 @@ int set_ram(DEVICE d, DCValue *in)
 			}
 
 			// Tell engine where the data will go to:
-			in->value.p = &r[1];
+			in->value.p = &((char *) &r[1])[r->offset];
 			break;
 		default:
 			return DCERR_PROPERTY_TYPE_MATCH;
@@ -113,7 +152,8 @@ int get_ram(DEVICE d, DCValue *out)
 	Ram *r = (Ram *) d;
 	if (!r) return DCERR_BADPTR;
 
-	int size = r->size * sizeof(uint16_t);
+	int size = r->size * r->width;
+	size -= r->offset;
 
 	switch (out->type) {
 		case DC_COMMAND:  // This is a buffer update action
@@ -134,7 +174,7 @@ int get_ram(DEVICE d, DCValue *out)
 			}
 
 			// Tell engine where the data will come from:
-			out->value.p = &r[1];
+			out->value.p = &((char *) &r[1])[r->offset];
 			break;
 		default:
 			return DCERR_PROPERTY_TYPE_MATCH;
@@ -144,7 +184,7 @@ int get_ram(DEVICE d, DCValue *out)
 }
 
 /** Netpp custom handler */
-int buffer_handler(void *p, int write, DCValue *val)
+int handle_rambuf(void *p, int write, DCValue *val)
 {
 	// printf("%s (%d)\n", __FUNCTION__, write);
 	if (write) {
@@ -154,4 +194,14 @@ int buffer_handler(void *p, int write, DCValue *val)
 	}
 }
 
-
+int handle_ramoffset(void *p, int write, DCValue *val)
+{
+	Ram *r = (Ram *) p;
+	if (write) {
+		if (val->value.u >= (r->size * r->width))
+			return DCERR_PROPERTY_RANGE;
+		r->offset = val->value.i;
+	}
+	else       val->value.u = r->offset;
+	return 0;
+}

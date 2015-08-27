@@ -50,7 +50,6 @@
 #include "slave.h"
 #include "dynprops.h"
 #include "vpi_user.h"
-#include <pthread.h>
 #include "netppwrap.h"
 
 int binstr_to_uint(const char *l, int nbits, uint32_t *val)
@@ -244,7 +243,11 @@ void *netpp_thread(void *arg)
 	return (void *) 1;
 }
 
+#ifdef __WIN32__
+HANDLE g_thread;
+#else
 pthread_t g_thread;
+#endif
 s_cb_data run_cb;
 
 

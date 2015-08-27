@@ -10,11 +10,18 @@
 // int mutex_init(MUTEX *m, void *p);
 // int mutex_lock(MUTEX *m);
 // int mutex_unlock(MUTEX *m);
-#define USLEEP Sleep
+#define USLEEP(x) Sleep(x / 1000)
 #define MUTEX_LOCK   my_mutex_lock
 #define MUTEX_UNLOCK my_mutex_unlock
 #define MUTEX_INIT   my_mutex_init
 #define MUTEX_EXIT   my_mutex_exit
+
+int my_mutex_init(MUTEX *mutex);
+int my_mutex_exit(MUTEX *mutex);
+int my_mutex_lock(MUTEX *mutex);
+int my_mutex_unlock(MUTEX *mutex);
+
+
 #else
 #include <pthread.h>
 #define USLEEP          usleep

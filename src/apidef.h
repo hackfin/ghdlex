@@ -84,8 +84,8 @@ DEFTYPE_HANDLE32(framebuffer_t)
 DEFTYPE_FATP(pixarray_t)
 /** Single pixel type */
 DEFTYPE_SLV(pixel_t, 16)
-/** RAM16 data vector */
-DEFTYPE_SLV(ram16_t, 16)
+/** RAM data vector (max 32) */
+DEFTYPE_SLV(ram_port_t, 32)
 /* A generic handle (EXPERIMENTAL) */
 DEFTYPE_EXPLICIT(handle_t, uint32_t *)
 
@@ -317,6 +317,7 @@ VHDL_COMMENT("\\}") // }
 /* Allocate new RAM buffer, wrapper */
 API_DEFFUNC( ram_new_wrapped, _T(rambuf_t),
 	ARG(name, string),
+	ARG(bits, integer),
 	ARG(size, integer))
 
 /** \} */
@@ -329,13 +330,13 @@ VHDL_COMMENT("Write to RAM buffer")
 VHDL_COMMENT("@param addr  word address")
 VHDL_COMMENT("@param data  input data")
 API_DEFPROC( ram_write,       _T(void), ARGIOP(ram, rambuf_t),
-	ARGIO(addr, unsigned), ARGO(data, ram16_t))
+	ARGIO(addr, unsigned), ARGO(data, ram_port_t))
 
 VHDL_COMMENT("Read from RAM buffer")
 VHDL_COMMENT("@param addr  word address")
 VHDL_COMMENT("@param data  output data")
 API_DEFPROC( ram_read,        _T(void), ARGIOP(ram, rambuf_t),
-	ARGIO(addr, unsigned), ARG(data, ram16_t))
+	ARGIO(addr, unsigned), ARG(data, ram_port_t))
 
 VHDL_COMMENT("Delete and free RAM buffer")
 API_DEFPROC( ram_del,         _T(void), ARGIOP(ram, rambuf_t))
