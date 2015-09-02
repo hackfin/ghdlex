@@ -30,6 +30,7 @@ typedef struct RamDesc {
 	int size;
 } Ram;
 
+static
 void endian_safe_memory_copy(unsigned char *dest, uint32_t v, int sz)
 {
 	int s = sz * 8;
@@ -39,6 +40,7 @@ void endian_safe_memory_copy(unsigned char *dest, uint32_t v, int sz)
 	}
 }
 
+static
 void endian_safe_value_copy(uint32_t *v, unsigned char *dest, int sz)
 {
 	uint32_t val = 0;
@@ -48,7 +50,6 @@ void endian_safe_value_copy(uint32_t *v, unsigned char *dest, int sz)
 	}
 	*v = val;
 }
-
 
 rambuf_t_ghdl sim_ram_new_wrapped(string_ghdl name, integer_ghdl bits,
 	integer_ghdl size)
@@ -91,6 +92,9 @@ void_ghdl sim_ram_write(rambuf_t_ghdl *ram,
 		fprintf(stderr, "write: Bad boundaries; addr = %08x\n", i);
 		return;
 	}
+#ifdef ENABLE_RAM_TRACE
+	printf("Write %08x : %08x\n", i, val);
+#endif
 	endian_safe_memory_copy(&p[i * r->width], val, r->width);
 }
 

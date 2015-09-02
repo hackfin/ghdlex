@@ -27,6 +27,9 @@ $(LIBMYSIM).a: $(SIMOBJS) proplist.o
 	$(AR) ruv $@ $(SIMOBJS) proplist.o
 	$(RANLIB) $@
 
-mysim: $(LIBMYSIM).so
+
+MYSIM_DUTIES = $(LIBMYSIM).so
+
+mysim: $(MYSIM_DUTIES)
 
 .PHONY: mysim

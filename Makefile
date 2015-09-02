@@ -192,14 +192,22 @@ clean_duties:
 	rm -f $(DUTIES) h2vhdl 
 	rm -f func_decl.chdl func_body.chdl
 
-FILES = $(VHDLFILES) $(GHDLEX_VHDL) $(CSRCS) Makefile LICENSE.txt README
-FILES += src/fifo.h src/ghpi.h src/netppwrap.h src/example.h src/vpi_user.h
+FILES = $(VHDLFILES) $(GHDLEX_VHDL) Makefile LICENSE.txt README
+FILES += src/fifo.h src/ghpi.h src/netppwrap.h src/example.h
+# No more support for VPI stuff:
+# FILES += src/vpi_user.h
 FILES += src/bus.h
 FILES += ghdlsim.xml py/test.py
 FILES += lib.mk
 
-SRCFILES += libnetpp.chdl h2vhdl.c apidef.h apimacros.h
-SRCFILES += vpiwrapper.c threadaux.h threadaux.c
+FILES += libnetpp.chdl h2vhdl.c
+
+FILES += lib.mk
+
+include ghdlex.mk
+SRCFILES += $(CSRCS) apidef.h apimacros.h threadaux.h registermap.h
+
+# FILES += $(SRCFILES:%=src/%)
 
 allnetpp: $(LIBSLAVE)/libslave.so
 	$(MAKE) NETPP=$(CURDIR)/netpp

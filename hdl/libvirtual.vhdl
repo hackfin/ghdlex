@@ -11,6 +11,9 @@ library ieee;
 
 package virtual is
 
+	type vram32_init_t is array(natural range <>) of
+		unsigned(31 downto 0);
+
 	component VirtualFIFO is
 		generic (
 			NETPP_NAME   : string   := "DEFAULT";
@@ -53,7 +56,8 @@ package virtual is
 		generic(
 			NETPP_NAME   : string   := "DEFAULT";
 			DATA_W       : natural  := 32;
-			ADDR_W       : natural  := 14
+			ADDR_W       : natural  := 14;
+			INIT_DATA    : vram32_init_t := (0 => x"00000000")
 		);
 		port(
 			clk     : in  std_logic;
