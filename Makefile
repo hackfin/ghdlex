@@ -71,7 +71,7 @@ CURDIR = $(shell pwd)
 
 WORK = work/work-obj93.cf
 
-CFLAGS = -g -Wall -Isrc
+HOST_CFLAGS = -g -Wall -Isrc
 
 NO_CLEANUP_DUTIES-y = 
 NO_CLEANUP_DUTIES-$(CONFIG_NETPP) += $(NETPP)/common
@@ -226,7 +226,7 @@ docs: doc_apidef.h libnetpp.vhdl Doxyfile
 	doxygen
 
 h2vhdl.o: h2vhdl.c src/apidef.h
-	$(HOST_CC) -o $@ $(CFLAGS) -c $<
+	$(HOST_CC) -o $@ $(HOST_CFLAGS) -c $<
 	
 h2vhdl: h2vhdl.o
 	$(HOST_CC) -o $@ $<

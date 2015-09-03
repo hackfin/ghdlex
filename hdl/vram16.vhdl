@@ -9,20 +9,10 @@ use work.ghpi_netpp.all;
 
 --! \brief Dual port RAM with simulation interface via netpp
 --!
---! This RAM registers itself as a netpp property and can be addressed
---! under its instance name from outside, provided the netpp.vpi module
---! is loaded or initialized from within the simulation.
---! Access to a RAM block is easiest done via Python, example:
---! \code
---! import netpp
---! dev = netpp.connect("localhost")
---! root = dev.sync()
+--! \deprecated This is an old version, not implementing bypass logic
+--!             for simultaneous R/W. Also, API has changed, and endiannes
+--!             fixes have been applied. Use the VirtualDualPortRAM entity.
 --!
---! Ram0 = getattr(root, ":sim_top:ram:") # Retrieve Ram0 entity token
---! rambuf0 = Ram0.get()  # Get old buffer
---! a = 256 * chr(0)      # Generate 256 zeros
---! Ram0.set(buffer(a))   # Set RAM
---! \endcode
 --!
 entity DualPort16 is
 	generic(

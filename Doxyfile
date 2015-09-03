@@ -88,24 +88,23 @@ WARN_LOGFILE           = output.log
 # configuration options related to the input files
 #---------------------------------------------------------------------------
 INPUT                  = doc_apidef.h \
-                         apimacros.h \
-                         libfifo.vhdl \
-                         libpipe.vhdl \
+                         src/apimacros.h \
+                         src/vpiwrapper.h \
+                         src/fifo.h \
+                         src/bus.h \
+                         src/ghpi.h \
                          libnetpp.vhdl \
-                         libvirtual.vhdl \
-                         vbus.vhdl \
-                         vfifo.vhdl \
                          examples/simnetpp.vhdl \
                          examples/simboard.vhdl \
                          examples/simpipe.vhdl \
                          examples/simfb.vhdl \
-                         virtualfifo.vhdl \
-                         vfx2fifo.vhdl \
-                         dpram16.vhdl \
-                         vpiwrapper.h \
-                         fifo.h \
-                         bus.h \
-                         ghpi.h
+                         hdl/libvirtual.vhdl \
+                         hdl/libpipe.vhdl \
+                         hdl/vbus.vhdl \
+                         hdl/vfifo.vhdl \
+                         hdl/vfx2fifo.vhdl \
+                         hdl/vram16.vhdl \
+                         hdl/vram.vhdl
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          =
 RECURSIVE              = NO

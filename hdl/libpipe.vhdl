@@ -37,20 +37,26 @@ package ghpi_pipe is
 	attribute foreign of openpipe :
 		function is "VHPIDIRECT sim_openpipe";
 
-	--! Read data and/or check read status
+	--! Read/Write data and/or check read status
 	--! \param data    if flags(RX) is set, return a byte from the FIFO.
 	--!                The data is only valid when a previous flags(RX) was
 	--!                asserted. Otherwise, an underrun condition
 	--!                flags(OUR) = '1' will occur.
-	--! \param flags   in: FIFO read request (only RX bit is evaluated),
-	--!                out: Data can be read when RX = '1'
-	procedure pipe_in(
-		handle: pipehandle_t;
-		data: out unsigned(7 downto 0);
+	--!                If flags(TX) is set, write a byte to the FIFO.
+	--!                If the FIFO was not previously ready (flags(TX) = '0'), a
+	--!                FIFO overrun condition will occur likewise.
+
+	--! \param flags   in: read/write request (only RX and TX bit are checked)
+	--!                out: Data can be read when RX = '1' and
+	--!                     Data can be written when TX = '1'
+
+	procedure pipe_rxtx(
+		handle : pipehandle_t;
+		data : inout unsigned(7 downto 0);
 		flags : inout pipeflag_t
 	);
-	attribute foreign of pipe_in :
-		procedure is "VHPIDIRECT sim_pipe_in";
+	attribute foreign of pipe_rxtx :
+		procedure is "VHPIDIRECT sim_pipe_rxtx";
 
 	--! Write data and/or check write status
 	--! \param data    if flags(TX) is set, write a byte to the FIFO.
@@ -59,13 +65,6 @@ package ghpi_pipe is
 	--!                flags(OUR) = '1' will occur.
 	--! \param flags   in: FIFO write request (only TX bit is evaluated),
 	--!                out: Data can be written when TX = '1'
-	procedure pipe_out(
-		handle: pipehandle_t;
-		data: in unsigned(7 downto 0);
-		flags : inout pipeflag_t
-	);
-	attribute foreign of pipe_out :
-		procedure is "VHPIDIRECT sim_pipe_out";
 
 	--! Close pipe. This does not remove the actual named pipe file.
 	procedure closepipe(handle: pipehandle_t);
@@ -82,22 +81,14 @@ package body ghpi_pipe is
 		assert false report "VHPI" severity failure;
 	end openpipe;
 
-	procedure pipe_in(
-		handle: pipehandle_t;
-		data: out unsigned(7 downto 0);
-		flags : inout pipeflag_t
-	) is
-	begin
-	end pipe_in;
-
-	procedure pipe_out(
-		handle: pipehandle_t;
-		data: in unsigned(7 downto 0);
+	procedure pipe_rxtx(
+		handle : pipehandle_t;
+		data  : inout unsigned(7 downto 0);
 		flags : inout pipeflag_t
 	) is
 	begin
 		assert false report "VHPI" severity failure;
-	end pipe_out;
+	end pipe_rxtx;
 
 	procedure closepipe(handle: pipehandle_t) is
 	begin

@@ -20,12 +20,13 @@ use work.virtual.all;
 --! root = dev.sync()
 --!
 --! Ram0 = getattr(root, ":sim_top:ram:") # Retrieve Ram0 entity token
---! rambuf0 = Ram0.get()  # Get old buffer
+--! Ram0.Offset.set(0)    # Set address offset
+--! rambuf0 = Ram0.Buffer.get()  # Get old buffer
 --! a = 256 * chr(0)      # Generate 256 zeros
---! Ram0.set(buffer(a))   # Set RAM
+--! Ram0.Buffer.set(buffer(a))   # Set RAM
 --! \endcode
 --!
-entity DualPortRAM is
+entity VirtualDualPortRAM is
 	generic(
 		NETPP_NAME   : string   := "DEFAULT";
 		DATA_W       : natural  := 32;
@@ -45,9 +46,9 @@ entity DualPortRAM is
 		b_write : in  unsigned(DATA_W-1 downto 0);  --! B write data
 		b_read  : out unsigned(DATA_W-1 downto 0)   --! B read data
 	);
-end DualPortRAM;
+end VirtualDualPortRAM;
 
-architecture simulation of DualPortRAM is
+architecture simulation of VirtualDualPortRAM is
 	shared variable ram_handle : rambuf_t;
 
 	procedure ram_init (data : in vram32_init_t) is

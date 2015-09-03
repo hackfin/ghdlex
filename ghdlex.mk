@@ -4,7 +4,7 @@ RANLIB ?= ranlib
 
 CSRCS = helpers.c
 
-CFLAGS = -fPIC
+CFLAGS += -fPIC
 
 CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 

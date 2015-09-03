@@ -94,15 +94,15 @@ void hexdump(char *buf, unsigned long n);
 
 /*!
  * \mainpage GHDLex documentation
- * \version 0.05develop
+ * \version 0.1.x
  * \author Martin Strubel
- * \date 03/2014
+ * \date 09/2015
  *
  * \section Intro     Introduction
  *
- * This code collection is an attempt to gather a few useful routines
- * into a pool of reusable functionality. It is FAR from being a real
- * library, but technically, we treat it as one.
+ * Starting from version 0.1, GHDLex is regarded as library and its
+ * entities will no longer change the API, unless explicitely noted.
+ * This will also introduce a major version number change.
  *
  * The main purpose is to enable GHDL to communicate easily with external
  * applications in both directions, for example, to read in real data samples
@@ -153,8 +153,8 @@ void hexdump(char *buf, unsigned long n);
  *
  * There are only a few default virtual entities that come with ghdlex:
  *
- *  - VirtualFIFO: A multiply instanceable virtual FIFO
- *  - DualPort16:  Dual port RAM simulation
+ *  - VirtualFIFO:  A multiply instanceable virtual FIFO
+ *  - VirtualDualPortRAM:  Dual port RAM simulation
  *  - VirtualBus:  A simple virtual bus master for testing slave devices
  *
  * They all depend on netpp, so they call netpp_init() at start up of

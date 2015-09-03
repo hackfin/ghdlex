@@ -20,7 +20,7 @@
 #define OUR      2  ///< Over/Underrun bit
 #define ERR      3  ///< Generic error bit
 
-#define TIMEOUT 1
+#define TIMEOUT 0
 
 int sim_openpipe(struct ghdl_string *name)
 {
@@ -37,6 +37,40 @@ int sim_openpipe(struct ghdl_string *name)
 void sim_closepipe(int fd)
 {
 	close(fd);
+}
+
+void sim_pipe_rxtx(int fd, char *data, char *flag)
+{
+	unsigned char buf[2];
+	int stat;
+	struct pollfd fds;
+	fds.fd = fd;
+	fds.events = POLLIN | POLLOUT | POLLERR;
+
+	if (flag[TXF] == HIGH) { // we issue a write
+		logic_to_bytes(data, 1, buf);
+		stat = write(fd, buf, 1);
+		if (stat != 1) flag[OUR] = HIGH;
+	}
+
+	if (flag[RXE] == HIGH) { // we issue a read
+		stat = read(fd, buf, 1);
+		if (stat == 1) {
+			bytes_to_logic(data, 1, buf);
+		} else {
+			flag[OUR] = HIGH;
+		}
+	}
+	
+	flag[RXE] = LOW;
+	flag[TXF] = LOW;
+	stat = poll(&fds, 1, TIMEOUT);
+	if (stat < 0) flag[ERR] = HIGH; // Mark error
+	else {
+		if (fds.revents & POLLIN) flag[RXE] = HIGH;
+		if (fds.revents & POLLOUT) flag[TXF] = HIGH;
+	}
+	return 0;
 }
 
 void sim_pipe_in(int fd, char *data, char *flag)

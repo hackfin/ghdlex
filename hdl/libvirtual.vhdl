@@ -52,7 +52,7 @@ package virtual is
 	end component;
 
 
-	component DualPortRAM is
+	component VirtualDualPortRAM is
 		generic(
 			NETPP_NAME   : string   := "DEFAULT";
 			DATA_W       : natural  := 32;
@@ -72,7 +72,7 @@ package virtual is
 			b_write : in  unsigned(DATA_W-1 downto 0);
 			b_read  : out unsigned(DATA_W-1 downto 0)
 		);
-	end component DualPortRAM;
+	end component VirtualDualPortRAM;
 
 
 	component DualPort16 is

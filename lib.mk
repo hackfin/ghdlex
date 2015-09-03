@@ -7,6 +7,7 @@ GHDLEX_VHDL_DIR = $(GHDLEX)/hdl
 GHDLEX_VHDL =  \
 	$(GHDLEX)/libnetpp.vhdl \
 	$(GHDLEX)/registermap_pkg.vhdl \
+	$(GHDLEX_VHDL_DIR)/libpipe.vhdl \
 	$(GHDLEX_VHDL_DIR)/libvirtual.vhdl \
 	$(GHDLEX_VHDL_DIR)/vbus.vhdl \
 	$(GHDLEX_VHDL_DIR)/vram.vhdl \

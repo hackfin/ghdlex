@@ -104,7 +104,7 @@ ram0:
 		);
 
 ram1:
-	DualPortRAM generic map (ADDR_W => ADDR_W, DATA_W => 16)
+	VirtualDualPortRAM generic map (ADDR_W => ADDR_W, DATA_W => 16)
 		port map (
 			clk     => clk,
 			-- Port A
@@ -120,7 +120,7 @@ ram1:
 		);
 
 ram32:
-	DualPortRAM generic map ( NETPP_NAME => "Shadow32bit",
+	VirtualDualPortRAM generic map ( NETPP_NAME => "Shadow32bit",
 		ADDR_W => ADDR_W, DATA_W => 32)
 		port map (
 			clk     => clk,

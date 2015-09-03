@@ -308,7 +308,7 @@ VHDL_COMMENT("\\}") // }
 /** \defgroup VirtualRAM    Virtual RAM API
  *
  * Virtual RAM modules are created from VHDL code by instancing a
- * DualPort16 RAM entity. See dpram16.vhdl example.
+ * DualPortRAM entity. See vram.vhdl example.
  */
 
 /** \addtogroup VirtualRAM
