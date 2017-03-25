@@ -1,7 +1,7 @@
 # MINGW32=1
 
 NETPP = $(HOME)/src/netpp
-GENSOC = $(HOME)/src/vhdl/soc/gensoc
+GENSOC = $(HOME)/src/vhdl/gensoc
 
 ifdef CONFIG_MINGW32
 	EXE = .exe

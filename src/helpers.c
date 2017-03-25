@@ -18,7 +18,7 @@
 
 /** Dump buffer */
 
-void hexdump(char *buf, unsigned long n)
+void hexdump(const char *buf, unsigned long n)
 {
 	int i = 0;
 	int c = 0;

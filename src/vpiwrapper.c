@@ -44,6 +44,7 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <pthread.h>
 #include "devlib_types.h"
 #include "devlib_error.h"
 #include "property_types.h"

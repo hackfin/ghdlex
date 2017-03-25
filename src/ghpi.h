@@ -90,7 +90,7 @@ void fill_slv(char *l, int nbits, unsigned char val);
 /** Debugging */
 
 void dump_bits(unsigned char c);
-void hexdump(char *buf, unsigned long n);
+void hexdump(const char *buf, unsigned long n);
 
 /*!
  * \mainpage GHDLex documentation

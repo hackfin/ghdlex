@@ -207,7 +207,7 @@ void sim_throttle(byte_t_ghdl activity, integer_ghdl cycles)
 {
 	uint32_t val;
 
-	logic_to_uint(activity, sizeof(activity), &val);
+	logic_to_uint(activity, sizeof(byte_t_ghdl), &val);
 
 	if (val == s_prev) {
 		USLEEP(cycles);

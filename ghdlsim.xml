@@ -107,7 +107,7 @@ Including a header is necessary when implementing access to global variables.-->
 
     <!--A (virtual) register map:-->
 
-    <registermap addrsize="16" endian="LITTLE" id="fake" name="MMR"
+    <registermap endian="LITTLE" id="fake" name="MMR"
                  nodecode="true">
       <register access="RO" addr="0x00" id="decode_dummy">
         <info>The bit fields in this register are dummies with respect to address decoding.
@@ -123,7 +123,7 @@ Later, these slice defines will be moved to the iomap definitions for the entire
       </register>
     </registermap>
 
-    <registermap addrsize="16" endian="BIG" id="fpga_registers"
+    <registermap endian="BIG" id="fpga_registers"
                  name="FPGA_Registers" offset="0x000">
       <info>This register map definition with maximum register address VBUS_ADDR_OFFSET-1 refers to an internal simulated RAM that is repeatedly read by regmap_read().</info>
 
@@ -160,7 +160,7 @@ Later, these slice defines will be moved to the iomap definitions for the entire
       </register>
     </registermap>
 
-    <registermap addrsize="4" endian="LITTLE" id="tap_registers" name="TAP"
+    <registermap endian="LITTLE" id="tap_registers" name="TAP"
                  offset="0x100">
       <info>Important: Little endian when accessing through a VirtualBus</info>
 

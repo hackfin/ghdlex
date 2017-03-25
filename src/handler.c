@@ -258,7 +258,7 @@ void sim_regmap_read(regaddr_t_ghdl address, unsigned_ghdl data)
 {
 	int nbytes;
 	uint32_t addr, val;
-	logic_to_uint(address, sizeof(address), &addr);
+	logic_to_uint(address, sizeof(regaddr_t_ghdl), &addr);
 	addr &= 0xff;
 
 	nbytes = (data->bounds->len + 7) >> 3;
@@ -278,7 +278,7 @@ void sim_regmap_write(regaddr_t_ghdl address, unsigned_ghdl data)
 {
 	uint32_t addr, val;
 	int nbytes;
-	logic_to_uint(address, sizeof(address), &addr);
+	logic_to_uint(address, sizeof(regaddr_t_ghdl), &addr);
 	addr &= 0xff;
 	logic_to_uint(data->base, data->bounds->len, &val);
 	
