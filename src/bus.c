@@ -125,7 +125,11 @@ int bus_val_rd(Bus *bus, uint32_t addr, uint32_t *val)
 	return 0;
 }
 
-int bus_write(Bus *bus, const unsigned char *buf, int size)
+////////////////////////////////////////////////////////////////////////////
+// LITTLE ENDIAN ACCESS
+
+static
+int bus_write_le(Bus *bus, const uint8_t *buf, int size)
 {
 	uint32_t val;
 	uint32_t addr;
@@ -134,7 +138,7 @@ int bus_write(Bus *bus, const unsigned char *buf, int size)
 	val = 0;
 	int error = 0;
 
-	const unsigned char *end = &buf[size];
+	const uint8_t *end = &buf[size];
 
 	k = size % bus->width;
 
@@ -174,7 +178,8 @@ int bus_write(Bus *bus, const unsigned char *buf, int size)
 }
 
 
-int bus_read(Bus *bus, unsigned char *buf, int size)
+static
+int bus_read_le(Bus *bus, uint8_t *buf, int size)
 {
 	uint32_t val;
 	uint32_t addr;
@@ -185,7 +190,7 @@ int bus_read(Bus *bus, unsigned char *buf, int size)
 
 	k = size % bus->width;
 
-	unsigned char *end = &buf[size];
+	uint8_t *end = &buf[size];
 	if (k) end -= k;
 
 
@@ -217,4 +222,129 @@ int bus_read(Bus *bus, unsigned char *buf, int size)
 		bus->addr = addr; // Store incremented address for subsequent reads
 	MUTEX_UNLOCK(&bus->mutex);
 	return error;
+}
+
+
+////////////////////////////////////////////////////////////////////////////
+// BIG ENDIAN ACCESS
+
+static
+int bus_write_be(Bus *bus, const uint8_t *buf, int size)
+{
+	uint32_t val;
+	uint32_t addr;
+	int n, k;
+	val = 0;
+	int error = 0;
+
+	const uint8_t *end = &buf[size];
+
+	k = size % bus->width;
+
+	if (k) end -= k;
+
+	addr = bus->addr;
+
+	while (buf < end) {
+		n = bus->width;
+
+		// Big endian conversion:
+		val = 0;
+		while (n--) {
+			val <<= 8;
+			val |= *buf++;
+		}
+		error = bus_val_wr(bus, addr, val);
+		if (error < 0) return error;
+		addr += bus->width;
+	}
+
+	if (k) {
+		val = 0;
+		while (k--) {
+			val <<= 8;
+			val |= *buf++;
+		}
+		error = bus_val_wr(bus, addr, val);
+		addr += bus->width;
+	}
+
+	// Wait for last write to finish:
+	while (bus->flags & TX_PEND);
+
+	MUTEX_LOCK(&bus->mutex);
+		bus->addr = addr; // Store incremented address for subsequent writes
+	MUTEX_UNLOCK(&bus->mutex);
+	return error;
+}
+
+
+static
+int bus_read_be(Bus *bus, uint8_t *buf, int size)
+{
+	uint32_t val;
+	uint32_t addr;
+	uint8_t *b;
+	int error;
+	while ((bus->flags & (TX_PEND))) USLEEP(1000);
+	int n, k;
+	val = 0;
+
+	k = size % bus->width;
+
+	uint8_t *end = &buf[size];
+	if (k) end -= k;
+
+	addr = bus->addr;
+
+	while (buf < end) {
+		error = bus_val_rd(bus, addr, &val);
+		if (error < 0) return error;
+		n = bus->width;
+		// Store in big endian order:
+		while (n--) {
+			buf[n] = val;
+			val >>= 8;
+		}
+		buf += bus->width;
+		addr += bus->width;
+	}
+
+	// Get remainder:
+	if (k) {
+		error = bus_val_rd(bus, addr, &val);
+		while (k--) {
+			buf[k] = val;
+			val >>= 8;
+		}
+		addr += bus->width;
+	}
+
+	MUTEX_LOCK(&bus->mutex);
+		bus->addr = addr; // Store incremented address for subsequent reads
+	MUTEX_UNLOCK(&bus->mutex);
+	return error;
+}
+
+ 
+int bus_write(Bus *bus, const uint8_t *buf, int size)
+{
+	int ret;
+	if (bus->flags & BUS_LE) {
+		ret = bus_write_le(bus, buf, size);
+	} else {
+		ret = bus_write_be(bus, buf, size);
+	}
+	return ret;
+}
+
+int bus_read(Bus *bus, uint8_t *buf, int size)
+{
+	int ret;
+	if (bus->flags & BUS_LE) {
+		ret = bus_read_le(bus, buf, size);
+	} else {
+		ret = bus_read_be(bus, buf, size);
+	}
+	return ret;
 }

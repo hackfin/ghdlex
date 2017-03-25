@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<?xml-stylesheet type="text/css" href="/home/strubi/src/netpp/xml/devdesc.css"?>
 <devdesc version="0.1"
-         xsi:schemaLocation="http://www.section5.ch/dclib/schema/devdesc /home/strubi/src/netpp/xml/devdesc.xsd"
+         xsi:schemaLocation="http://www.section5.ch/dclib/schema/devdesc devdesc.xsd"
          xmlns="http://www.section5.ch/dclib/schema/devdesc"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xmlns:xs="http://www.w3.org/2001/XMLSchema"

@@ -10,22 +10,35 @@ use ieee.numeric_std.all; -- Unsigned
 --! This module implements a simple Unix pipe interface by using simple
 --! file I/O to externally created names pipes.
 --!
---! To create a pipe or FIFO under Linux, use the mkfifo command:
---! \code mkfifo /tmp/sim_touser
+--! To create a bidirectional pipe under Linux, it is recommended to
+--! use the socat utility as follows:
+--! \code
+--! > sudo socat PTY,link=/var/run/ghdlsim,raw,echo=0,user=`whoami` \
+--!          PTY,link=/var/run/iopipe,raw,echo=0,user=`whoami`
 --! \endcode
+--!
+--! Then open a terminal on the host side:
+--!
+--! \code
+--! > minicom -o -D /var/run/iopipe
+--! \endcode
+--!
+--! Now when you start the simulation, for instance simpty, you can speak
+--! to the simulation pipe through the minicom terminal.
+--!
 --! From the GHDL side, the pipe is read like a non-FIRST-FALL-THROUGH
 --! FIFO. That means, you will have to assert the RX flag prior to calling
---! pipe_in() to obtain a first valid byte.
+--! pipe_rxtx() to obtain a first valid byte.
 --!
 --! \defgroup GHPI_Pipe  Unix Pipe interface
 --! \addtogroup GHPI_Pipe
 --! \{
 package ghpi_pipe is
 	subtype pipeflag_t is unsigned(0 to 3); --! Pipe flags array type
-	constant RX  : natural := 0; --! in: Read advance, out: FIFO not empty
-	constant TX  : natural := 1; --! in: Write advance, out: FIFO not full
-	constant OUR : natural := 2; --! out: Overrun/Underrun error
-	constant ERR : natural := 3; --! out: Generic error
+	constant PIPE_RX  : natural := 0; --! in: Read advance, out: FIFO not empty
+	constant PIPE_TX  : natural := 1; --! in: Write advance, out: FIFO not full
+	constant PIPE_OUR : natural := 2; --! out: Overrun/Underrun error
+	constant PIPE_ERR : natural := 3; --! out: Generic error
 
 	subtype pipehandle_t is integer;  --! A pipe handle
 

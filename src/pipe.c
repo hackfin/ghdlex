@@ -70,7 +70,6 @@ void sim_pipe_rxtx(int fd, char *data, char *flag)
 		if (fds.revents & POLLIN) flag[RXE] = HIGH;
 		if (fds.revents & POLLOUT) flag[TXF] = HIGH;
 	}
-	return 0;
 }
 
 void sim_pipe_in(int fd, char *data, char *flag)

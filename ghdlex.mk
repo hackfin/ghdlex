@@ -5,6 +5,9 @@ RANLIB ?= ranlib
 CSRCS = helpers.c
 
 CFLAGS += -fPIC
+ifdef DEBUG
+CFLAGS += -DDEBUG -g
+endif
 
 CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 
@@ -20,11 +23,13 @@ GHDLEXSRCS = $(CSRCS:%.c=$(GHDLEX)/src/%.c)
 
 SIMOBJS = $(GHDLEXSRCS:%.c=%.o)
 
-$(LIBMYSIM).so: $(SIMOBJS) proplist.o
-	$(CC) -o $@ -shared $(SIMOBJS) proplist.o
+PROPLIST ?= proplist.o
 
-$(LIBMYSIM).a: $(SIMOBJS) proplist.o
-	$(AR) ruv $@ $(SIMOBJS) proplist.o
+$(LIBMYSIM).so: $(SIMOBJS) $(PROPLIST)
+	$(CC) -o $@ -shared $(SIMOBJS) $(PROPLIST)
+
+$(LIBMYSIM).a: $(SIMOBJS) $(PROPLIST)
+	$(AR) ruv $@ $(SIMOBJS) $(PROPLIST)
 	$(RANLIB) $@
 
 

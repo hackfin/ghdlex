@@ -268,7 +268,6 @@ python test.py
  * For data I/O with external programs, there are two examples
  * (see examples/ folder):
  *
- * - pipe.vhdl : Simple file based I/O using named Unix pipes
  * - pty.vhdl  : File I/O via a bidirectional pipe (virtual UART, etc.)
  * - fifo.vhdl : A thread based software FIFO implementation, that
  *                  can be compiled to accept data over the network from
@@ -434,10 +433,8 @@ ram0 = getattr(root_node, ":simram:ram0:") \endcode
  *
  * \example board.vhdl
  * \example netpp.vhdl
- * \example pipe.vhdl
  * \example pty.vhdl
  * \example fb.vhdl
- * \example dpram16.vhdl
- * \example vfifo.vhdl
+ * \example ram.vhdl
  *
  */

@@ -46,6 +46,11 @@ package ghpi_netpp is
 	function netpp_init(name : string)
 		return integer;
 
+	--! Initializes the netpp slave structures for a simulation
+	--! Allows to pass a port number
+	function netpp_init(name : string; portnum : integer)
+		return integer;
+
 	----- NETPP MASTER API -----
 	subtype  token_t       is integer;
 	subtype  netpphandle_t is integer;
@@ -84,12 +89,12 @@ package ghpi_netpp is
 
 	subtype fifoflag_t is unsigned(0 to 5);
 	-- FIFO flag indices:
-	constant RX  : natural := 0; --! in: Read advance, out: FIFO not empty
-	constant TX  : natural := 1; --! in: Write advance, out: FIFO not full
-	constant RXE : natural := 2; --! out: LOW when FIFO almost not empty
-	constant TXF : natural := 3; --! out: LOW when FIFO almost full
-	constant OVR : natural := 4; --! out: overrun bit. Write 1 to clear.
-	constant UNR : natural := 5; --! out: underrun bit. W1C.
+	constant FIFO_RX  : natural := 0; --! in: Read advance, out: FIFO not empty
+	constant FIFO_TX  : natural := 1; --! in: Write advance, out: FIFO not full
+	constant FIFO_RXE : natural := 2; --! out: LOW when FIFO almost not empty
+	constant FIFO_TXF : natural := 3; --! out: LOW when FIFO almost full
+	constant FIFO_OVR : natural := 4; --! out: overrun bit. Write 1 to clear.
+	constant FIFO_UNR : natural := 5; --! out: underrun bit. W1C.
 
 	-- FLAG assignments for FX2 emulation
 	constant TX_PROG  : natural := 0;
@@ -157,7 +162,13 @@ package body ghpi_netpp is
 	function netpp_init(name : string)
 		return integer is
 	begin
-		return netpp_init_wrapped(name & NUL);
+		return netpp_init_wrapped(name & NUL, 0);
+	end function;
+
+	function netpp_init(name : string; portnum : integer)
+		return integer is
+	begin
+		return netpp_init_wrapped(name & NUL, portnum);
 	end function;
 
 	function device_open(id: string)

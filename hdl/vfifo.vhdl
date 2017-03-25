@@ -111,7 +111,7 @@ begin
 			fifo_rxtx(fifo_handle, d_data, flags);
 			data_in <= std_logic_vector(d_data(DATA_WIDTH-1 downto 0));
 
-			if flags(RXE) = '0' and throttle = '1' then
+			if flags(FIFO_RXE) = '0' and throttle = '1' then
 				if SLEEP_CYCLES /= 0 then
 					usleep(SLEEP_CYCLES);
 				else
@@ -119,8 +119,8 @@ begin
 				end if;
 			end if;
 
-			rd_ready <= flags(RXE);
-			wr_ready <= flags(TXF);
+			rd_ready <= flags(FIFO_RXE);
+			wr_ready <= flags(FIFO_TXF);
 
 			fifo_flags <= flags;
 		end if;

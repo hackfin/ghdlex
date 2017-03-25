@@ -35,6 +35,10 @@ extern TOKEN g_t_bus;
 extern TOKEN g_t_ram;
 // extern TOKEN g_t_pty;
 
+struct local_config {
+	int port;
+};
+
 #ifdef __WIN32__
 #define THREAD_RETURN DWORD
 #define THREAD_DECO   WINAPI
@@ -456,22 +460,36 @@ static
 THREAD_RETURN THREAD_DECO netpp_thread(void *arg)
 {
 	int error;
-
-	char *argv[] = {
-		"", (char *) arg
-	};
+	struct local_config *cfg = (struct local_config *) arg;
+	char *argv[4];
+	char portstr[32];
+	argv[0] = "sim";
 
 #ifdef SUPPORT_LEGACY_REGISTERMAP
 	init_registermap();
 #endif
-	error = start_server(1, argv);
-	if (error < 0) return 0;
+
+	if (cfg) {
+		snprintf(portstr, sizeof(portstr)-1, "--port=%d", cfg->port);
+		argv[1] = portstr;
+		argv[2] = "--hide";
+		argv[3] = NULL;
+		error = start_server(3, argv);
+	} else {
+		argv[0] = NULL;
+		error = start_server(1, argv);
+	}
+
+	if (error < 0) {
+		printf("Failed to start server\n");
+		return 0;
+	}
 
 	return (THREAD_RETURN) 1;
 }
 
 
-int create_thread(const char *name)
+int create_thread(const char *name, struct local_config *cfg)
 {
 	int error;
 
@@ -486,21 +504,29 @@ int create_thread(const char *name)
 
 #ifdef __WIN32__
 	DWORD thid;
-	g_thread = CreateThread(NULL, 0x20000, netpp_thread, (PVOID) 0,
+	g_thread = CreateThread(NULL, 0x20000, netpp_thread, (PVOID) cfg,
 		0, &thid);
 	if (!g_thread) {
 		error = -1;
 		printf("Failed to create thread\n");
 	}
 #else
-	error = pthread_create(&g_thread, NULL, &netpp_thread, NULL);
+	error = pthread_create(&g_thread, NULL, &netpp_thread, cfg);
 #endif
 	if (error < 0) return error;
 	return 0;
 }
 
-integer_ghdl sim_netpp_init_wrapped(struct ghdl_string *name)
+integer_ghdl sim_netpp_init_wrapped(struct ghdl_string *name, int port)
 {
-	return create_thread(name->base);
+	// we're allowed to live on the stack, cuz we're only used during
+	// configuration
+	struct local_config cfg;
+	if (port == 0) {
+		return create_thread(name->base, NULL);
+	} else {
+		cfg.port = port;
+		return create_thread(name->base, (void *) &cfg);
+	}
 }
 

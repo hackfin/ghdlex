@@ -109,13 +109,29 @@ DEFTYPE_SLV(busflag_t, 3)
 DEFTYPE_SLV(regaddr_t, 8)
 DEFTYPE_SLV(byte_t, 8)
 
+/** \} */
+
+/** \defgroup GHPI_Netpp    Netpp initialization and communication
+ *
+ */
+
 
 /* Open netpp device
  * \param id    A netpp device identifier
  * \return A netpp device handle
  */
+
+API_DEFFUNC( netpp_init_wrapped, _T(integer),
+	ARG(name, string), ARG(portnum, integer) )
+
 API_DEFFUNC( device_open_wrapped,     _T(netpphandle_t),
 	ARG(id, string))
+
+VHDL_COMMENT("\\addtogroup GHPI_Netpp")
+VHDL_COMMENT("\\{") // {
+VHDL_COMMENT("Netpp initialization and master communication.")
+VHDL_COMMENT("Note this is the documentation for the VHDL side.")
+VHDL_COMMENT("\n-- DELIMITER -- \n")
 
 VHDL_COMMENT("Set integer value on netpp remote device")
 VHDL_COMMENT("@param t   The property token, obtained by device_gettoken()")
@@ -127,6 +143,12 @@ VHDL_COMMENT("Set register value on netpp remote device")
 API_DEFFUNC( device_set_register,  _T(integer),
 	ARG(h, netpphandle_t), ARG(t, token_t), ARG(v, integer))
 
+VHDL_COMMENT("Close connection to remote device")
+API_DEFPROC( device_close,     _T(void),
+	ARG(h, netpphandle_t))
+
+
+VHDL_COMMENT("\\}") // }
 
 
 /* Get property token from device by name
@@ -139,10 +161,6 @@ API_DEFFUNC( device_set_register,  _T(integer),
  */
 API_DEFFUNC( device_gettoken_wrapped, _T(token_t),
 	ARG(h, netpphandle_t), ARG(id, string))
-
-VHDL_COMMENT("Close connection to remote device")
-API_DEFPROC( device_close,     _T(void),
-	ARG(h, netpphandle_t))
 
 VHDL_COMMENT("Read from dummy register map. At the moment only 8 bit wide")
 VHDL_COMMENT("@deprecated Use the VirtualBus API instead")
@@ -167,8 +185,6 @@ VHDL_COMMENT("@param cycles   sleep time in us")
 API_DEFPROC( throttle,     _T(void), ARG(activity, byte_t),
              ARG(cycles, integer) )
 
-
-/** \} */
 
 /** \defgroup VFramebuf   Virtual Framebuffer API
  * 	The virtual framebuffer API allows to access a netpp display server
@@ -344,12 +360,6 @@ API_DEFPROC( ram_del,         _T(void), ARGIOP(ram, rambuf_t))
 VHDL_COMMENT("\\}") // }
 
 
-/** \defgroup GHPI_Netpp    Netpp initialization and communication
- *
- */
-
-API_DEFFUNC( netpp_init_wrapped, _T(integer),
-	ARG(name, string) )
 
 /* Test functions only */
 API_DEFFUNC( get_ptr,       _T(handle_t), ARG(dev, netpphandle_t))

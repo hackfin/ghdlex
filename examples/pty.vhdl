@@ -77,14 +77,14 @@ begin
 			-- * Write command
 			-- * There was something in the RX buffer
 
-			if wr = '1' or rx_ready = '1' or flags(RX) = '1' then
+			if wr = '1' or rx_ready = '1' or flags(PIPE_RX) = '1' then
 				val := data;
-				flags(TX) := wr;
+				flags(PIPE_TX) := wr;
 				pipe_rxtx(iopipe, val, flags);
 			end if;
 
 			-- Did we get a byte?
-			if pipe_flags(RX) = '1' then
+			if pipe_flags(PIPE_RX) = '1' then
 				data <= val;
 				data_valid <= '1';
 				-- Terminate when we get Ctrl-E:
@@ -99,7 +99,7 @@ begin
 			end if;
 
 			-- Only file read on next cycle when requested:
-			flags(RX) := flags(RX) and rx_ready;
+			flags(PIPE_RX) := flags(PIPE_RX) and rx_ready;
 
 			-- Save flags for next time
 			pipe_flags <= flags;

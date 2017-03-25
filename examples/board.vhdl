@@ -265,7 +265,7 @@ stim:
 		variable retval : integer;
 	begin
 		-- Explicitely initialize netpp, thus not needing --vpi=netpp.vpi:
-		retval := netpp_init("VirtualBoard");
+		retval := netpp_init("VirtualBoard", 2010);
 		we <= '0';
 		data0 <= x"00112233";
 		addr <= "000000000000";

@@ -81,7 +81,7 @@ DUTIES-y =
 DUTIES-$(CONFIG_NETPP) += simnetpp simfb
 DUTIES-$(CONFIG_NETPP) += simram simboard
 
-DUTIES-$(CONFIG_LINUX) += simpipe simpty
+DUTIES-$(CONFIG_LINUX) += simpty
 DUTIES-$(CONFIG_LINUX) += src/netpp.vpi 
 
 DUTIES = $(DUTIES-y)
@@ -93,6 +93,7 @@ GHDLEX_VHDL = $(wildcard hdl/*.vhdl)
 
 GENERATED_VHDL =  registermap_pkg.vhdl
 GENERATED_VHDL += decode_tap_registers.vhdl
+GENERATED_VHDL += decode_fpga_registers.vhdl
 GENERATED_GHDLEX_VHDL += libnetpp.vhdl
 
 
@@ -110,9 +111,9 @@ VHDLFILES += examples/ram.vhdl
 VHDLFILES += examples/board.vhdl
 VHDLFILES += $(GENERATED_VHDL)
 endif
-VHDLFILES += examples/pipe.vhdl
-VHDLFILES += examples/pty.vhdl
 
+# Pipe example obsolete, see improved pty.vhdl
+VHDLFILES += examples/pty.vhdl
 
 all: $(NO_CLEANUP_DUTIES-y) $(DUTIES) 
 
@@ -121,9 +122,15 @@ src/netpp.vpi:
 
 DISTFILES = $(FILES:%=ghdlex/%)
 
-dist: $(GHDLEX_VHDL)
+SRCDISTFILES = $(DISTFILES) $(SRCFILES:%=ghdlex/%)
+
+srcdist: $(GHDLEX_VHDL)
 	cd ..; \
-	tar cfz ghdlex-$(VERSION).tgz $(DISTFILES)
+	tar cfz ghdlex-src-$(VERSION).tgz $(SRCDISTFILES)
+
+dist:
+	cd ..; \
+	tar cfz ghdlex-sim-$(VERSION).tgz $(DISTFILES)
 
 # netpp unpack rule:
 
@@ -183,7 +190,7 @@ lib/ghdlex-obj93.cf: $(GHDLEX_VHDL)
 
 clean::
 	rm -fr lib
-	rm -f $(GENERATED_VHDL)
+	# rm -f $(GENERATED_VHDL)
 	rm -f $(WORK)
 	$(MAKE) NETPP=$(CURDIR)/netpp clean_duties
 	$(MAKE) -C src clean
@@ -192,22 +199,24 @@ clean_duties:
 	rm -f $(DUTIES) h2vhdl 
 	rm -f func_decl.chdl func_body.chdl
 
-FILES = $(VHDLFILES) $(GHDLEX_VHDL) Makefile LICENSE.txt README
-FILES += src/fifo.h src/ghpi.h src/netppwrap.h src/example.h
+FILES = LICENSE.txt README Makefile 
 # No more support for VPI stuff:
 # FILES += src/vpi_user.h
-FILES += src/bus.h
-FILES += ghdlsim.xml py/test.py
+FILES = $(GHDLEX_VHDL) $(VHDLFILES)
+SRCFILES += src/fifo.h src/ghpi.h src/netppwrap.h src/example.h
+SRCFILES += src/bus.h
+SRCFILES += ghdlsim.xml py/test.py
+
 FILES += lib.mk
 
 FILES += libnetpp.chdl h2vhdl.c
 
-FILES += lib.mk
+FILES += lib.mk platform.mk ghdlex.mk
 
 include ghdlex.mk
 SRCFILES += $(CSRCS) apidef.h apimacros.h threadaux.h registermap.h
-
-# FILES += $(SRCFILES:%=src/%)
+SRCFILES += vpi_user.h vpiwrapper.c
+SRCFILES += src/Makefile Doxyfile
 
 allnetpp: $(LIBSLAVE)/libslave.so
 	$(MAKE) NETPP=$(CURDIR)/netpp

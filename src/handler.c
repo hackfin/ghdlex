@@ -19,6 +19,7 @@
 #include "vpi_user.h"
 #include "ghpi.h"
 
+#define DEBUG
 
 int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n);
 int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n);
@@ -202,14 +203,13 @@ int device_write(RemoteDevice *d,
 		memcpy(&_registermap[addr & 0xff], buf, size);
 		MUTEX_UNLOCK(&reg_mutex);
 
-		while (size--) {
-			printf(" %02x", *buf++);
-		}
-		printf("\n");
 	} else {
 #endif
-		// printf("Write from VBUS %04x (%lu bytes)\n", addr, size);
-		// hexdump(buf, size);
+#ifdef DEBUG
+		printf("Write to VBUS %04x (%lu bytes)\n", addr, size);
+#endif
+		hexdump(buf, size);
+
 		if (!g_bus) return DCERR_BADPTR;
 		g_bus->addr = addr;
 		return bus_write(g_bus, buf, size);
@@ -239,7 +239,9 @@ int device_read(RemoteDevice *d,
 		MUTEX_UNLOCK(&reg_mutex);
 	} else {
 #endif
-		// printf("Read from VBUS %04x (%lu bytes)\n", addr, size);
+#ifdef DEBUG
+		printf("Read from VBUS %04x (%lu bytes)\n", addr, size);
+#endif
 		// Make sure no write is still pending:
 		if (!g_bus) return DCERR_BADPTR;
 		g_bus->addr = addr;
