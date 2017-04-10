@@ -19,7 +19,7 @@
 #include "vpi_user.h"
 #include "ghpi.h"
 
-#define DEBUG
+// #define DEBUG
 
 int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n);
 int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n);
@@ -207,8 +207,8 @@ int device_write(RemoteDevice *d,
 #endif
 #ifdef DEBUG
 		printf("Write to VBUS %04x (%lu bytes)\n", addr, size);
-#endif
 		hexdump(buf, size);
+#endif
 
 		if (!g_bus) return DCERR_BADPTR;
 		g_bus->addr = addr;

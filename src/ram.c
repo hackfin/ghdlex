@@ -62,7 +62,7 @@ rambuf_t_ghdl sim_ram_new_wrapped(string_ghdl name, integer_ghdl bits,
 		fprintf(stderr, "More than 32 bits not supported. Abort.\n");
 		return NULL;
 	}
-	Ram *r = (Ram *) malloc(n * ws + sizeof(Ram));
+	Ram *r = (Ram *) calloc(1, n * ws + sizeof(Ram));
 	r->addrsize = size;
 	r->bitwidth = bits;
 	r->width = ws;
@@ -153,6 +153,7 @@ int set_ram(DEVICE d, DCValue *in)
 
 int get_ram(DEVICE d, DCValue *out)
 {
+	int ret = 0;
 	Ram *r = (Ram *) d;
 	if (!r) return DCERR_BADPTR;
 
@@ -168,7 +169,7 @@ int get_ram(DEVICE d, DCValue *out)
 			// netpp_log(DCLOG_VERBOSE, "Set buffer len %d", out->len);
 			if (out->len > size) {
 				out->len = size;
-				return DCWARN_PROPERTY_MODIFIED;
+				ret = DCWARN_PROPERTY_MODIFIED;
 			} else
 			if (out->len == 0) { // Python handler
 				out->len = size;
@@ -181,10 +182,10 @@ int get_ram(DEVICE d, DCValue *out)
 			out->value.p = &((char *) &r[1])[r->offset];
 			break;
 		default:
-			return DCERR_PROPERTY_TYPE_MATCH;
+			ret = DCERR_PROPERTY_TYPE_MATCH;
 	}
 
-	return 0;
+	return ret;
 }
 
 /** Netpp custom handler */

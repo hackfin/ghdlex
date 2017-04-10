@@ -255,6 +255,7 @@ int bus_write_be(Bus *bus, const uint8_t *buf, int size)
 			val |= *buf++;
 		}
 		error = bus_val_wr(bus, addr, val);
+		printf("%08x> %08x\n", addr, val);
 		if (error < 0) return error;
 		addr += bus->width;
 	}
@@ -266,6 +267,7 @@ int bus_write_be(Bus *bus, const uint8_t *buf, int size)
 			val |= *buf++;
 		}
 		error = bus_val_wr(bus, addr, val);
+		printf("%08x> %08x\n", addr, val);
 		addr += bus->width;
 	}
 

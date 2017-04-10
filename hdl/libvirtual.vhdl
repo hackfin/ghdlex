@@ -75,6 +75,34 @@ package virtual is
 	end component VirtualDualPortRAM;
 
 
+	component VirtualDualPortRAM_dc is
+		generic(
+			NETPP_NAME   : string   := "DEFAULT";
+			HAVE_RESET   : boolean  := false;
+			DATA_W       : natural  := 32;
+			ADDR_W       : natural  := 14;
+			EN_BYPASS    : boolean := false;
+			SYN_RAMTYPE  : string   := "simulation_only";
+			INIT_DATA    : vram32_init_t := (0 => x"00000000")
+		);
+		port(
+			-- Port A
+			a_clk   : in  std_logic;
+			a_we    : in  std_logic;
+			a_addr  : in  unsigned(ADDR_W-1 downto 0);
+			a_write : in  unsigned(DATA_W-1 downto 0);
+			a_read  : out unsigned(DATA_W-1 downto 0);
+			-- Port B
+			b_clk   : in  std_logic;
+			b_we    : in  std_logic;
+			b_addr  : in  unsigned(ADDR_W-1 downto 0);
+			b_write : in  unsigned(DATA_W-1 downto 0);
+			b_read  : out unsigned(DATA_W-1 downto 0);
+			reset   : in  std_logic
+		);
+	end component VirtualDualPortRAM_dc;
+
+
 	component DualPort16 is
 		generic(
 			NETPP_NAME   : string   := "DEFAULT";

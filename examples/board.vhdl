@@ -24,11 +24,18 @@ architecture simulation of simboard is
 	constant FIFO_WORDWIDTH : natural := 1;
 	signal clk: std_logic := '0';
 	signal we: std_logic := '0';
+	signal dclk: std_logic := '0';
+	signal dwe: std_logic := '0';
 	constant ADDR_W : natural := 12;
 	signal addr: unsigned(ADDR_W-1 downto 0) := (others => '0');
 	signal data0: unsigned(31 downto 0);
 	signal data1: unsigned(15 downto 0);
 	signal data2: unsigned(15 downto 0);
+
+	signal addr_a: unsigned(ADDR_W-1 downto 0) := (others => '0');
+	signal addr_b: unsigned(ADDR_W-1 downto 0) := (others => '0');
+	signal data_a: unsigned(15 downto 0) := x"0100";
+	signal data_b: unsigned(15 downto 0);
 
 	-- Global, netpp 'property exported' bus:
 	signal vbus_wr   : std_logic;
@@ -86,6 +93,9 @@ clkgen:
 
 	end process;
 
+
+	dclk <= not dclk after 5 us;
+
 	-- Legacy 16 bit RAM:
 ram0:
 	DualPort16 generic map (ADDR_W => ADDR_W)
@@ -119,6 +129,23 @@ ram1:
 			b_read  => open
 		);
 
+ram_dc:
+	VirtualDualPortRAM_dc generic map (ADDR_W => ADDR_W, DATA_W => 16)
+		port map (
+			-- Port A
+			a_clk   => dclk,
+			a_we    => dwe,
+			a_addr  => addr_a,
+			a_write => data_a,
+			a_read  => open,
+			-- Port B
+			b_clk   => clk,
+			b_we    => '0',
+			b_addr  => addr_b,
+			b_write => x"0000",
+			b_read  => data_b,
+			reset   => '0'
+		);
 ram32:
 	VirtualDualPortRAM generic map ( NETPP_NAME => "Shadow32bit",
 		ADDR_W => ADDR_W, DATA_W => 32)
@@ -292,6 +319,25 @@ stim:
 		wait for 20 us;
 
 		wait;
+	end process;
+
+ram_fill:
+	process (dclk)
+	begin
+		if rising_edge(dclk) then
+			addr_a <= addr_a + 1;
+			data_a <= data_a + 1;
+		end if;
+	end process;
+
+	dwe <= '1' when addr_a < 20 else '0';
+
+ram_drain:
+	process (clk)
+	begin
+		if rising_edge(clk) then
+			addr_b <= addr_b + 1;
+		end if;
 	end process;
 
 end simulation;
