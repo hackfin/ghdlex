@@ -30,9 +30,9 @@ char g_initialized = 0;
 static int g_is_dynamic = 0;
 
 // External token in prop list:
-extern TOKEN g_t_fifo;
-extern TOKEN g_t_bus;
-extern TOKEN g_t_ram;
+extern TOKEN g_t_ghdlex_fifo;
+extern TOKEN g_t_ghdlex_bus;
+extern TOKEN g_t_ghdlex_ram;
 // extern TOKEN g_t_pty;
 
 struct local_config {
@@ -353,7 +353,7 @@ int register_fifo(void *entity, char *name)
 	if (root == TOKEN_INVALID) return -1;
 	printf("Registering FIFO..\n");
 	// Retrieve descriptor for FIFO token (defined externally)
-	t = property_from_entity(root, entity, g_t_fifo, name);
+	t = property_from_entity(root, entity, g_t_ghdlex_fifo, name);
 
 	if (t == TOKEN_INVALID) {
 		printf("Unable to register FIFO, out of properties?\n");
@@ -373,7 +373,7 @@ int register_ram(void *entity, char *name)
 	// Clone a property instance from the buffer template:
 	// t = property_from_template(root, entity, name, &s_buffer_template);
 
-	t = property_from_entity(root, entity, g_t_ram, name);
+	t = property_from_entity(root, entity, g_t_ghdlex_ram, name);
 
 	if (t == TOKEN_INVALID) {
 		printf("Unable to register ram, out of properties?\n");
@@ -390,7 +390,7 @@ int register_bus(void *entity, char *name)
 	root = local_getroot(NULL);
 	if (root == TOKEN_INVALID) return -1;
 	// Clone a property instance from the buffer template:
-	t = property_from_entity(root, entity, g_t_bus, name);
+	t = property_from_entity(root, entity, g_t_ghdlex_bus, name);
 	if (t == TOKEN_INVALID) {
 		printf("Unable to register bus, out of properties?\n");
 		return -1;

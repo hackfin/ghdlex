@@ -349,7 +349,7 @@ It does not require any extra handshake logic.</info>
     <group name="Templates">
       <info>This group only contains templates for internal generation of entities. Accessing them explicitely will have no effect or crash the system.</info>
 
-      <struct hidden="true" id="fifo" name="Fifo">
+      <struct hidden="true" id="ghdlex_fifo" name="Fifo">
         <property access="RW" id="fifobuf" name="Buffer" type="BUFFER">
           <!--A buffer object that is handled via a handler function. See handler.c
 (Function get_fifo()/set_fifo() for details.)-->
@@ -368,7 +368,7 @@ It does not require any extra handshake logic.</info>
         </property>
       </struct>
 
-      <struct hidden="true" id="ram" name="RAM">
+      <struct hidden="true" id="ghdlex_ram" name="RAM">
         <property access="RW" id="rambuf" name="Buffer" type="BUFFER">
           <!--A buffer object that is handled via a handler function. See handler.c
 (Function get_fifo()/set_fifo() for details.)-->
@@ -385,7 +385,7 @@ It does not require any extra handshake logic.</info>
       </struct>
 
 
-      <struct hidden="true" id="bus" name="Vbus">
+      <struct hidden="true" id="ghdlex_bus" name="Vbus">
         <info>Virtual Bus structure export to netpp.</info>
 
         <property access="RO" name="Width" type="INT">
