@@ -299,7 +299,7 @@ void sim_fifo_io(struct fat_pointer *data, char *flag)
 duplexfifo_t_ghdl sim_fifo_new_wrapped(string_ghdl name, integer_ghdl size,
 	integer_ghdl wordsize)
 {
-	char propname[32];
+	char propname[64];
 	int error;
 	struct duplexfifo_t *df =
 		(struct duplexfifo_t *) malloc(sizeof(struct duplexfifo_t));
