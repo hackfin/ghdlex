@@ -334,7 +334,7 @@ int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n)
 
 	while (n > 0) {
 		while (!fifo_fill(f)) {
-			usleep(g_fifoconfig.timeout);
+			USLEEP(g_fifoconfig.timeout);
 			//fprintf(stderr,
 				//"%s(): FIFO retry #%d (requested: %d)\n", __FUNCTION__, retry, n);
 			retry--;
@@ -354,7 +354,7 @@ int fifo_blocking_write(Fifo *f, unsigned char *buf, unsigned int n)
 
 	while (n) {
 		while (fifo_fill(f) == f->size ) {
-			usleep(g_fifoconfig.timeout);
+			USLEEP(g_fifoconfig.timeout);
 			retry--;
 			if (retry == 0) return DCERR_COMM_TIMEOUT;
 		}

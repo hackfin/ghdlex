@@ -107,18 +107,22 @@ bus_handler:
 --				print(output, "Wback: " & hstr(d_data));
 --			end if;
 
+			if wr_busy = '0' then
+				bus_rxtx(bus_handle, d_addr, d_data, flags);
+				ird   <= flags(0);
+				iwr   <= flags(1);
+			else
+				ird   <= '0';
+				iwr   <= '0';
+			end if;
 
-			-- Unused:
-			bus_rxtx(bus_handle, d_addr, d_data, flags);
-
-			ird   <= flags(0);
-			iwr   <= flags(1);
 			flags(2) := dval;
 
 			if flags(1) = '1' then -- Writing, latch data
 				iaddr <= d_addr;
 				data_in <= std_logic_vector(d_data);
-			elsif flags(0) = '1' then  -- Reading, only latch address
+			-- Only update if there's no pending write:
+			elsif flags(0) = '1' and iwr = '0' then
 				iaddr <= d_addr;
 			end if;
 		end if;

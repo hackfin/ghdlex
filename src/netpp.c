@@ -269,16 +269,6 @@ int ghdlname_to_propname(const char *name, char *propname, int len)
 }
 #endif
 
-PropertyDesc *property_desc_new(const PropertyDesc *template)
-{
-	PropertyDesc *p;
-	p = (PropertyDesc*) malloc(sizeof(PropertyDesc));
-	if (p) {
-		memcpy(p, template, sizeof(PropertyDesc));
-	}
-	return p;
-}
-
 PropertyDesc *property_string_new(int size)
 {
 	PropertyDesc *p;
@@ -324,6 +314,9 @@ TOKEN property_from_entity(TOKEN parent, void *entity,
 
 	p = property_desc_new(tdesc);
 	if (!p) return TOKEN_INVALID;
+	if (p->type == DC_STRUCT) {
+		p->where = DC_CUSTOM;
+	}
 	p->access.custom.p = entity; // Story entity handle in custom pointer
 
 
@@ -440,8 +433,8 @@ int netpp_root_init(const char *name)
 {
 	TOKEN t;
 	if (g_initialized) {
-		fprintf(stderr, "Root node already initialized, ignoring root %s\n",
-			name);
+//		fprintf(stderr, "Root node already initialized, ignoring root %s\n",
+//			name);
 		return 1;
 	}
 	register_proplist(g_devices, g_ndevices);
@@ -493,7 +486,8 @@ int create_thread(const char *name, struct local_config *cfg)
 {
 	int error;
 
-	netpp_root_init(name);
+	error = netpp_root_init(name);
+	if (error < 0) return error;
 
 #ifdef __WIN32__
 	HANDLE g_thread;

@@ -43,6 +43,14 @@ bus_t_ghdl sim_bus_new_wrapped(string_ghdl name, integer_ghdl width,
 	return (bus_t_ghdl) b;
 }
 
+void_ghdl sim_bus_del(bus_t_ghdl *bus)
+{
+	// FIXME: Should unregister property, but simulation always
+	// should exit upon this call
+	free(bus);
+}
+
+
 void sim_bus_rxtx(bus_t_ghdl *bus, unsigned_ghdl addr, unsigned_ghdl data,
 	char *flag)
 {

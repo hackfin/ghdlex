@@ -1,6 +1,11 @@
 # Makefile auxiliary to create GHDLEX library
 
 GHDLEX ?= $(CURDIR)
+GHDL ?= ghdl
+
+VHDL_STD ?= 93
+
+PREFIX ?= .
 
 GHDLEX_VHDL_DIR = $(GHDLEX)/hdl
 
@@ -18,7 +23,11 @@ GHDLEX_VHDL =  \
 	$(GHDLEX_VHDL_DIR)/iomap_config.vhdl \
 	$(GHDLEX_VHDL_DIR)/txt_util.vhdl
 
-ghdlex-obj93.cf: $(GHDLEX_VHDL)
-	ghdl -i --work=ghdlex $(GHDLEX_VHDL)
+$(PREFIX)/ghdlex-obj$(VHDL_STD_SUFFIX).cf: $(GHDLEX_VHDL)
+	[ -e $(PREFIX) ] || mkdir $(PREFIX)
+	$(GHDL) -i --std=$(VHDL_STD) \
+		--workdir=$(PREFIX) --work=ghdlex $(GHDLEX_VHDL)
 
-DUTIES += ghdlex-obj93.cf
+all: $(PREFIX)/ghdlex-obj$(VHDL_STD_SUFFIX).cf
+
+DUTIES += $(PREFIX)/ghdlex-obj$(VHDL_STD).cf
