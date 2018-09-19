@@ -9,8 +9,18 @@ VERSION = 0.1dev
 
 DEVICEFILE = ghdlsim.xml
 
+ifdef DEVELOP
+GHDLDIR = /data/src/ghdl/translate
+GHDL = $(GHDLDIR)/ghdldrv/ghdl_gcc
+GHDL_LIBPREFIX = $(GHDLDIR)/lib
+else
+GHDL ?= ghdl
+endif
+
 include platform.mk
 -include config.mk
+
+LIBDIR ?= ghdl
 
 # USE_LEGACY = yes
 
@@ -23,7 +33,7 @@ else
 LIBGHDLEX = src/libmysim.so
 endif
 
-LIBRARIES = $(LIBGHDLEX) lib/ghdlex-obj93.cf
+LIBRARIES = $(LIBGHDLEX) $(LIBDIR)/ghdlex-obj93.cf
 
 $(LIBGHDLEX):
 	$(MAKE) -C src
@@ -33,17 +43,10 @@ $(LIBGHDLEX):
 #
 # GHDLFLAGS = --ieee=synopsys
 
-ifdef DEVELOP
-GHDLDIR = /data/src/ghdl/translate
-GHDL = $(GHDLDIR)/ghdldrv/ghdl_gcc
-GHDL_LIBPREFIX = $(GHDLDIR)/lib
-else
-GHDL ?= ghdl
-endif
 
 HOST_CC ?= gcc
 
-GHDLFLAGS = --workdir=work -Plib
+GHDLFLAGS = --workdir=work -P$(LIBDIR)
 
 GHDL_LDFLAGS += $(GHDLFLAGS)
 
@@ -159,10 +162,12 @@ func_decl.chdl func_body.chdl: h2vhdl
 	./$< func
 
 
-$(WORK): $(VHDLFILES) lib/ghdlex-obj93.cf
+$(WORK): $(VHDLFILES) $(LIBDIR)/ghdlex-obj93.cf
 	[ -e work ] || mkdir work
 	$(GHDL) -i $(GHDLFLAGS) $(VHDLFILES)
 
+show:
+	echo $(LIBDIR)/ghdlex-obj93.cf
 
 -include gensoc.mk
 
@@ -183,13 +188,13 @@ sim%: $(WORK) $(LIBRARIES)
 	$(GHDL) -m $(GHDL_LDFLAGS) $(LDFLAGS) $@
 
 # The ghdlex library for external use:
-lib/ghdlex-obj93.cf: $(GHDLEX_VHDL)
-	[ -e lib ] || mkdir lib
+$(LIBDIR)/ghdlex-obj93.cf: $(GHDLEX_VHDL)
+	[ -e $(LIBDIR) ] || mkdir $(LIBDIR)
 	export GHDL_PREFIX=$(GHDL_LIBPREFIX); \
-	$(GHDL) -i --work=ghdlex --workdir=lib $(GHDLEX_VHDL)
+	$(GHDL) -i --work=ghdlex --workdir=$(LIBDIR) $(GHDLEX_VHDL)
 
 clean::
-	rm -fr lib
+	rm -fr $(LIBDIR)
 	# rm -f $(GENERATED_VHDL)
 	rm -f $(WORK)
 	$(MAKE) NETPP=$(CURDIR)/netpp clean_duties
@@ -206,8 +211,6 @@ FILES = $(GHDLEX_VHDL) $(VHDLFILES)
 SRCFILES += src/fifo.h src/ghpi.h src/netppwrap.h src/example.h
 SRCFILES += src/bus.h
 SRCFILES += ghdlsim.xml py/test.py
-
-FILES += lib.mk
 
 FILES += libnetpp.chdl h2vhdl.c
 

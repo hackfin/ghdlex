@@ -9,6 +9,12 @@ ifdef DEBUG
 CFLAGS += -DDEBUG -g
 endif
 
+# Important flag for external static compilation, we don't want to
+# use import library symbols...
+CFLAGS-$(CONFIG_MINGW32) += -DMSVC_STATIC
+
+CFLAGS += $(CFLAGS-y)
+
 CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 
 CSRCS-$(CONFIG_NETPP) += netpp.c framebuf.c ram.c fifo.c bus.c

@@ -12,16 +12,12 @@ CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 include ../platform.mk
 
 
-ifdef CONFIG_MINGW32
-DUTIES = libmysim.a
-endif
+DUTIES-$(CONFIG_MINGW32) = libmysim.a
 
-ifdef CONFIG_LINUX
-DUTIES = libmysim.$(DLLEXT)
-DUTIES += netpp.vpi
-endif
+DUTIES-$(CONFIG_LINUX) = libmysim.$(DLLEXT)
+DUTIES-$(CONFIG_LINUX) += netpp.vpi
 
-all: $(DUTIES)
+all: $(DUTIES-y)
 
 VPIOBJS = vpiwrapper.o
 VPIOBJS += vpi_proplist.o vpi_netpp.o vpi_ram.o vpi_bus.o vpi_handler.o
@@ -75,7 +71,7 @@ vpi_%.o: %.c
 
 # Only with netpp > v0.4
 netpp.vpi: $(VPIOBJS)
-	$(CC) --shared -o $@ $(VPIOBJS) -lpthread -L$(LIBSLAVE) -lslave
+	$(CC) -shared -o $@ $(VPIOBJS) -lpthread -L$(LIBSLAVE) -lslave
 
 handler.c: registermap.h
 
