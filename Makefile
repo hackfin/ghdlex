@@ -9,6 +9,8 @@ VERSION = 0.1dev
 
 DEVICEFILE = ghdlsim.xml
 
+GHDLEX = $(CURDIR)
+
 ifdef DEVELOP
 GHDLDIR = /data/src/ghdl/translate
 GHDL = $(GHDLDIR)/ghdldrv/ghdl_gcc
@@ -81,7 +83,8 @@ NO_CLEANUP_DUTIES-$(CONFIG_NETPP) += $(NETPP)/common
 NO_CLEANUP_DUTIES-$(CONFIG_NETPP) += $(NETPP)/include/devlib_error.h
 
 DUTIES-y = 
-DUTIES-$(CONFIG_NETPP) += simnetpp simfb
+DUTIES-$(CONFIG_NETPP) += simnetpp
+DUTIES-$(CONFIG_NETPP_DISPLAY) += simfb
 DUTIES-$(CONFIG_NETPP) += simram simboard
 
 DUTIES-$(CONFIG_LINUX) += simpty
@@ -107,9 +110,11 @@ endif
 
 GHDLEX_VHDL += $(GENERATED_GHDLEX_VHDL)
 
-ifdef NETPP
+ifdef CONFIG_NETPP
 VHDLFILES += examples/netpp.vhdl 
+ifdef CONFIG_NETPP_DISPLAY
 VHDLFILES += examples/fb.vhdl
+endif
 VHDLFILES += examples/ram.vhdl
 VHDLFILES += examples/board.vhdl
 VHDLFILES += $(GENERATED_VHDL)
@@ -193,7 +198,7 @@ $(LIBDIR)/ghdlex-obj93.cf: $(GHDLEX_VHDL)
 	export GHDL_PREFIX=$(GHDL_LIBPREFIX); \
 	$(GHDL) -i --work=ghdlex --workdir=$(LIBDIR) $(GHDLEX_VHDL)
 
-clean:
+clean:: clean_duties
 	rm -fr $(LIBDIR)
 	# rm -f $(GENERATED_VHDL)
 	rm -f $(WORK)
