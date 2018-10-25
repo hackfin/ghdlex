@@ -193,7 +193,7 @@ $(LIBDIR)/ghdlex-obj93.cf: $(GHDLEX_VHDL)
 	export GHDL_PREFIX=$(GHDL_LIBPREFIX); \
 	$(GHDL) -i --work=ghdlex --workdir=$(LIBDIR) $(GHDLEX_VHDL)
 
-clean::
+clean:
 	rm -fr $(LIBDIR)
 	# rm -f $(GENERATED_VHDL)
 	rm -f $(WORK)

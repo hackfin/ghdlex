@@ -3,6 +3,8 @@
 
 DEVICEFILE = ../ghdlsim.xml
 
+GHDLEX = ..
+
 NETPP ?= ../netpp
 
 RANLIB ?= ranlib
@@ -11,39 +13,16 @@ CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 
 include ../platform.mk
 
-
 DUTIES-$(CONFIG_MINGW32) = libmysim.a
-
-DUTIES-$(CONFIG_LINUX) = libmysim.$(DLLEXT)
-DUTIES-$(CONFIG_LINUX) += netpp.vpi
+DUTIES-$(CONFIG_LINUX)  += libmysim.$(DLLEXT)
+DUTIES-$(CONFIG_LINUX)  += netpp.vpi
 
 all: $(DUTIES-y)
 
 VPIOBJS = vpiwrapper.o
 VPIOBJS += vpi_proplist.o vpi_netpp.o vpi_ram.o vpi_bus.o vpi_handler.o
 
-########################### CSRCS ##############################
-CSRCS = helpers.c
-CSRCS-$(CONFIG_NETPP) += netpp.c framebuf.c ram.c fifo.c bus.c
-CSRCS-$(CONFIG_NETPP) += handler.c 
-CSRCS-$(CONFIG_MINGW32) += threadaux.c
-CSRCS-$(CONFIG_LINUX) += pipe.c
-
-CSRCS += $(CSRCS-y)
-
-########################### CFLAGS #############################
-
-CFLAGS-$(CONFIG_NETPP)   += -I$(NETPP)/include -I$(NETPP)/devices
-CFLAGS-$(CONFIG_NETPP)   += -DUSE_NETPP
-CFLAGS-$(CONFIG_LINUX)   += -fPIC
-CFLAGS-$(CONFIG_MINGW32) += -DMSVC_STATIC
-CFLAGS-$(CONFIG_LEGACY)  += -DSUPPORT_LEGACY_FIFO
-
-ifdef DEBUG
-CFLAGS-$(DEBUG)   += -g -DDEBUG
-endif
-
-CFLAGS += $(CFLAGS-y)
+include project.mk
 
 OBJS = $(CSRCS:%.c=%.o) proplist.o
 
@@ -86,5 +65,8 @@ libmysim.dll: $(OBJS)
 	$(CC) -shared -o $@ $(OBJS)
 
 clean::
-	rm -f *.o *.a $(DUTIES)
+	rm -f *.o *.a $(DUTIES-y)
 
+
+show-duties:
+	@echo $(DUTIES-y)

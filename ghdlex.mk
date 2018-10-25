@@ -2,29 +2,9 @@ TOPDIR ?= .
 
 RANLIB ?= ranlib
 
-CSRCS = helpers.c
-
-CFLAGS += -fPIC
-ifdef DEBUG
-CFLAGS += -DDEBUG -g
-endif
-
-# Important flag for external static compilation, we don't want to
-# use import library symbols...
-CFLAGS-$(CONFIG_MINGW32) += -DMSVC_STATIC
-
-CFLAGS += $(CFLAGS-y)
-
 CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 
-CSRCS-$(CONFIG_NETPP) += netpp.c framebuf.c ram.c fifo.c bus.c
-CSRCS-$(CONFIG_NETPP) += handler.c 
-
-CSRCS-$(CONFIG_MINGW32) += threadaux.c
-CSRCS-$(CONFIG_LINUX)   += pipe.c
-
-CSRCS += $(CSRCS-y)
-
+include $(GHDLEX)/src/project.mk
 GHDLEXSRCS = $(CSRCS:%.c=$(GHDLEX)/src/%.c)
 
 SIMOBJS = $(GHDLEXSRCS:%.c=%.o)
@@ -42,5 +22,8 @@ $(LIBMYSIM).a: $(SIMOBJS) $(PROPLIST)
 MYSIM_DUTIES = $(LIBMYSIM).so
 
 mysim: $(MYSIM_DUTIES)
+
+clean::
+	$(MAKE) -C $(GHDLEX)/src clean
 
 .PHONY: mysim

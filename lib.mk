@@ -3,7 +3,7 @@
 GHDLEX ?= $(CURDIR)
 GHDL ?= ghdl
 
-VHDL_STD ?= 93
+VHDL_STD_SUFFIX ?= 93
 
 PREFIX ?= .
 
@@ -30,4 +30,4 @@ $(PREFIX)/ghdlex-obj$(VHDL_STD_SUFFIX).cf: $(GHDLEX_VHDL)
 
 all: $(PREFIX)/ghdlex-obj$(VHDL_STD_SUFFIX).cf
 
-DUTIES += $(PREFIX)/ghdlex-obj$(VHDL_STD).cf
+DUTIES += $(PREFIX)/ghdlex-obj$(VHDL_STD_SUFFIX).cf
