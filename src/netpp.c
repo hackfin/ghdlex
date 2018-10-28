@@ -282,20 +282,37 @@ PropertyDesc *property_string_new(int size)
 	return p;
 }
 
-/** Clone a dynamic property from a simple standalone template without
- * hierarchy.
- */
-TOKEN property_from_template(TOKEN parent, void *entity, const char *name,
-	PropertyDesc *template)
+static
+TOKEN create_property_descriptor(const PropertyDesc *template, void *entity,
+	const char *name)
 {
-	TOKEN t;
 	PropertyDesc *p;
 
 	p = property_desc_new(template);
 	if (!p) return TOKEN_INVALID;
-	p->access.custom.p = entity; // Story entity handle in custom pointer
+	if (p->type == DC_STRUCT) {
+		p->where = DC_CUSTOM;
+	}
 
-	t = new_dynprop(name, p);
+	p->access.custom.p = entity; // Story entity handle in custom pointer
+	if (template->type != DC_STRUCT && !template->access.custom.handler) {
+		netpp_log(DCLOG_ERROR, "custom handler for '%s' is NULL!\n", template->name);
+	}
+
+	return new_dynprop(name, p);
+}
+
+/** Clone a dynamic property from a simple standalone template without
+ * hierarchy.
+ */
+static
+TOKEN property_from_template(TOKEN parent, void *entity, const char *name,
+	PropertyDesc *tdesc)
+{
+	TOKEN t;
+
+	t = create_property_descriptor(tdesc, entity, name);
+
 	if (t != TOKEN_INVALID) dynprop_append(parent, t);
 	return t;
 }
@@ -304,6 +321,7 @@ TOKEN property_from_template(TOKEN parent, void *entity, const char *name,
  * The 'template' must be part of the device property hierarchy,
  * because all its children will be cloned as well
  */
+static
 TOKEN property_from_entity(TOKEN parent, void *entity, 
 	TOKEN template, const char *name)
 {
@@ -312,16 +330,8 @@ TOKEN property_from_entity(TOKEN parent, void *entity,
 	const PropertyDesc *child;
 	const PropertyDesc *tdesc = getProperty_ByToken(template);
 
-	p = property_desc_new(tdesc);
-	if (!p) return TOKEN_INVALID;
-	if (p->type == DC_STRUCT) {
-		p->where = DC_CUSTOM;
-	}
-	p->access.custom.p = entity; // Story entity handle in custom pointer
 
-
-	t = new_dynprop(name, p);
-	// iterate children:
+	t = create_property_descriptor(tdesc, entity, name);
 
 	if (t != TOKEN_INVALID) {
 		dynprop_append(parent, t);
