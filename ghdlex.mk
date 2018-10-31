@@ -11,15 +11,15 @@ SIMOBJS = $(GHDLEXSRCS:%.c=%.o)
 
 PROPLIST ?= proplist.o
 
-$(LIBMYSIM).so: $(SIMOBJS) $(PROPLIST)
+$(LIBSIM).so: $(SIMOBJS) $(PROPLIST)
 	$(CC) -o $@ -shared $(SIMOBJS) $(PROPLIST)
 
-$(LIBMYSIM).a: $(SIMOBJS) $(PROPLIST)
+$(LIBSIM).a: $(SIMOBJS) $(PROPLIST)
 	$(AR) ruv $@ $(SIMOBJS) $(PROPLIST)
 	$(RANLIB) $@
 
 
-MYSIM_DUTIES = $(LIBMYSIM).so
+MYSIM_DUTIES = $(LIBSIM).so
 
 mysim: $(MYSIM_DUTIES)
 
