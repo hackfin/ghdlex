@@ -100,7 +100,6 @@ GHDLEX_VHDL = $(wildcard hdl/*.vhdl)
 GENERATED_VHDL =  registermap_pkg.vhdl
 GENERATED_VHDL += decode_tap_registers.vhdl
 GENERATED_VHDL += decode_fpga_registers.vhdl
-GENERATED_GHDLEX_VHDL += libnetpp.vhdl
 
 
 ifdef USE_LEGACY
@@ -111,6 +110,7 @@ endif
 GHDLEX_VHDL += $(GENERATED_GHDLEX_VHDL)
 
 ifdef CONFIG_NETPP
+GENERATED_GHDLEX_VHDL += libnetpp.vhdl
 VHDLFILES += examples/netpp.vhdl 
 ifdef CONFIG_NETPP_DISPLAY
 VHDLFILES += examples/fb.vhdl
@@ -221,7 +221,6 @@ FILES += libnetpp.chdl h2vhdl.c
 
 FILES += lib.mk platform.mk ghdlex.mk
 
-include ghdlex.mk
 SRCFILES += $(CSRCS) apidef.h apimacros.h threadaux.h registermap.h
 SRCFILES += vpi_user.h vpiwrapper.c
 SRCFILES += src/Makefile Doxyfile

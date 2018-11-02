@@ -1,6 +1,5 @@
 CSRCS = helpers.c
 
-CFLAGS += -fPIC
 ifdef DEBUG
 CFLAGS += -DDEBUG -g
 endif

@@ -15,7 +15,7 @@ include ../platform.mk
 
 DUTIES-$(CONFIG_MINGW32) = libmysim.a
 DUTIES-$(CONFIG_LINUX)  += libmysim.$(DLLEXT)
-DUTIES-$(CONFIG_LINUX)  += netpp.vpi
+DUTIES-$(CONFIG_NETPP)  += netpp.vpi
 
 all: $(DUTIES-y)
 
@@ -24,7 +24,11 @@ VPIOBJS += vpi_proplist.o vpi_netpp.o vpi_ram.o vpi_bus.o vpi_handler.o
 
 include project.mk
 
-OBJS = $(CSRCS:%.c=%.o) proplist.o
+OBJS = $(CSRCS:%.c=%.o)
+
+ifeq ($(CONFIG_NETPP),y)
+OBJS += proplist.o
+endif
 
 ifeq ($(CONFIG_NETPP),y)
 include $(NETPP)/xml/prophandler.mk
