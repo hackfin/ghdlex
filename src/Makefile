@@ -5,8 +5,6 @@ DEVICEFILE = ../ghdlsim.xml
 
 GHDLEX = ..
 
-NETPP ?= ../netpp
-
 RANLIB ?= ranlib
 
 CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )

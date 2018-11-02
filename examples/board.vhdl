@@ -258,7 +258,7 @@ virtual_local_bus:
 	lbus_stat.fwrev_min <= std_logic_vector(to_unsigned(HWREV_ghdlsim_MINOR, 4));
 
 local_decoder:
-	decode_fpga_registers
+	entity work.decode_fpga_registers
 	port map (
 		ce        => lbus_ce,
 		

@@ -38,28 +38,18 @@ endif
 LIBRARIES = $(LIBGHDLEX) $(LIBDIR)/ghdlex-obj93.cf
 
 $(LIBGHDLEX):
-	$(MAKE) -C src
+	$(MAKE) -C src NETPP=$(NETPP)
 
 # Not really needed for "sane" VHDL code. Use only for deprecated
 # VDHL code. Some Xilinx simulation libraries might need it.
 #
 # GHDLFLAGS = --ieee=synopsys
 
-
 HOST_CC ?= gcc
 
-GHDLFLAGS = --workdir=work -P$(LIBDIR)
+GHDLFLAGS = --workdir=$(LIBDIR) -P$(LIBDIR)
 
 GHDL_LDFLAGS += $(GHDLFLAGS)
-
-# GHDL_PREFIX = $(HOME)/build/ghdl/debian/ghdl
-# GHDL_LIBPREFIX = $(GHDL_PREFIX)/usr/lib/gcc/x86_64-unknown-linux-gnu/4.7.2/vhdl/lib/
-
-# ACTIVATE THIS when compiling with another GHDL
-XGHDL = $(GHDL_PREFIX)/usr/bin/ghdl
-XGHDLFLAGS = --work=work -Plib --PREFIX=$(GHDL_PREFIX) \
-	--GHDL1=$(GHDL_PREFIX)/usr/libexec/gcc/x86_64-unknown-linux-gnu/4.7.2/ghdl1 \
-	--PREFIX=$(GHDL_LIBPREFIX)
 
 # Set to NETPP location, if you want to use specific NETPP dir
 # It is better to put this into config.mk:
@@ -72,9 +62,10 @@ NETPP_VER = netpp_src-0.40-svn321
 NETPP_TAR = $(NETPP_VER).tgz 
 NETPP_WEB = http://section5.ch/downloads/$(NETPP_TAR)
 CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
+CONFIG_GENSOC = $(shell [ -e $(GENSOC) ] && echo y )
 CURDIR = $(shell pwd)
 
-WORK = work/work-obj93.cf
+WORK = $(LIBDIR)/work-obj93.cf
 
 HOST_CFLAGS = -g -Wall -Isrc
 
@@ -88,45 +79,53 @@ DUTIES-$(CONFIG_NETPP_DISPLAY) += simfb
 DUTIES-$(CONFIG_NETPP) += simram simboard
 
 DUTIES-$(CONFIG_LINUX) += simpty
-DUTIES-$(CONFIG_LINUX) += src/netpp.vpi 
 
 DUTIES = $(DUTIES-y)
 
 LIBSLAVE = $(NETPP)/devices/libslave
 
-
 GHDLEX_VHDL = $(wildcard hdl/*.vhdl)
-
-GENERATED_VHDL =  registermap_pkg.vhdl
-GENERATED_VHDL += decode_tap_registers.vhdl
-GENERATED_VHDL += decode_fpga_registers.vhdl
-
 
 ifdef USE_LEGACY
 GHDLEX_VHDL += libfifo.vhdl
 VHDLFILES = examples/fifo.vhdl 
 endif
 
-GHDLEX_VHDL += $(GENERATED_GHDLEX_VHDL)
+SOC_MODULES = tap_registers fpga_registers
 
-ifdef CONFIG_NETPP
-GENERATED_GHDLEX_VHDL += libnetpp.vhdl
-VHDLFILES += examples/netpp.vhdl 
-ifdef CONFIG_NETPP_DISPLAY
-VHDLFILES += examples/fb.vhdl
-endif
-VHDLFILES += examples/ram.vhdl
-VHDLFILES += examples/board.vhdl
-VHDLFILES += $(GENERATED_VHDL)
-endif
+SOC_VHDL = $(SOC_MODULES:%=ghdlex_%_decode.vhdl) ghdlex_iomap_pkg.vhdl
+
+SPACE = $(null) $(null)
+COMMA = ,
+# Create comma separated list:
+MODULE_LIST=$(subst $(SPACE),$(COMMA),$(SOC_MODULES))
+
+$(SOC_VHDL):
+	$(GENSOC) -o ghdlex -s \
+		--map-prefix=2 \
+		--decoder=$(MODULE_LIST) $(DEVICEFILE)
+
+GENERATED_VHDL-$(CONFIG_NETPP)= $(SOC_VHDL) 
+
+CONVERTED_VHDL-$(CONFIG_NETPP)+= libnetpp.vhdl
+VHDLFILES-$(CONFIG_NETPP) += examples/netpp.vhdl 
+VHDLFILES-$(CONFIG_NETPP_DISPLAY) += examples/fb.vhdl
+
+VHDLFILES-$(CONFIG_NETPP) += examples/ram.vhdl
+VHDLFILES-$(CONFIG_NETPP) += examples/board.vhdl
+
+VHDLFILES-$(CONFIG_GENSOC) += $(GENERATED_VHDL-y)
+
+VHDLFILES += $(VHDLFILES-y)
 
 # Pipe example obsolete, see improved pty.vhdl
 VHDLFILES += examples/pty.vhdl
 
+GHDLEX_VHDL += $(CONVERTED_VHDL-y)
+
+
 all: $(NO_CLEANUP_DUTIES-y) $(DUTIES) 
 
-src/netpp.vpi:
-	$(MAKE) -C src netpp.vpi
 
 DISTFILES = $(FILES:%=ghdlex/%)
 
@@ -168,17 +167,20 @@ func_decl.chdl func_body.chdl: h2vhdl
 
 
 $(WORK): $(VHDLFILES) $(LIBDIR)/ghdlex-obj93.cf
-	[ -e work ] || mkdir work
-	$(GHDL) -i $(GHDLFLAGS) $(VHDLFILES)
+	[ -e $(dir $@) ] || mkdir $(dir $@)
+	$(GHDL) -i $(GHDLFLAGS) --work=work $(VHDLFILES)
 
 show:
-	echo $(LIBDIR)/ghdlex-obj93.cf
+	@echo $(LIBDIR)/ghdlex-obj93.cf
+	@echo Has gensoc: $(CONFIG_GENSOC)
+	@echo Has netpp: $(CONFIG_NETPP)
+	@echo $(VHDLFILES)
 
 -include gensoc.mk
 
 LDFLAGS = -Wl,-Lsrc -Wl,-lmysim
 
-ifdef CONFIG_NETPP
+ifeq ($(CONFIG_NETPP),y)
 LDFLAGS-$(CONFIG_LINUX)   += -Wl,-L$(LIBSLAVE) -Wl,-lslave
 LDFLAGS-$(CONFIG_MINGW32) += -Wl,-L$(LIBSLAVE)/$(CROSS)-Debug -Wl,-lslave
 endif
@@ -200,7 +202,7 @@ $(LIBDIR)/ghdlex-obj93.cf: $(GHDLEX_VHDL)
 
 clean:: clean_duties
 	rm -fr $(LIBDIR)
-	# rm -f $(GENERATED_VHDL)
+	rm -f $(GENERATED_VHDL-y)
 	rm -f $(WORK)
 	$(MAKE) NETPP=$(CURDIR)/netpp clean_duties
 	$(MAKE) -C src clean
