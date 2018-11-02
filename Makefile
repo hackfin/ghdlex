@@ -27,19 +27,6 @@ LIBDIR ?= ghdl
 # USE_LEGACY = yes
 
 
-ifeq ($(CONFIG_MINGW32),y)
-# We can only use a static lib, because on win32, DLLs can not call
-# back functions from executables that they are linked against.
-LIBGHDLEX = src/libmysim.a
-else
-LIBGHDLEX = src/libmysim.so
-endif
-
-LIBRARIES = $(LIBGHDLEX) $(LIBDIR)/ghdlex-obj93.cf
-
-$(LIBGHDLEX):
-	$(MAKE) -C src NETPP=$(NETPP)
-
 # Not really needed for "sane" VHDL code. Use only for deprecated
 # VDHL code. Some Xilinx simulation libraries might need it.
 #
@@ -56,7 +43,8 @@ GHDL_LDFLAGS += $(GHDLFLAGS)
 # NETPP = $(HOME)/src/netpp
 # Run "make allnetpp" to fetch and build the source
 #
-NETPP ?= $(CURDIR)/netpp
+NETPP ?= /usr/share/netpp
+GENSOC ?= $(shell which gensoc)
 
 NETPP_VER = netpp_src-0.40-svn321
 NETPP_TAR = $(NETPP_VER).tgz 
@@ -67,11 +55,22 @@ CURDIR = $(shell pwd)
 
 WORK = $(LIBDIR)/work-obj93.cf
 
+ifeq ($(CONFIG_NETPP),y)
+VARIANT = -netpp
+endif
+
+
+LIBGHDLEX = libghdlex$(VARIANT)
+
+LIBRARIES = $(LIBGHDLEX)$(DLLEXT) $(LIBDIR)/ghdlex-obj93.cf
+
+$(LIBGHDLEX)$(DLLEXT):
+	$(MAKE) -C src NETPP=$(NETPP) LIBSIM=$(LIBGHDLEX)
+
 HOST_CFLAGS = -g -Wall -Isrc
 
 NO_CLEANUP_DUTIES-y = 
 NO_CLEANUP_DUTIES-$(CONFIG_NETPP) += $(NETPP)/common
-NO_CLEANUP_DUTIES-$(CONFIG_NETPP) += $(NETPP)/include/devlib_error.h
 
 DUTIES-y = 
 DUTIES-$(CONFIG_NETPP) += simnetpp
@@ -178,7 +177,7 @@ show:
 
 -include gensoc.mk
 
-LDFLAGS = -Wl,-Lsrc -Wl,-lmysim
+LDFLAGS = -Wl,-Lsrc -Wl,-lghdlex$(VARIANT)
 
 ifeq ($(CONFIG_NETPP),y)
 LDFLAGS-$(CONFIG_LINUX)   += -Wl,-L$(LIBSLAVE) -Wl,-lslave
@@ -205,7 +204,7 @@ clean:: clean_duties
 	rm -f $(GENERATED_VHDL-y)
 	rm -f $(WORK)
 	$(MAKE) NETPP=$(CURDIR)/netpp clean_duties
-	$(MAKE) -C src clean
+	$(MAKE) -C src clean LIBSIM=$(LIBGHDLEX)
 
 clean_duties:
 	rm -f $(DUTIES) h2vhdl 

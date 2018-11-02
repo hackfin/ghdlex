@@ -11,8 +11,9 @@ CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 
 include ../platform.mk
 
-DUTIES-$(CONFIG_MINGW32) = libmysim.a
-DUTIES-$(CONFIG_LINUX)  += libmysim.$(DLLEXT)
+# Special case: Build static for mingw32 cross:
+DUTIES-$(CONFIG_MINGW32) = $(LIBSIM).a
+DUTIES-$(CONFIG_LINUX)  += $(LIBSIM).$(DLLEXT)
 DUTIES-$(CONFIG_NETPP)  += netpp.vpi
 
 all: $(DUTIES-y)
@@ -56,14 +57,14 @@ netpp.vpi: $(VPIOBJS)
 
 handler.c: registermap.h
 
-libmysim.a: $(OBJS)
+$(LIBSIM).a: $(OBJS)
 	$(AR) ruv $@ $(OBJS)
 	$(RANLIB) $@
 
-libmysim.so: $(OBJS)
+$(LIBSIM).so: $(OBJS)
 	$(CC) -shared -o $@ $(OBJS) -lpthread
 
-libmysim.dll: $(OBJS)
+$(LIBSIM).dll: $(OBJS)
 	$(CC) -shared -o $@ $(OBJS)
 
 clean::
