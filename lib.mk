@@ -10,8 +10,6 @@ PREFIX ?= .
 GHDLEX_VHDL_DIR = $(GHDLEX)/hdl
 
 GHDLEX_VHDL =  \
-	$(GHDLEX)/libnetpp.vhdl \
-	$(GHDLEX)/registermap_pkg.vhdl \
 	$(GHDLEX_VHDL_DIR)/libpipe.vhdl \
 	$(GHDLEX_VHDL_DIR)/libvirtual.vhdl \
 	$(GHDLEX_VHDL_DIR)/vbus.vhdl \
@@ -22,6 +20,11 @@ GHDLEX_VHDL =  \
 	$(GHDLEX_VHDL_DIR)/vfx2fifo.vhdl \
 	$(GHDLEX_VHDL_DIR)/iomap_config.vhdl \
 	$(GHDLEX_VHDL_DIR)/txt_util.vhdl
+
+# Deprecated:
+ifdef CONFIG_NETPP
+GHDLEX_VHDL += $(GHDLEX)/libnetpp.vhdl $(GHDLEX)/registermap_pkg.vhdl
+endif
 
 $(PREFIX)/ghdlex-obj$(VHDL_STD_SUFFIX).cf: $(GHDLEX_VHDL)
 	[ -e $(PREFIX) ] || mkdir $(PREFIX)
