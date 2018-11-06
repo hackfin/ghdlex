@@ -11,9 +11,7 @@ library ghdlex;
 	use ghdlex.ghpi_netpp.all;
 	use ghdlex.virtual.all;
 	use ghdlex.txt_util.all;
-
-library work;
-	use work.ghdlsim.all;
+	use ghdlex.ghdlsim.all;
 
 use std.textio.all;
 
@@ -22,6 +20,10 @@ end simboard;
 
 architecture simulation of simboard is
 	constant FIFO_WORDWIDTH : natural := 1;
+	constant VBUS_ADDR_W : natural := 12; -- Maximum address bus width
+
+	signal global_startup_reset: std_logic := '1';
+
 	signal clk: std_logic := '0';
 	signal we: std_logic := '0';
 	signal dclk: std_logic := '0';
@@ -37,12 +39,14 @@ architecture simulation of simboard is
 	signal data_a: unsigned(15 downto 0) := x"0100";
 	signal data_b: unsigned(15 downto 0);
 
-	-- Global, netpp 'property exported' bus:
+	-- Virtual global (netpp) bus:
 	signal vbus_wr   : std_logic;
 	signal vbus_rd   : std_logic;
 	signal vbus_din  : std_logic_vector(31 downto 0) := (others => '0');
 	signal vbus_dout : std_logic_vector(31 downto 0) := (others => '0');
-	signal vbus_addr : std_logic_vector(ADDR_W-1 downto 0) := (others => '0');
+	signal vbus_addr : std_logic_vector(VBUS_ADDR_W-1 downto 0)
+		:= (others => '0');
+
 
 	-- Virtual local bus, without netpp device read/write access:
 	signal lbus_wr   : std_logic;
@@ -53,15 +57,14 @@ architecture simulation of simboard is
 		:= (others => '0');
 
 
-	signal tap_ce    : std_logic;
-	signal tap_ctrl  : tap_registers_WritePort;
-	signal tap_stat  : tap_registers_ReadPort;
-
 	signal lbus_ce    : std_logic;
-	signal lbus_ctrl  : fpga_registers_WritePort;
-	signal lbus_stat  : fpga_registers_ReadPort;
+	signal lbus_ctrl  : localbus_WritePort;
+	signal lbus_stat  : localbus_ReadPort;
 
-
+	-- netpp Test access port:
+	signal vtap_ce   : std_logic;
+	signal vtap_ctrl  : netppbus_WritePort;
+	signal vtap_stat  : netppbus_ReadPort;
 
 	constant NFIFOS  : natural := 2;
  
@@ -212,30 +215,8 @@ loopback:
 -- 		data_out    => fifo_din(2)
 -- 	);
 
-	-- Instancing the global bus that is accessible by netpp properties
-	-- device_read() and device_write()
-netpp_vbus:
-	VirtualBus
-	generic map ( ADDR_W => ADDR_W, BUSTYPE => BUS_GLOBAL )
-	port map (
-		clk         => clk,
-		wr          => vbus_wr,
-		rd          => vbus_rd,
-		wr_busy     => '0',
-		rd_busy     => '0',
-		addr        => vbus_addr,
-		data_in     => vbus_din,
-		data_out    => vbus_dout
-	);
-
-	tap_ce <= vbus_wr or vbus_rd;
-
-	tap_stat.tap_idcode <= x"deadbeef";
-
-	global_throttle <= tap_ctrl.sim_throttle;
-
 	-- Local bus: This one does is local, i.e. the netpp device layer
-	-- only allows direct raw access (not through properties)
+	-- only allows direct raw access through the 'localbus' property.
 virtual_local_bus:
 	VirtualBus
 	generic map ( ADDR_W => ADDR_W, BUSTYPE => BUS_LOCAL, NETPP_NAME => "localbus" )
@@ -257,35 +238,75 @@ virtual_local_bus:
 	lbus_stat.fwrev_maj <= std_logic_vector(to_unsigned(HWREV_ghdlsim_MAJOR, 4));
 	lbus_stat.fwrev_min <= std_logic_vector(to_unsigned(HWREV_ghdlsim_MINOR, 4));
 
+-- This instances the bus decoders for the netpp accessible local and
+-- global property bus.
+
 local_decoder:
-	entity work.decode_fpga_registers
+	entity ghdlex.decode_localbus
+	generic map (DATA_WIDTH => 32)
 	port map (
 		ce        => lbus_ce,
-		
+		reset     => vtap_ctrl.reset,
 		ctrl      => lbus_ctrl,
 		stat      => lbus_stat,
 		data_in   => lbus_din,
 		data_out  => lbus_dout,
-		addr      => lbus_addr(BV_MMR_CFG_fpga_registers),
+		addr      => lbus_addr(BV_MMR_CFG_localbus),
 		we        => lbus_wr,
 		re        => lbus_rd,
 		clk       => clk
 	);
 
+----------------------------------------------------------------------------
+-- Test access port:
 
-reg_decode:
-	entity work.decode_tap_registers
+virtual_bus:
+	VirtualBus
+	generic map ( ADDR_W => VBUS_ADDR_W, NETPP_NAME => "TAP",
+		BUSTYPE => BUS_GLOBAL )
 	port map (
-		clk      => clk,
-		ce       => tap_ce,
-		ctrl     => tap_ctrl,
-		stat     => tap_stat,
+		clk         => clk,
+		wr          => vbus_wr,
+		rd          => vbus_rd,
+		wr_busy     => '0',
+		rd_busy     => '0',
+		addr        => vbus_addr,
+		data_in     => vbus_din,
+		data_out    => vbus_dout
+	);
+
+	vtap_ce <= vbus_wr or vbus_rd;
+
+registers:
+	-- We use our own TAP decoder:
+	entity ghdlex.decode_netppbus
+	generic map ( DATA_WIDTH => 32 )
+	port map (
+		ce       => vtap_ce,
+		reset    => global_startup_reset,
+		ctrl     => vtap_ctrl,
+		stat     => vtap_stat,
 		data_in  => vbus_din,
 		data_out => vbus_dout,
-		addr     => vbus_addr(BV_MMR_CFG_tap_registers),
+		addr     => vbus_addr(BV_MMR_CFG_netppbus),
 		re       => vbus_rd,
-		we       => vbus_wr
+		we       => vbus_wr,
+		clk      => clk
 	);
+
+-- tap:
+-- 	entity work.TestAccessPort
+-- 	port map (
+-- 		tap_ctrl    => vtap_ctrl,
+-- 		tap_stat    => vtap_stat,
+-- 		clk         => clk,
+-- 		reset       => global_startup_reset
+-- 	);
+-- 
+	-- Instancing the global bus that is accessible by netpp properties
+	-- device_read() and device_write()
+	global_throttle <= vtap_ctrl.throttle;
+
 
 stim:
 	process
@@ -293,6 +314,10 @@ stim:
 	begin
 		-- Explicitely initialize netpp, thus not needing --vpi=netpp.vpi:
 		retval := netpp_init("VirtualBoard", 2010);
+		wait for 20 us;
+		global_startup_reset <= '0';
+
+		-- Now stimulate:
 		we <= '0';
 		data0 <= x"00112233";
 		addr <= "000000000000";

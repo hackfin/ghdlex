@@ -90,21 +90,12 @@ GHDLEX_VHDL += libfifo.vhdl
 VHDLFILES = examples/fifo.vhdl 
 endif
 
-SOC_MODULES = tap_registers fpga_registers
+SOC_MODULES = localbus netppbus
 
 SOC_VHDL = $(SOC_MODULES:%=ghdlex_%_decode.vhdl) ghdlex_iomap_pkg.vhdl
 
-SPACE = $(null) $(null)
-COMMA = ,
-# Create comma separated list:
-MODULE_LIST=$(subst $(SPACE),$(COMMA),$(SOC_MODULES))
 
-$(SOC_VHDL):
-	$(GENSOC) -o ghdlex -s \
-		--map-prefix=2 \
-		--decoder=$(MODULE_LIST) $(DEVICEFILE)
-
-GENERATED_VHDL-$(CONFIG_NETPP)= $(SOC_VHDL) 
+-include gensoc.mk
 
 CONVERTED_VHDL-$(CONFIG_NETPP)+= libnetpp.vhdl
 VHDLFILES-$(CONFIG_NETPP) += examples/netpp.vhdl 
@@ -113,7 +104,6 @@ VHDLFILES-$(CONFIG_NETPP_DISPLAY) += examples/fb.vhdl
 VHDLFILES-$(CONFIG_NETPP) += examples/ram.vhdl
 VHDLFILES-$(CONFIG_NETPP) += examples/board.vhdl
 
-VHDLFILES-$(CONFIG_GENSOC) += $(GENERATED_VHDL-y)
 
 VHDLFILES += $(VHDLFILES-y)
 
@@ -121,6 +111,7 @@ VHDLFILES += $(VHDLFILES-y)
 VHDLFILES += examples/pty.vhdl
 
 GHDLEX_VHDL += $(CONVERTED_VHDL-y)
+GHDLEX_VHDL += $(GENERATED_VHDL-y)
 
 
 all: $(NO_CLEANUP_DUTIES-y) $(DUTIES) 
@@ -175,7 +166,6 @@ show:
 	@echo Has netpp: $(CONFIG_NETPP)
 	@echo $(VHDLFILES)
 
--include gensoc.mk
 
 LDFLAGS = -Wl,-Lsrc -Wl,-lghdlex$(VARIANT)
 

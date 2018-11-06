@@ -5,6 +5,10 @@ GHDL ?= ghdl
 
 VHDL_STD_SUFFIX ?= 93
 
+ifndef CONFIG_NETPP
+CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
+endif
+
 PREFIX ?= .
 
 GHDLEX_VHDL_DIR = $(GHDLEX)/hdl
@@ -21,9 +25,10 @@ GHDLEX_VHDL =  \
 	$(GHDLEX_VHDL_DIR)/iomap_config.vhdl \
 	$(GHDLEX_VHDL_DIR)/txt_util.vhdl
 
-# Deprecated:
-ifdef CONFIG_NETPP
-GHDLEX_VHDL += $(GHDLEX)/libnetpp.vhdl $(GHDLEX)/registermap_pkg.vhdl
+# Default compatibility layer for opensource release
+ifeq ($(CONFIG_NETPP),y)
+GHDLEX_VHDL += $(GHDLEX)/libnetpp.vhdl $(GHDLEX)/ghdlex_iomap_pkg.vhdl
+GHDLEX_VHDL += $(GHDLEX)/ghdlex_netppbus_decode.vhdl
 endif
 
 $(PREFIX)/ghdlex-obj$(VHDL_STD_SUFFIX).cf: $(GHDLEX_VHDL)

@@ -107,8 +107,7 @@ Including a header is necessary when implementing access to global variables.-->
 
     <!--A (virtual) register map:-->
 
-    <registermap endian="LITTLE" id="fake" name="MMR"
-                 nodecode="true">
+    <registermap endian="LITTLE" id="fake" name="MMR" nodecode="true">
       <register access="RO" addr="0x00" id="decode_dummy">
         <info>The bit fields in this register are dummies with respect to address decoding.
 They are used as bit slice defines within the VHDL top decoder section to
@@ -117,21 +116,37 @@ For each I/O unit, a MMR_CFG_ entry is defined.
 Later, these slice defines will be moved to the iomap definitions for the entire SoC
 (see also memmap.xml for memory map)</info>
 
-        <bitfield lsb="0" msb="6" name="CFG_fpga_registers"></bitfield>
+        <bitfield lsb="0" msb="6" name="CFG_localbus"/>
 
-        <bitfield lsb="0" msb="4" name="CFG_tap_registers"></bitfield>
+        <bitfield lsb="0" msb="6" name="CFG_netppbus"/>
       </register>
     </registermap>
 
-    <registermap endian="BIG" id="fpga_registers"
-                 name="FPGA_Registers" offset="0x000">
-      <info>This register map definition with maximum register address VBUS_ADDR_OFFSET-1 refers to an internal simulated RAM that is repeatedly read by regmap_read().</info>
+    <registermap endian="BIG" id="localbus" name="FPGA_Registers"
+                 offset="0x000" size="32">
+      <info>This register map definition with maximum register address VBUS_ADDR_OFFSET-1 refers to an internal simulated RAM that is repeatedly read by regmap_read(). This map is not accessible directly by defined netpp properties.</info>
 
-      <register access="RO" addr="0x00" id="MagicId" size="4"></register>
+      <register access="RO" addr="0x00" id="MagicId" size="4"/>
 
-      <register access="RO" addr="0x1c" id="Magic2" size="4"></register>
+      <register access="RO" addr="0x1c" id="Magic2" size="4"/>
 
-      <register addr="0x24" id="Control">
+      <register addr="0x08" id="TestIO">
+        <bitfield lsb="0" msb="0" name="TEST_ENABLE"/>
+      </register>
+
+      <register access="RO" addr="0x7f" id="FwRev" size="1">
+        <info>Firmware Revision MSB: major, LSB: Minor. Always at the end of the register map.</info>
+
+        <bitfield lsb="0" msb="3" name="FWREV_MIN"/>
+
+        <bitfield lsb="4" msb="7" name="FWREV_MAJ"/>
+      </register>
+    </registermap>
+
+    <registermap endian="BIG" id="netppbus" name="Simulation">
+      <info>Default simulation registers, typically exported as netpp properties</info>
+
+      <register addr="0x00" id="SIMCONTROL" size="1">
         <info>Control register</info>
 
         <bitfield lsb="0" msb="0" name="ENABLE">
@@ -142,6 +157,8 @@ Later, these slice defines will be moved to the iomap definitions for the entire
           <info>If set, slow down simulation</info>
         </bitfield>
 
+        <bitfield lsb="4" msb="4" name="RESUME"/>
+
         <bitfield lsb="6" msb="6" name="IRQ">
           <info>Virtual IRQ pin, H active</info>
         </bitfield>
@@ -149,184 +166,20 @@ Later, these slice defines will be moved to the iomap definitions for the entire
         <bitfield lsb="7" msb="7" name="RESET">
           <info>RESET FPGA engine</info>
         </bitfield>
+
+        <default>00X0XX10</default>
       </register>
 
-      <register access="RO" addr="0x7f" id="FwRev" size="1">
-        <info>Firmware Revision MSB: major, LSB: Minor. Always at the end of the register map.</info>
-
-        <bitfield lsb="0" msb="3" name="FWREV_MIN"></bitfield>
-
-        <bitfield lsb="4" msb="7" name="FWREV_MAJ"></bitfield>
-      </register>
-    </registermap>
-
-    <registermap endian="LITTLE" id="tap_registers" name="TAP"
-                 offset="0x100">
-      <info>Important: Little endian when accessing through a VirtualBus</info>
-
-      <register access="RO" addr="0x00" id="TAP_IDCODE" size="4">
-        <info>IDCODE register. Contains IDCODE of attached CPU.</info>
+      <register access="RO" addr="0x04" id="SIMSTATUS">
+        <bitfield lsb="0" msb="0" name="BREAK"/>
       </register>
 
-      <register access="RO" addr="0x04" id="TAP_EMUDATA" size="4">
-        <info>EMUDATA register for data exchange between core/debug coprocessor and TAP</info>
-      </register>
-
-      <register addr="0x08" id="TAP_EMUCTRL" size="2">
-        <info>Emulation control register. This is kept generic and CPU independent</info>
-
-        <bitfield lsb="0" msb="0" name="EMUREQ">
-          <info>Set this bit to request CPU to enter emulation</info>
-        </bitfield>
-
-        <bitfield lsb="4" msb="6" name="SELECT_REG">
-          <info>CPU specific select field for emudata input. Used on TAPs which require multiplexing of the EMUDATA register.</info>
-        </bitfield>
-
-        <bitfield lsb="7" msb="7" name="EMUEXEC">
-          <info>Some CPUs require the EMUEXEC bit to be toggled for executing an instruction. Refer to CPU debug reference section for details.</info>
-        </bitfield>
-
-        <bitfield lsb="15" msb="15" name="CORE_RESET">
-          <info>Reset the CPU core.</info>
-        </bitfield>
-
-        <default>0xxxxxxx00000000</default>
-      </register>
-
-      <register access="RO" addr="0x0a" id="TAP_EMUSTAT" size="2">
-        <info>Emulation status register. The LSB contains the TAP generic status bis, MSB contains CPU specific bits. Refer to the CPU debug register description for detailed information.</info>
-
-        <bitfield lsb="0" msb="0" name="EMUACK">
-          <info>Emulation acknowledge. When an emureq request has been issued, this bit turns 1 when it is acknowledged by the attached CPU. The EMUACK bit remains high on most implementations when the CPU is in emulation mode.</info>
-        </bitfield>
-
-        <bitfield lsb="1" msb="1" name="EMURDY">
-          <info>Signal that emulation is ready. Poll this bit to see if emulation is busy.</info>
-        </bitfield>
-
-        <bitfield lsb="8" msb="15" name="CORE_SPEC">
-          <info>Core specific status bits. See CPU debug reference.</info>
-        </bitfield>
-      </register>
-
-      <register access="RW" addr="0x0c" id="TAP_EMUIR" size="4">
-        <info>Emulation instruction register, 32 bit wide. This is used to feed instructions to the CPU core when in emulation mode.</info>
-      </register>
-
-      <register access="RO" addr="0x10" id="TAP_EMUPC" size="4">
-        <info>Program counter of attached CPU. Only valid when in emulation. Might be unused on some CPU cores.</info>
-      </register>
-
-      <register access="RW" addr="0x18" id="TAP_SIMCTRL" size="1">
-        <info>Simulation only control register for Virtual TAP.</info>
-
-        <bitfield lsb="0" msb="0" name="SIM_THROTTLE">
-          <info>Throttle simulation if this bit is set and when no TAP access occurs</info>
-        </bitfield>
-
-        <default>1</default>
-      </register>
-
-      <register addr="0x19" id="SIM_SLEEPCYCLES" size="2">
-        <info>When Throttle bit set, simulation sleeps &lt;this register's value&gt;</info>
-
-        <default>fa00</default>
+      <register addr="0x08" id="SLEEPCYCLES" size="2">
+        <default>2000</default>
       </register>
     </registermap>
 
-    <group name="VirtualTap">
-      <info>The VirtualTAP register set is a direct test access port implemented as virtual Bus in GHDLex.
-It does not require any extra handshake logic.</info>
-
-      <property name="EmuExec" type="BOOL">
-        <info>Toggle this pin to execute command in EmuIR register</info>
-
-        <regref bits="EMUEXEC" ref="TAP_EMUCTRL" />
-      </property>
-
-      <property name="EmuReq" type="BOOL">
-        <info>Setting this bit H asserts the emulation request pin to the core</info>
-
-        <regref bits="EMUREQ" ref="TAP_EMUCTRL" />
-      </property>
-
-      <property name="TapThrottle" type="BOOL">
-        <info>Set 1 to throttle simulation</info>
-
-        <regref bits="SIM_THROTTLE" ref="TAP_SIMCTRL" />
-      </property>
-
-      <property name="TapWaitCycles" type="INT">
-        <info>Numer of cycles to wait</info>
-
-        <regref ref="SIM_SLEEPCYCLES" />
-      </property>
-
-      <property access="RO" name="EmuReady" type="BOOL">
-        <info>'1' when emulation ready</info>
-
-        <regref bits="EMURDY" ref="TAP_EMUSTAT" />
-      </property>
-
-      <property access="RO" name="EmuAck" type="BOOL">
-        <info>'1' when in emulation mode</info>
-
-        <regref bits="EMUACK" ref="TAP_EMUSTAT" />
-      </property>
-
-      <property access="RO" name="EmuStat" type="REGISTER">
-        <info>Emulation status register</info>
-
-        <regref ref="TAP_EMUSTAT" />
-      </property>
-
-      <property name="EmuCtrl" type="REGISTER">
-        <info>Emulation control register</info>
-
-        <regref ref="TAP_EMUCTRL" />
-      </property>
-
-      <property name="EmuIR" type="REGISTER">
-        <info>Instruction to execute on core on next EmuExec bit toggle</info>
-
-        <regref ref="TAP_EMUIR" />
-      </property>
-
-      <property access="RO" name="EmuData" type="REGISTER">
-        <info>Return emulation data from the core</info>
-
-        <regref ref="TAP_EMUDATA" />
-      </property>
-
-      <property access="RO" name="EmuPC" type="REGISTER">
-        <info>Current Program counter of core. Valid only when in emulation.</info>
-
-        <regref ref="TAP_EMUPC" />
-      </property>
-
-      <property access="RO" name="IDCode" type="REGISTER">
-        <info>The IDCODE of the core. Unique to every core architecture.</info>
-
-        <regref ref="TAP_IDCODE" />
-      </property>
-    </group>
-
-    <group name="VirtualIO">
-      <info>Virtual Input/Output. These properties can either control settings in the C library or map directly to a register. Depending on which register space they map to, the internal routines will either access the VirtualBus or the dummy register map (deprecated)</info>
-
-      <property access="RW" name="Enable" type="BOOL">
-        <info>Enable bit. Might be not used.</info>
-
-        <regref bits="ENABLE" ref="Control" />
-      </property>
-
-      <property access="RW" name="Reset" type="BOOL">
-        <info>External reset pin. High active.</info>
-
-        <regref bits="RESET" ref="Control" />
-      </property>
-
+    <group name="Simulation Control">
       <property access="RW" name="Timeout" type="INT">
         <info>Timeout value of FIFO in real microseconds</info>
 
@@ -339,10 +192,41 @@ It does not require any extra handshake logic.</info>
         <variable>g_fifoconfig.retry</variable>
       </property>
 
+      <property name="SimThrottle" type="BOOL">
+        <regref bits="THROTTLE" ref="SIMCONTROL"/>
+      </property>
+
+      <property access="RW" name="Resume" type="BOOL">
+        <regref bits="RESUME" ref="SIMCONTROL"/>
+      </property>
+
+      <property access="RO" name="Break" type="BOOL">
+        <regref bits="BREAK" ref="SIMSTATUS"/>
+      </property>
+    </group>
+
+    <group name="VirtualIO">
+      <info>Virtual Input/Output. These properties can either control settings in the C library or map directly to a register. Depending on which register space they map to, the internal routines will either access the VirtualBus or the dummy register map (deprecated)</info>
+
+      <!--Note: These can only map to Properties of the 'Simulation' register map.
+-->
+
+      <property access="RW" name="Enable" type="BOOL">
+        <info>Enable bit. Might be not used.</info>
+
+        <regref bits="ENABLE" ref="SIMCONTROL"/>
+      </property>
+
+      <property access="RW" name="Reset" type="BOOL">
+        <info>External reset pin. High active.</info>
+
+        <regref bits="RESET" ref="SIMCONTROL"/>
+      </property>
+
       <property access="RW" name="Irq" type="BOOL">
         <info>Simulates an IRQ pin. High active. Might not be implemented in all cores.</info>
 
-        <regref bits="IRQ" ref="Control" />
+        <regref bits="IRQ" ref="SIMCONTROL"/>
       </property>
     </group>
 
@@ -381,9 +265,7 @@ It does not require any extra handshake logic.</info>
         <property access="RW" id="offset" name="Offset" type="INT">
           <handler type="DYNAMIC">ramoffset</handler>
         </property>
-
       </struct>
-
 
       <struct hidden="true" id="ghdlex_bus" name="Vbus">
         <info>Virtual Bus structure export to netpp.</info>

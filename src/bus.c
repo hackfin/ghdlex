@@ -55,6 +55,10 @@ void sim_bus_rxtx(bus_t_ghdl *bus, unsigned_ghdl addr, unsigned_ghdl data,
 	char *flag)
 {
 	Bus *b = (Bus *) *bus;
+	if (!b) {
+		fprintf(stderr, "Bus not initialized, is NULL\n");
+		exit(-1);
+	}
 
 	MUTEX_LOCK(&b->mutex);
 
