@@ -14,9 +14,11 @@ int main(int argc, char **argv)
 	int error;
 	const char *name;
 
+#ifdef CONFIG_NETPP
 	name = basename(argv[0]);
 	
 	error = netpp_root_init(name);
+#endif
 	if (error >= 0) {
 		error = ghdl_main(argc, argv);
 	}

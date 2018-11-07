@@ -57,6 +57,7 @@ WORK = $(LIBDIR)/work-obj93.cf
 
 ifeq ($(CONFIG_NETPP),y)
 VARIANT = -netpp
+CFLAGS += -DCONFIG_NETPP
 endif
 
 
