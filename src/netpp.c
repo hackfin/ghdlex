@@ -496,9 +496,6 @@ int create_thread(const char *name, struct local_config *cfg)
 {
 	int error;
 
-	error = netpp_root_init(name);
-	if (error < 0) return error;
-
 #ifdef __WIN32__
 	HANDLE g_thread;
 #else
@@ -521,16 +518,26 @@ int create_thread(const char *name, struct local_config *cfg)
 	return 0;
 }
 
+static struct local_config cfg;
+
+int netpp_server_init(const char *name, int port)
+{
+	int error;
+
+	if (port == 0) {
+		return create_thread(name, NULL);
+	} else {
+		cfg.port = port;
+		return create_thread(name, (void *) &cfg);
+	}
+}
+
 integer_ghdl sim_netpp_init_wrapped(struct ghdl_string *name, int port)
 {
 	// we're allowed to live on the stack, cuz we're only used during
 	// configuration
-	struct local_config cfg;
-	if (port == 0) {
-		return create_thread(name->base, NULL);
-	} else {
-		cfg.port = port;
-		return create_thread(name->base, (void *) &cfg);
-	}
+	fprintf(stderr, "Ignoring device name '%s' in this implementation\n",
+		name->base);
+	return netpp_server_init(name->base, port);
 }
 

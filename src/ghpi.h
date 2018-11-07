@@ -56,6 +56,16 @@ struct fat_pointer
 ////////////////////////////////////////////////////////////////////////////
 // Functions
 
+/** \defgroup Initialization   Initializing netpp
+ *
+ *
+ */
+
+/** \addtogroup Initialization
+ * \{ */
+
+/* \} */
+
 /** \defgroup Auxiliary    Auxiliary functions for conversion, etc.
  *
  * These are internal functions to convert between GDHL data and C data
@@ -64,7 +74,14 @@ struct fat_pointer
  */
 
 /** \addtogroup Auxiliary
- * \{ */
+ *
+ */
+
+/** Call this function before anything else
+ */
+int netpp_root_init(const char *name);
+
+/** \} */
 
 /** Convert std_logic_vector to unsigned short */
 int logic_to_uint(const char *l, int nbits, uint32_t *val);
