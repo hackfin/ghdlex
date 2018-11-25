@@ -19,7 +19,11 @@ $(LIBSIM).a: $(SIMOBJS) $(PROPLIST)
 	$(RANLIB) $@
 
 
+ifdef CONFIG_MINGW32
+MYSIM_DUTIES = $(LIBSIM).a
+else
 MYSIM_DUTIES = $(LIBSIM).so
+endif
 
 mysim: $(MYSIM_DUTIES)
 
