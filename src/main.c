@@ -14,7 +14,7 @@ int main(int argc, char **argv)
 	int error;
 	const char *name;
 
-#ifdef CONFIG_NETPP
+#ifdef CONFIG_NETPP_EARLY_INIT
 	name = basename(argv[0]);
 	
 	error = netpp_root_init(name);

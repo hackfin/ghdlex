@@ -181,11 +181,11 @@ LDFLAGS-$(CONFIG_MINGW32) += -Wl,-lws2_32
 LDFLAGS += $(LDFLAGS-y)
 
 # Rule to build simulation examples:
-sim%: $(WORK) $(LIBRARIES)
+sim%: $(WORK) $(LIBRARIES) src/main.o
 	$(GHDL) -m $(GHDL_LDFLAGS) $(LDFLAGS) $@
 	$(GHDL) --bind $(GHDL_LDFLAGS) $(LDFLAGS) $@
 	LINK_OBJS=`$(GHDL) --list-link $(GHDL_LDFLAGS) $(LDFLAGS) $@`; \
-	$(CC) -o $@ src/main.c $$LINK_OBJS
+	$(CC) -o $@ src/main.o $$LINK_OBJS
 
 # The ghdlex library for external use:
 $(LIBDIR)/ghdlex-obj93.cf: $(GHDLEX_VHDL)

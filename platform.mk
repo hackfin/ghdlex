@@ -1,12 +1,12 @@
 
-PLATFORM ?= $(shell uname)
+PLATFORM_ARCH ?= $(shell uname)
 
-ifeq ($(PLATFORM),Linux)
+ifeq ($(PLATFORM_ARCH),Linux)
 	CONFIG_LINUX = y
 	DLLEXT = so
 endif
 
-ifeq ($(PLATFORM),mingw32)
+ifeq ($(PLATFORM_ARCH),mingw32)
 	MASOCIST = $(HOME)/src/vhdl/masocist
 	CONFIG_MINGW32 = y
 	DLLEXT = dll

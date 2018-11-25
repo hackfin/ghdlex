@@ -4,7 +4,7 @@
 -- Modifications will be lost, please edit __FILE__
 -- // This is a CPP template to create a VHDL file using the C preprocessor.
 -- // C style comments are stripped from the resulting file.
--- (c) 2011-2013 Martin Strubel <hackfin@section5.ch>
+-- (c) 2011-2018 Martin Strubel <hackfin@section5.ch>
 
 library ieee;
 	use ieee.std_logic_1164.all;
@@ -158,6 +158,7 @@ end package;
 
 
 package body ghpi_netpp is
+
 
 	function netpp_init(name : string)
 		return integer is

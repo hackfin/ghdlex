@@ -441,6 +441,8 @@ int netpp_is_initialized(void)
 
 int netpp_root_init(const char *name)
 {
+	int error;
+
 	TOKEN t;
 	if (g_initialized) {
 //		fprintf(stderr, "Root node already initialized, ignoring root %s\n",
@@ -451,7 +453,8 @@ int netpp_root_init(const char *name)
 
 	g_is_dynamic = 1;
 
-	dynprop_init(80);
+	error = dynprop_init(80);
+	if (error < 0) return error;
 
 	t = new_dynprop(name, &s_rootprop);
 	if (t == TOKEN_INVALID) return -1;
@@ -536,8 +539,15 @@ integer_ghdl sim_netpp_init_wrapped(struct ghdl_string *name, int port)
 {
 	// we're allowed to live on the stack, cuz we're only used during
 	// configuration
+
+#ifndef CONFIG_NETPP_EARLY_INIT
+	int error;
+	error = netpp_root_init(name->base);
+	if (error < 0) return error;
+#else
 	fprintf(stderr, "Ignoring device name '%s' in this implementation\n",
 		name->base);
+#endif
 	return netpp_server_init(name->base, port);
 }
 

@@ -22,6 +22,8 @@ architecture simulation of simboard is
 	constant FIFO_WORDWIDTH : natural := 1;
 	constant VBUS_ADDR_W : natural := 12; -- Maximum address bus width
 
+	constant initialization : integer := netpp_init("VirtualBoard", 2010);
+
 	signal global_startup_reset: std_logic := '1';
 
 	signal clk: std_logic := '0';
@@ -83,7 +85,6 @@ begin
 
 clkgen:
 	process
-		variable err : integer;
 	begin
 		clkloop : loop
 			wait for 10 us;
@@ -312,9 +313,10 @@ stim:
 	process
 		variable retval : integer;
 	begin
-		-- Explicitely initialize netpp, thus not needing --vpi=netpp.vpi:
-		retval := netpp_init("VirtualBoard", 2010);
-		wait for 20 us;
+		if initialization < 0 then
+			assert false report "netpp init failed" severity failure;
+		end if;
+
 		global_startup_reset <= '0';
 
 		-- Now stimulate:

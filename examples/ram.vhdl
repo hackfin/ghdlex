@@ -14,6 +14,8 @@ entity simram is
 end simram;
 
 architecture simulation of simram is
+	constant initialization : integer := netpp_init("VirtualRAM", 2010);
+
 	signal clk: std_logic := '0';
 	signal we: std_logic := '0';
 	constant ADDR_W : natural := 12;
@@ -26,9 +28,7 @@ begin
 
 clkgen:
 	process
-		variable err : integer;
 	begin
-		err := netpp_init("VirtualRAM");
 		clkloop : loop
 			wait for 10 us;
 			clk <= not clk;
