@@ -1,11 +1,16 @@
-import sys
-sys.path.append("/home/strubi/src/netpp/python")
-sys.path.append("/home/strubi/src/netpp/Debug")
-import netpp
+#!/bin/env python
+#
+# Start up the simboard example and run this python script
+#
+# (c) 2010-2018 Martin Strubel <hackfin@section5.ch>
+#
 
+import netpp
 import struct
 
-d = netpp.connect("TCP:localhost")
+SIMULATION_URL = "TCP:localhost:2010"
+
+dev = netpp.connect(SIMULATION_URL)
 
 r = d.sync()
 

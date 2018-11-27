@@ -97,8 +97,7 @@ package virtual is
 			b_we    : in  std_logic;
 			b_addr  : in  unsigned(ADDR_W-1 downto 0);
 			b_write : in  unsigned(DATA_W-1 downto 0);
-			b_read  : out unsigned(DATA_W-1 downto 0);
-			reset   : in  std_logic
+			b_read  : out unsigned(DATA_W-1 downto 0)
 		);
 	end component VirtualDualPortRAM_dc;
 

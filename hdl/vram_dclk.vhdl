@@ -37,8 +37,7 @@ entity VirtualDualPortRAM_dc is
 		b_we    : in  std_logic;           --! B write enable
 		b_addr  : in  unsigned(ADDR_W-1 downto 0); --! B address
 		b_write : in  unsigned(DATA_W-1 downto 0);  --! B write data
-		b_read  : out unsigned(DATA_W-1 downto 0);  --! B read data
-		reset   : in  std_logic            --! Reset for compatibility
+		b_read  : out unsigned(DATA_W-1 downto 0)  --! B read data
 	);
 end VirtualDualPortRAM_dc;
 

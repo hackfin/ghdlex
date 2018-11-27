@@ -1,19 +1,13 @@
 #!/bin/env/python
 
 # Simple test access of netpp simulation server
-
-NETPP = "/home/strubi/src/netpp"
-
-import sys
-sys.path.append(NETPP + "/Debug")
-sys.path.append(NETPP + "/python")
+# (c) 2010-2018 Martin Strubel <hackfin@section5.ch>
 
 import time
 import netpp
 
-dev = netpp.connect("localhost")
+SIMULATION_URL = "TCP:localhost:2010"
 
-r = dev.sync()
 
 def seq2buf(seq):
 	b = ""
@@ -31,7 +25,10 @@ def dump(seq):
 			print
 	print
 
-f = r.Fifo
+
+dev = netpp.connect(SIMULATION_URL)
+r = dev.sync()
+f = getattr(r, ':simboard:nfifo(0):fifo:')
 fifo = f.Buffer
 enable = r.Enable
 
@@ -41,7 +38,7 @@ seq = [
 
 buf = seq2buf(seq)
 
-r.Throttle.set(0) # No slow down
+r.SimThrottle.set(0) # No slow down
 fifo.set(buf)
 time.sleep(0.1)
 enable.set(1)
@@ -49,4 +46,4 @@ enable.set(1)
 time.sleep(0.5)
 a = fifo.get()
 dump(a)
-r.Throttle.set(1) # Slow down simulation when FIFO is idle
+r.SimThrottle.set(1) # Slow down simulation when FIFO is idle

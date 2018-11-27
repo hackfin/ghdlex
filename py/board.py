@@ -4,23 +4,20 @@
 #
 # Run the board simulation 'simboard', then this script from the current
 # working directory.
-
-import os
-NETPP = os.getcwd() + "/netpp"
-
-import sys
-sys.path.append(NETPP + "/Debug")
-sys.path.append(NETPP + "/python")
+#
+# (c) 2010-2018 Martin Strubel <hackfin@section5.ch>
 
 import time
 import netpp
 from utils import *
 
+SIMULATION_URL = "TCP:localhost:2010"
+
 def test_blk(r, bufsize, throttle = 1, delay = 0.01):
 	t = ""
 	l = 0
 	fifo = getattr(r, ":simboard:nfifo(0):fifo:")
-	r.TapThrottle.set(throttle)
+	r.SimThrottle.set(throttle)
 
 	COUNT_WRAP = 0x0100
 
@@ -54,9 +51,9 @@ def test_blk(r, bufsize, throttle = 1, delay = 0.01):
 			retry = 0
 		elif delay > 0.0:
 			print "Polling... %.1f s (retry %d).." % (delay, retry)
-			r.TapThrottle.set(0)
+			r.SimThrottle.set(0)
 			time.sleep(delay)
-			r.TapThrottle.set(throttle)
+			r.SimThrottle.set(throttle)
 			retry += 1
 
 		if retry > 10:
@@ -82,7 +79,7 @@ def test_blk(r, bufsize, throttle = 1, delay = 0.01):
 		print "Buffer ok!"
 
 
-dev = netpp.connect("localhost")
+dev = netpp.connect(SIMULATION_URL)
 
 r = dev.sync()
 enable = r.Enable
@@ -112,9 +109,9 @@ while fifo.InFill.get() > 128:
 
 # Let FIFO flood:
 
-r.TapThrottle.set(0)
+r.SimThrottle.set(0)
 time.sleep(0.2)
-r.TapThrottle.set(1)
+r.SimThrottle.set(1)
 
 print "See if more data coming..."
 try:

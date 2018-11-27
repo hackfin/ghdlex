@@ -6,11 +6,11 @@ import netpp
 from utils import *
 import sys
 
-dev = netpp.connect("localhost")
+SIMULATION_URL = "TCP:localhost:2010"
+
+dev = netpp.connect(SIMULATION_URL)
 r = dev.sync()
-
-
-bus = getattr(r, ":simboard:netpp_vbus:")
+bus = r.TAP
 
 
 #############################################################################
@@ -35,28 +35,17 @@ dump(b)
 
 #############################################################################
 # Global bus (accessible through properties)
-r.TapThrottle.set(0) # Turn off Throttle
-a = r.TapThrottle.get() # Dummy read to make sure the TapThrottle/off is
+r.SimThrottle.set(0) # Turn off Throttle
+a = r.SimThrottle.get() # Dummy read to make sure the SimThrottle/off is
 # effective before we continue
 
-
-for i in range(7):
+# Dump the first 8 addresses:
+for i in range(8):
 	bus.Addr.set(i)
 	print "Data [%d]: %08x" % (i, bus.Data.get() & 0xffffffff)
 
-r.TapThrottle.set(1) # Resume Throttle
-a = r.TapThrottle.get() # Dummy read to make sure the TapThrottle/off is
-
-# We know IDCode is at address 0:
-bus.Addr.set(0x0)
-idcode = bus.Data.get()
-
-if idcode != r.IDCode.get():
-	raise ValueError, "Failed to read IDcode from local bus"
-
-bus.Addr.set(0x8) # EMUCTRL
-bus.Data.set(0x1) # Emurequest bit
-
+r.SimThrottle.set(1) # Resume Throttle
+a = r.SimThrottle.get() # Dummy read to make sure the SimThrottle/off is
 
 
 # The local bus can only be accessed directly, no netpp properties

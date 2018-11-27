@@ -147,8 +147,7 @@ ram_dc:
 			b_we    => '0',
 			b_addr  => addr_b,
 			b_write => x"0000",
-			b_read  => data_b,
-			reset   => '0'
+			b_read  => data_b
 		);
 ram32:
 	VirtualDualPortRAM generic map ( NETPP_NAME => "Shadow32bit",
