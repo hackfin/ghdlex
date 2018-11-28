@@ -1,4 +1,5 @@
---! \file      Virtual n-bit RAM (up to 32 bit) (dual clock)
+--! \file vram_dclk.vhdl   Virtual n-bit RAM (up to 32 bit) (dual clock)
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
@@ -8,7 +9,8 @@ library work;
 use work.ghpi_netpp.all;
 use work.virtual.all;
 
---! \brief Dual port RAM with simulation interface via netpp
+--! \brief Dual port/dual clock RAM with simulation interface via netpp
+--! \since 0.2
 --! Experimental dual clock version of the VirtualDualPortRAM component
 --! Does not check for collisions
 --!
@@ -16,13 +18,12 @@ use work.virtual.all;
 --!
 entity VirtualDualPortRAM_dc is
 	generic(
-		NETPP_NAME   : string   := "DEFAULT";
-		HAVE_RESET   : boolean  := false;
-		DATA_W       : natural  := 32;
-		ADDR_W       : natural  := 14;
-		EN_BYPASS   : boolean := false;
-		SYN_RAMTYPE  : string   := "simulation_only";
-
+		NETPP_NAME   : string   := "DEFAULT";  --! netpp entity name
+		DATA_W       : natural  := 32;         --! Data width (bits)
+		ADDR_W       : natural  := 14;         --! Address bits
+		EN_BYPASS   : boolean := false;	       --! Unused, compatibility
+		SYN_RAMTYPE  : string   := "simulation_only";  --! Unused (tag)
+		--! Initialization data
 		INIT_DATA    : vram32_init_t := (0 => x"00000000")
 	);
 	port(

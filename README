@@ -14,26 +14,14 @@ This is only tested under Linux. You need a working ghdl installation.
 
 List of example simulations:
 
-* simpipe: Simulates a simple I/O using a named pipe. This normally works
-  in linux only. First, create two named pipes using the following command:
 
-    mkfifo /tmp/sim_touser; mkfifo /tmp/sim_fromuser
-
-  Then start simpipe and open two more windows, in one you can for example
-
-    cat /tmp/sim_touser
-
-  In the other, you can write to the simulation by
-
-    cat > /tmp/sim_touser
+* simpty: Virtual PTY. See examples/pty.vhdl on how to initialize a
+          a PTY using socat. This example can be used to build a true
+          virtual UART.
 
 These are netpp featured and will not be compiled by default (unless you
 have netpp installed and pass the installation directory to 'make' using
 the NETPP variable or an extra custom 'config.mk'.
-
-* simfifo: Simulates a FIFO master/slave. When compiled with NETPP option
-  set, start a netpp server only and wait for access to the 'Fifo' property.
-  For some gory details about fifo status flags, see fifo.c
 
 * simnetpp: A client example. Connects to the netpp example device (see
   devices/example/slave) and modifies the "ControlReg" property remotely.
@@ -41,29 +29,36 @@ the NETPP variable or an extra custom 'config.mk'.
 * simfb: Connects to the remote 'display' server and shows a 256x256
   YUV color test image.
 
-* simboard: Simulates a virtual board with various virtual port / I/Os
+* simboard: Simulates a virtual board with various virtual I/O's,
+            virtual RAM, FIFOs, etc.
 
 To compile the example, run 'make'. You will end up with a simulation
-executable 'simpipe' which you can run without or with arguments, for
-example:
+executable 'simboard' plus a src/libghdlex.so or src/libghdlex-netpp.so DLL.
 
-  ./simpipe --stop-time=500ms --wave=test.ghw
+To run the simulation, you have to add the path to this DLL to the
+LD_LIBRARY_PATH, for instance:
 
-Then you can for example try to the find the FIFO event with gtkwave:
+> export LD_LIBRARY_PATH=`pwd`/src:$LD_LIBRARY_PATH
 
-  gtkwave test.ghw
+Then you can run the simulation:
+
+> ./simboard --stop-time=500ms --wave=test.ghw
+
+Use gtkwave to look at the traces:
+
+> gtkwave test.ghw
 
 To build the netpp featured variants, run
 
-	make allnetpp
+> make allnetpp
 
 and wait for things to finish. You may have to run a "make clean" before that.
 
 Cross compiling GHDLEX is only supported for mingw32. Run
 	
-	make MINGW32=1
+> make MINGW32=1
 
-to compile a library for the mingw32 cross compiler.
+to compile a library for the i686-w64-mingw32 cross compiler.
 
 ----------------------------------------------------------------------------
 NETPP FEATURES
@@ -76,7 +71,7 @@ To test if your simulation is accessible through netpp, try this:
 
 2) Run the netpp client 'master':
 
-> ./netpp/master/master localhost
+> ./netpp/master/master TCP:localhost:2010
 
 This will output the properties of your virtual board:
 
@@ -89,7 +84,7 @@ Child: [80000002] ':simboard:ram1:'
 Likewise, you could mess with the simple FIFO loopback test implemented
 in examples/board.vhdl:
 
-> python test.py
+> python py/board.py
 
 This shows how the simulation is (remotely) accessed by a python script.
 

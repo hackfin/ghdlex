@@ -1,4 +1,13 @@
---! \file vram    Virtual n-bit RAM (up to 32 bit) for backdoor access
+--! \file vram.vhdl Virtual n-bit RAM (up to 32 bit) for backdoor access
+--!
+
+--
+-- (c) 2011-2018 Martin Strubel <hackfin@section5.ch>
+--
+-- Configureable WORDSIZE (1, 2)
+--
+--
+
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
@@ -13,24 +22,14 @@ use work.virtual.all;
 --! This RAM registers itself as a netpp property and can be addressed
 --! under its instance name from outside, provided the netpp.vpi module
 --! is loaded or initialized from within the simulation.
---! Access to a RAM block is easiest done via Python, example:
---! \code
---! import netpp
---! dev = netpp.connect("localhost")
---! root = dev.sync()
 --!
---! Ram0 = getattr(root, ":sim_top:ram:") # Retrieve Ram0 entity token
---! Ram0.Offset.set(0)    # Set address offset
---! rambuf0 = Ram0.Buffer.get()  # Get old buffer
---! a = 256 * chr(0)      # Generate 256 zeros
---! Ram0.Buffer.set(buffer(a))   # Set RAM
---! \endcode
 --!
 entity VirtualDualPortRAM is
 	generic(
-		NETPP_NAME   : string   := "DEFAULT";
-		DATA_W       : natural  := 32;
-		ADDR_W       : natural  := 14;
+		NETPP_NAME   : string   := "DEFAULT"; --! netpp entity name
+		DATA_W       : natural  := 32;        --! Data width (bits)
+		ADDR_W       : natural  := 14;        --! Address bits
+		--! Initialization data
 		INIT_DATA    : vram32_init_t := (0 => x"00000000")
 	);
 	port(

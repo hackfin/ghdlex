@@ -94,17 +94,18 @@ INPUT                  = doc_apidef.h \
                          src/bus.h \
                          src/ghpi.h \
                          libnetpp.vhdl \
-                         examples/simnetpp.vhdl \
-                         examples/simboard.vhdl \
-                         examples/simpipe.vhdl \
-                         examples/simfb.vhdl \
+                         examples/netpp.vhdl \
+                         examples/board.vhdl \
+                         examples/pty.vhdl \
+                         examples/fb.vhdl \
                          hdl/libvirtual.vhdl \
                          hdl/libpipe.vhdl \
                          hdl/vbus.vhdl \
                          hdl/vfifo.vhdl \
                          hdl/vfx2fifo.vhdl \
-                         hdl/vram16.vhdl \
-                         hdl/vram.vhdl
+                         hdl/vram.vhdl \
+                         hdl/vram_dclk.vhdl \
+                         hdl/vram16.vhdl
 INPUT_ENCODING         = UTF-8
 FILE_PATTERNS          =
 RECURSIVE              = NO
@@ -234,7 +235,7 @@ ENABLE_PREPROCESSING   = YES
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = NO
 SEARCH_INCLUDES        = NO
-INCLUDE_PATH           = include
+INCLUDE_PATH           = src
 INCLUDE_FILE_PATTERNS  =
 PREDEFINED             = RUN_CHEAD
 EXPAND_AS_DEFINED      = 
