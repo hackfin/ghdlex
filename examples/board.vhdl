@@ -1,4 +1,4 @@
---! \file simboard.vhdl   Virtual board example
+--! \file board.vhdl   Virtual board example
 -- A little more complex configuration
 --
 -- Test for various virtual entities

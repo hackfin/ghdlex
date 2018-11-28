@@ -42,7 +42,6 @@ package ghpi_netpp is
 	--! \addtogroup GHPI_Netpp
 	--! \{
 
-	--! Initializes the netpp slave structures for a simulation
 	function netpp_init(name : string)
 		return integer;
 
@@ -50,6 +49,7 @@ package ghpi_netpp is
 	--! Allows to pass a port number
 	function netpp_init(name : string; portnum : integer)
 		return integer;
+
 
 	----- NETPP MASTER API -----
 	subtype  token_t       is integer;

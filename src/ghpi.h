@@ -56,16 +56,6 @@ struct fat_pointer
 ////////////////////////////////////////////////////////////////////////////
 // Functions
 
-/** \defgroup Initialization   Initializing netpp
- *
- *
- */
-
-/** \addtogroup Initialization
- * \{ */
-
-/* \} */
-
 /** \defgroup Auxiliary    Auxiliary functions for conversion, etc.
  *
  * These are internal functions to convert between GDHL data and C data
@@ -111,7 +101,7 @@ void hexdump(const char *buf, unsigned long n);
 
 /*!
  * \mainpage GHDLex documentation
- * \version 0.1.x
+ * \version 0.2.x
  * \author Martin Strubel
  * \date 09/2015
  *
@@ -172,6 +162,7 @@ void hexdump(const char *buf, unsigned long n);
  *
  *  - VirtualFIFO:  A multiply instanceable virtual FIFO
  *  - VirtualDualPortRAM:  Dual port RAM simulation
+ *  - VirtualDualPortRAM_dc:  Dual port/dual clock variant
  *  - VirtualBus:  A simple virtual bus master for testing slave devices
  *
  * They all depend on netpp, so they call netpp_init() at start up of
@@ -249,7 +240,6 @@ python test.py
  * The following modules provide the API for the GHPI extension:
  * - \subpage GHPI_Wrap    
  * - \subpage GHPI_Netpp
- * - \subpage GHPI_Pipe  
  *
  * From the C API side:
  * - \subpage Auxiliary

@@ -78,7 +78,6 @@ package virtual is
 	component VirtualDualPortRAM_dc is
 		generic(
 			NETPP_NAME   : string   := "DEFAULT";
-			HAVE_RESET   : boolean  := false;
 			DATA_W       : natural  := 32;
 			ADDR_W       : natural  := 14;
 			EN_BYPASS    : boolean := false;

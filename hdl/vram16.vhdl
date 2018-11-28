@@ -1,4 +1,4 @@
---! \file dpram16    Virtual 16 bit RAM for backdoor access
+--! \file vram16.vhdl    Virtual 16 bit RAM for backdoor access
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all; -- Unsigned
@@ -7,7 +7,7 @@ library work;
 -- The RAM functions are generated within the netpp autowrapper
 use work.ghpi_netpp.all;
 
---! \brief Dual port RAM with simulation interface via netpp
+--! \brief Legacy RAM with simulation interface via netpp
 --!
 --! \deprecated This is an old version, not implementing bypass logic
 --!             for simultaneous R/W. Also, API has changed, and endiannes

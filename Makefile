@@ -5,7 +5,7 @@
 # See LICENSE.txt for usage policies
 #
 
-VERSION = 0.1dev
+VERSION = 0.2
 
 DEVICEFILE = ghdlsim.xml
 

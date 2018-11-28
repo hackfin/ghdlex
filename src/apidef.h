@@ -112,6 +112,17 @@ DEFTYPE_SLV(byte_t, 8)
 /** \} */
 
 /** \defgroup GHPI_Netpp    Netpp initialization and communication
+ *  Netpp initialization functions, to be called early from the
+ *  simulation.
+ *
+ *  When netpp support present, initialization must happen very early,
+ *  because the virtual (and netpp-accessible) entities register themselves
+ *  in a netpp device root node as dynamic properties. See board.vhdl
+ *	how to initialize netpp early in the architecture declaration of your
+ *	test bench.
+ *
+ * 	Another method is, to use the 'ghdl launcher' main.c. This explicitely
+ * 	runs all initialization before jumping into the GHDL simulation.
  *
  */
 
@@ -129,8 +140,7 @@ API_DEFFUNC( device_open_wrapped,     _T(netpphandle_t),
 
 VHDL_COMMENT("\\addtogroup GHPI_Netpp")
 VHDL_COMMENT("\\{") // {
-VHDL_COMMENT("Netpp initialization and master communication.")
-VHDL_COMMENT("Note this is the documentation for the VHDL side.")
+VHDL_COMMENT("This is the documentation for the VHDL side.")
 VHDL_COMMENT("\n-- DELIMITER -- \n")
 
 VHDL_COMMENT("Set integer value on netpp remote device")
@@ -325,6 +335,17 @@ VHDL_COMMENT("\\}") // }
  *
  * Virtual RAM modules are created from VHDL code by instancing a
  * DualPortRAM entity. See vram.vhdl example.
+ * Python example to access a RAM block from outside:
+ * \code
+ * import netpp
+ * dev = netpp.connect("localhost")
+ * root = dev.sync()
+ * Ram0 = getattr(root, ":sim_top:ram:") # Retrieve Ram0 entity token
+ * Ram0.Offset.set(0)    # Set address offset
+ * rambuf0 = Ram0.Buffer.get()  # Get old buffer
+ * a = 256 * chr(0)      # Generate 256 zeros
+ * Ram0.Buffer.set(buffer(a))   # Set RAM
+ * \endcode
  */
 
 /** \addtogroup VirtualRAM
