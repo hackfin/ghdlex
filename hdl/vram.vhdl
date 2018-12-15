@@ -23,7 +23,9 @@ use work.virtual.all;
 --! under its instance name from outside, provided the netpp.vpi module
 --! is loaded or initialized from within the simulation.
 --!
---!
+--! \version 0.2 'reset' port eliminated. If a resetable RAM
+--!              (simulation side) is ever required again, implement
+--!              it under another name!
 entity VirtualDualPortRAM is
 	generic(
 		NETPP_NAME   : string   := "DEFAULT"; --! netpp entity name
