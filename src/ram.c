@@ -101,11 +101,15 @@ void_ghdl sim_ram_write(rambuf_t_ghdl *ram,
 void_ghdl sim_ram_read(rambuf_t_ghdl *ram,
 	struct fat_pointer *addr, ram_port_t_ghdl data)
 {
+	int error;
 	unsigned char *p;
 	uint32_t i, val;
 	Ram *r = (Ram *) ram[0];
 	p = (unsigned char *) &r[1];
-	logic_to_uint(addr->base, r->addrsize, &i);
+	error = logic_to_uint(addr->base, r->addrsize, &i);
+	if (error < 0) {
+		fprintf(stderr, "RAM content undefined\n");
+	}
 	if (i > r->size) {
 		fprintf(stderr, "read: Bad boundaries; addr = %08x\n", i);
 		return;

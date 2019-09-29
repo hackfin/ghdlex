@@ -14,6 +14,12 @@ package virtual is
 	type vram32_init_t is array(natural range <>) of
 		unsigned(31 downto 0);
 
+	type vram16_init_t is array(natural range <>) of
+		unsigned(15 downto 0);
+
+	--! Function to convert from a 16 bit data initialization
+	function to_vram32_init(data : vram16_init_t) return vram32_init_t;
+
 	component VirtualFIFO is
 		generic (
 			NETPP_NAME   : string   := "DEFAULT";
@@ -73,6 +79,30 @@ package virtual is
 			b_read  : out unsigned(DATA_W-1 downto 0)
 		);
 	end component VirtualDualPortRAM;
+
+	component VirtualDualPortRAM_ce is
+		generic(
+			NETPP_NAME   : string   := "DEFAULT";
+			DATA_W       : natural  := 32;
+			ADDR_W       : natural  := 14;
+			INIT_DATA    : vram32_init_t := (0 => x"00000000")
+		);
+		port(
+			clk     : in  std_logic;
+			-- Port A
+			a_ce    : in  std_logic;
+			a_we    : in  std_logic;
+			a_addr  : in  unsigned(ADDR_W-1 downto 0);
+			a_write : in  unsigned(DATA_W-1 downto 0);
+			a_read  : out unsigned(DATA_W-1 downto 0);
+			-- Port B
+			b_ce    : in  std_logic;
+			b_we    : in  std_logic;
+			b_addr  : in  unsigned(ADDR_W-1 downto 0);
+			b_write : in  unsigned(DATA_W-1 downto 0);
+			b_read  : out unsigned(DATA_W-1 downto 0)
+		);
+	end component VirtualDualPortRAM_ce;
 
 
 	component VirtualDualPortRAM_dc is
@@ -141,4 +171,19 @@ package virtual is
 	end component VirtualBus;
 
 end package;
+
+package body virtual is
+
+	function to_vram32_init(data : vram16_init_t) return vram32_init_t is
+		type vram_init_worker is array(0 to data'length-1) of unsigned(31 downto 0);
+		variable work : vram_init_worker;
+	begin
+		for i in 0 to data'length-1 loop
+			work(i) := resize(data(i), 32); 
+		end loop;
+		return vram32_init_t(work);
+	end function;
+
+
+end package body;
 

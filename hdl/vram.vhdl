@@ -26,7 +26,7 @@ use work.virtual.all;
 --! \version 0.2 'reset' port eliminated. If a resetable RAM
 --!              (simulation side) is ever required again, implement
 --!              it under another name!
-entity VirtualDualPortRAM is
+entity VirtualDualPortRAM_ce is
 	generic(
 		NETPP_NAME   : string   := "DEFAULT"; --! netpp entity name
 		DATA_W       : natural  := 32;        --! Data width (bits)
@@ -37,19 +37,21 @@ entity VirtualDualPortRAM is
 	port(
 		clk     : in  std_logic;           --! Clock for Port A and B
 		-- Port A
+		a_ce    : in  std_logic;           --! Enable signal
 		a_we    : in  std_logic;           --! A write enable (high active)
 		a_addr  : in  unsigned(ADDR_W-1 downto 0); --! Port A Address
 		a_write : in  unsigned(DATA_W-1 downto 0); --! Port A write data
 		a_read  : out unsigned(DATA_W-1 downto 0); --! Read data
 		-- Port B
+		b_ce    : in  std_logic;           --! Enable signal
 		b_we    : in  std_logic;           --! B write enable
 		b_addr  : in  unsigned(ADDR_W-1 downto 0); --! B address
 		b_write : in  unsigned(DATA_W-1 downto 0);  --! B write data
 		b_read  : out unsigned(DATA_W-1 downto 0)   --! B read data
 	);
-end VirtualDualPortRAM;
+end VirtualDualPortRAM_ce;
 
-architecture simulation of VirtualDualPortRAM is
+architecture simulation of VirtualDualPortRAM_ce is
 	shared variable ram_handle : rambuf_t;
 
 	procedure ram_init (data : in vram32_init_t) is
@@ -110,34 +112,95 @@ begin
 		wdata_a := resize(a_write, wdata_a'length);
 		wdata_b := resize(b_write, wdata_b'length);
 		if rising_edge(clk) then
-			if a_we = '1' then
-				if b_we = '1' then
-					assert false report "Write collision";
-				end if;
-				ram_write(ram_handle, addr_a, wdata_a);
-				rdata_a := wdata_a; -- bypass
-				if addr_a = addr_b then
-					rdata_b := wdata_a;
-				else
-					ram_read(ram_handle, addr_b, rdata_b);
-				end if;
-			elsif b_we = '1' then
-				ram_write(ram_handle, addr_b, wdata_b);
-				rdata_b := wdata_b; -- bypass
-
-				if addr_a = addr_b then
+			if a_ce = '1' then
+				if a_we = '1' then
+					if b_we = '1' then
+						assert false report "Write collision";
+					end if;
+					ram_write(ram_handle, addr_a, wdata_a);
+					rdata_a := wdata_a; -- bypass
+				elsif b_ce = '1' and b_we = '1' and addr_a = addr_b then
 					rdata_a := wdata_b;
 				else
 					ram_read(ram_handle, addr_a, rdata_a);
 				end if;
-			else
-				ram_read(ram_handle, addr_a, rdata_a);
-				ram_read(ram_handle, addr_b, rdata_b);
+			end if;
+
+			if b_ce = '1' then
+				if b_we = '1' then
+					ram_write(ram_handle, addr_b, wdata_b);
+					rdata_b := wdata_b; -- bypass
+				elsif a_ce = '1' and a_we = '1' and addr_a = addr_b then
+					rdata_b := wdata_a;
+				else
+					ram_read(ram_handle, addr_b, rdata_b);
+				end if;
 			end if;
 
 		end if;
 		a_read <= rdata_a(DATA_W-1 downto 0);
 		b_read <= rdata_b(DATA_W-1 downto 0);
 	end process;
+
+end simulation;
+
+library ieee;
+use ieee.std_logic_1164.all;
+use ieee.numeric_std.all; -- Unsigned
+
+library work;
+-- The RAM functions are generated within the netpp autowrapper
+use work.ghpi_netpp.all;
+use work.virtual.all;
+
+entity VirtualDualPortRAM is
+	generic(
+		NETPP_NAME   : string   := "DEFAULT"; --! netpp entity name
+		DATA_W       : natural  := 32;        --! Data width (bits)
+		ADDR_W       : natural  := 14;        --! Address bits
+		--! Initialization data
+		INIT_DATA    : vram32_init_t := (0 => x"00000000")
+	);
+	port(
+		clk     : in  std_logic;           --! Clock for Port A and B
+		-- Port A
+		a_we    : in  std_logic;           --! A write enable (high active)
+		a_addr  : in  unsigned(ADDR_W-1 downto 0); --! Port A Address
+		a_write : in  unsigned(DATA_W-1 downto 0); --! Port A write data
+		a_read  : out unsigned(DATA_W-1 downto 0); --! Read data
+		-- Port B
+		b_we    : in  std_logic;           --! B write enable
+		b_addr  : in  unsigned(ADDR_W-1 downto 0); --! B address
+		b_write : in  unsigned(DATA_W-1 downto 0);  --! B write data
+		b_read  : out unsigned(DATA_W-1 downto 0)   --! B read data
+	);
+end VirtualDualPortRAM;
+
+
+architecture simulation of VirtualDualPortRAM is
+
+begin
+
+	wrapper:
+		entity work.VirtualDualPortRAM_ce
+		generic map (
+			NETPP_NAME   => NETPP_NAME ,
+			DATA_W       => DATA_W,
+			ADDR_W       => ADDR_W,
+			INIT_DATA    => INIT_DATA  
+		)
+		port map (
+			clk     => clk,
+			a_ce    => '1',
+			a_we    => a_we,
+			a_addr  => a_addr,
+			a_write => a_write,
+			a_read  => a_read,
+			b_ce    => '1',
+			b_we    => b_we,
+			b_addr  => b_addr,
+			b_write => b_write,
+			b_read  => b_read  
+		);
 
 end simulation;
