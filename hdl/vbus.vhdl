@@ -117,13 +117,10 @@ bus_handler:
 			end if;
 
 			flags(2) := dval;
+			iaddr <= d_addr;
 
 			if flags(1) = '1' then -- Writing, latch data
-				iaddr <= d_addr;
 				data_in <= std_logic_vector(d_data);
-			-- Only update if there's no pending write:
-			elsif flags(0) = '1' and iwr = '0' then
-				iaddr <= d_addr;
 			end if;
 		end if;
 	end process;
