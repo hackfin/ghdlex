@@ -1,9 +1,9 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include "bus.h"
 #include "ghpi.h"
 #include "netpp.h"
 #include "netppwrap.h"
+#include "property_protocol.h" // netpp_log
 
 extern Bus *g_bus;
 
@@ -17,7 +17,7 @@ bus_t_ghdl sim_bus_new_wrapped(string_ghdl name, integer_ghdl width,
 
 	Bus *b =
 		(Bus *) malloc(sizeof(Bus) + BUS_AUXBUFSIZE);
-	printf("Reserved Bus '%s' with word size %d\n", (char *) name->base,
+	netpp_log(DCLOG_NOTICE, "Reserved Bus '%s' with word size %d", (char *) name->base,
 		width);
 	MUTEX_INIT(&b->mutex);
 	b->width = (width + 7) / 8; // Convert to byte width and remember
@@ -29,9 +29,9 @@ bus_t_ghdl sim_bus_new_wrapped(string_ghdl name, integer_ghdl width,
 	switch (type) {
 	case 1:
 		if (g_bus) {
-			fprintf(stderr,
+			netpp_log(DCLOG_ERROR,
 				"You can only have one global bus (property-accessible)\n"
-				"Overriding previous global bus.\n");
+				"Overriding previous global bus.");
 		}
 		g_bus = b;
 	}
@@ -56,7 +56,7 @@ void sim_bus_rxtx(bus_t_ghdl *bus, unsigned_ghdl addr, unsigned_ghdl data,
 {
 	Bus *b = (Bus *) *bus;
 	if (!b) {
-		fprintf(stderr, "Bus not initialized, is NULL\n");
+		netpp_log(DCLOG_ERROR, "Bus not initialized, is NULL");
 		exit(-1);
 	}
 
@@ -94,15 +94,15 @@ int bus_val_wr(Bus *bus, uint32_t addr, uint32_t val)
 	// Wait until slave has read previous data sent
 	int retry = 0;
 	while (bus->flags & TX_PEND) {
-		printf("Poll until slave ready\n");
+		netpp_log(DCLOG_NOTICE, "Poll until slave ready");
 		USLEEP(1000); // Wait 1 ms
 		retry++;
 		if (retry > bus->timeout_ms) {
-			fprintf(stderr, "Bus timeout. No response from Simulation?\n");
+			netpp_log(DCLOG_ERROR, "Bus timeout. No response from Simulation?");
 			return DCERR_COMM_TIMEOUT;
 		}
 	}
-	printf("%08x> %08x\n", addr, val);
+	netpp_log(DCLOG_NOTICE, "%08x> %08x", addr, val);
 
 	MUTEX_LOCK(&bus->mutex);
 		bus->addr = addr;
@@ -125,7 +125,7 @@ int bus_val_rd(Bus *bus, uint32_t addr, uint32_t *val)
 		USLEEP(1000);
 		retry++;
 		if (retry > bus->timeout_ms) {
-			fprintf(stderr, "Bus timeout. No response from Simulation?\n");
+			netpp_log(DCLOG_ERROR, "Bus timeout. No response from Simulation?");
 			return DCERR_COMM_TIMEOUT;
 		}
 

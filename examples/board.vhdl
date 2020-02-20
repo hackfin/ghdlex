@@ -316,6 +316,11 @@ stim:
 			assert false report "netpp init failed" severity failure;
 		end if;
 
+		-- We use this signal to the client that we're ready
+		vtap_stat.break <= '0';
+
+		global_startup_reset <= '1';
+		wait for 40 us;
 		global_startup_reset <= '0';
 
 		-- Now stimulate:
@@ -343,6 +348,8 @@ stim:
 		wait for 20 us;
 		we <= '0';
 		wait for 20 us;
+
+		vtap_stat.break <= '1';
 
 		wait;
 	end process;

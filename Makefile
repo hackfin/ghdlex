@@ -41,14 +41,10 @@ GHDL_LDFLAGS += $(GHDLFLAGS)
 # Set to NETPP location, if you want to use specific NETPP dir
 # It is better to put this into config.mk:
 # NETPP = $(HOME)/src/netpp
-# Run "make allnetpp" to fetch and build the source
 #
 NETPP ?= /usr/share/netpp
 GENSOC ?= $(shell which gensoc)
 
-NETPP_VER = netpp_src-0.40-svn321
-NETPP_TAR = $(NETPP_VER).tgz 
-NETPP_WEB = http://section5.ch/downloads/$(NETPP_TAR)
 CONFIG_NETPP = $(shell [ -e $(NETPP)/xml ] && echo y )
 CONFIG_GENSOC = $(shell [ -e $(GENSOC) ] && echo y )
 CURDIR = $(shell pwd)
@@ -130,20 +126,6 @@ dist:
 	cd ..; \
 	tar cfz ghdlex-sim-$(VERSION).tgz $(DISTFILES)
 
-# netpp unpack rule:
-
-$(NETPP_TAR):
-	wget $(NETPP_WEB)
-
-netpp: $(NETPP_TAR)
-	tar xfz $(NETPP_TAR)
-	ln -s $(NETPP_VER) netpp
-
-$(LIBSLAVE): | netpp
-
-$(LIBSLAVE)/libslave.so: $(LIBSLAVE) 
-	[ -e $@ ] || $(MAKE) -C $<
-
 
 ifeq ($(CONFIG_NETPP),y)
 include $(NETPP)/xml/prophandler.mk
@@ -168,7 +150,9 @@ show:
 	@echo $(VHDLFILES)
 
 
-LDFLAGS = -Wl,-Lsrc -Wl,-lghdlex$(VARIANT)
+GHDLEX_LDFLAGS = -Wl,-Lsrc -Wl,-no-pie -Wl,-lghdlex$(VARIANT)
+
+LDFLAGS += $(GHDLEX_LDFLAGS)
 
 ifeq ($(CONFIG_NETPP),y)
 LDFLAGS-$(CONFIG_LINUX)   += -Wl,-L$(LIBSLAVE) -Wl,-lslave
@@ -187,6 +171,16 @@ sim%: $(WORK) $(LIBRARIES) src/main.o
 	LINK_OBJS=`$(GHDL) --list-link $(GHDL_LDFLAGS) $(LDFLAGS) $@`; \
 	$(CC) -o $@ src/main.o $$LINK_OBJS
 
+# src/libghdlex-master.a:
+# 	$(MAKE) -C src NETPP=$(NETPP) LIBSIM=libghdlex-master libghdlex-master.a
+# 
+# simnetpp: $(WORK) src/libghdlex-master.a
+# 	$(GHDL) -m $(GHDLFLAGS) \
+# 		-Wl,-Lsrc -Wl,-lghdlex-master \
+# 		-Wl,-L$(NETPP)/devices/libmaster/Debug -Wl,-lmaster \
+# 		-Wl,-lpthread \
+# 		$@
+
 # The ghdlex library for external use:
 $(LIBDIR)/ghdlex-obj93.cf: $(GHDLEX_VHDL)
 	[ -e $(LIBDIR) ] || mkdir $(LIBDIR)
@@ -197,7 +191,6 @@ clean:: clean_duties
 	rm -fr $(LIBDIR)
 	rm -f $(GENERATED_VHDL-y)
 	rm -f $(WORK)
-	$(MAKE) NETPP=$(CURDIR)/netpp clean_duties
 	$(MAKE) -C src clean LIBSIM=$(LIBGHDLEX)
 
 clean_duties:
@@ -219,9 +212,6 @@ FILES += lib.mk platform.mk ghdlex.mk
 SRCFILES += $(CSRCS) apidef.h apimacros.h threadaux.h registermap.h
 SRCFILES += vpi_user.h vpiwrapper.c
 SRCFILES += src/Makefile Doxyfile
-
-allnetpp: $(LIBSLAVE)/libslave.so
-	$(MAKE) NETPP=$(CURDIR)/netpp
 
 $(NETPP)/common: 
 	ln -s $< $(NETPP)/share/netpp/common $@

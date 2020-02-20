@@ -1,3 +1,4 @@
+CFLAGS = -Wall -g
 
 PLATFORM_ARCH ?= $(shell uname)
 

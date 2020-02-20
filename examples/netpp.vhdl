@@ -33,6 +33,8 @@ architecture behaviour of simnetpp is
 	signal data : unsigned(7 downto 0);
 	signal sigterm : std_logic := '0';
 
+	constant initialization : integer := netpp_init("", 0);
+
 	shared variable device : netpphandle_t;
 	shared variable t_int : token_t;
 
@@ -45,6 +47,9 @@ begin
 		print(output, "Got device handle: " & str(device));
 		-- Obtain TOKEN for 'ControlReg' property
 		t_int := device_gettoken(device, "ControlReg");
+		if t_int = -1 then
+			assert false report "Invalid token returned" severity failure;
+		end if;
 		clkloop : loop
 			wait for 1 us;
 			clk <= not clk;
@@ -71,6 +76,9 @@ begin
 			ret := device_set_register(device, t_int, to_integer(count));
 			if ret < 0 then
 				print(output, "Failed to set integer on peer");
+			end if;
+			if count = x"0007" then
+				sigterm <= '1';
 			end if;
 		end if;
 	end process;

@@ -23,8 +23,8 @@
  */
 
 #include <unistd.h> // usleep()
-#include <stdio.h>
 #include <stdlib.h>
+#include "property_protocol.h" // netpp_log
 #include "fifo.h"
 #include "ghpi.h"
 #include "netpp.h"
@@ -51,11 +51,11 @@ int fifo_init(Fifo *f, unsigned short size, unsigned short wordsize)
 			f->tologic = words_to_logic;
 			break;
 		default:
-			fprintf(stderr, "Unsupported word size\n");
+			netpp_log(DCLOG_ERROR, "Unsupported word size");
 			return -1;
 	}
 	
-	printf("Initialize FIFO with word width of %d bits\n", wordsize * 8);
+	// netpp_log(DCLOG_VERBOSE, "Initialize FIFO with word width of %d bits", wordsize * 8);
 	error = MUTEX_INIT(&f->mutex);
 	if (error < 0) return error;
 	f->buf = (unsigned char*) malloc(size * wordsize);
@@ -108,7 +108,7 @@ int fifo_advance(Fifo *f, int n)
 
 	if (f->fill == 0) {
 		f->unr = HIGH;
-		fprintf(stderr, "Error: FIFO underrun (advance)\n");
+		netpp_log(DCLOG_ERROR, "Error: FIFO underrun (advance)");
 	} else {
 		f->tail += n; f->tail %= f->size;
 		f->fill -= n;
@@ -129,7 +129,7 @@ int fifo_read(Fifo *f, unsigned char *byte, unsigned short n)
 
 	if (f->fill == 0) {
 		f->unr = HIGH;
-		fprintf(stderr, "Error: FIFO underrun (read)\n");
+		netpp_log(DCLOG_ERROR, "Error: FIFO underrun (read)");
 		i = 0;
 	} else {
 		do {
@@ -193,7 +193,7 @@ int fifo_write(Fifo *f, const unsigned char *byte, unsigned short n)
 
 	if (f->fill == f->size) {
 		f->ovr = HIGH;
-		fprintf(stderr, "Error: FIFO overrun\n");
+		netpp_log(DCLOG_ERROR, "Error: FIFO overrun");
 		i = 0;
 	} else {
 		do {
@@ -225,7 +225,6 @@ void fifo_pump(struct duplexfifo_t *df, struct fat_pointer *data, char *flag)
 	static
 	unsigned char valuebytes[32];
 	unsigned char rx, tx;
-	short n;
 	short nbits = data->bounds->len;
 	short nbytes = (nbits + 7) >> 3;
 	int error;
@@ -237,7 +236,7 @@ void fifo_pump(struct duplexfifo_t *df, struct fat_pointer *data, char *flag)
 	// Guard maximum chunk size:
 	if (nbytes > sizeof(valuebytes)) {
 		nbytes = sizeof(valuebytes);
-		fprintf(stderr, "Warning: FIFO request size truncated\n");
+		netpp_log(DCLOG_ERROR, "Warning: FIFO request size truncated");
 	}
 
 
@@ -253,7 +252,7 @@ void fifo_pump(struct duplexfifo_t *df, struct fat_pointer *data, char *flag)
 	if (tx) {
 		error = fifo_in->fromlogic(data->base, nbytes, valuebytes);
 		if (error < 0) {
-			printf("%s: Bad FIFO value @%d\n", __FILE__, fifo_in->fill);
+			netpp_log(DCLOG_ERROR, "%s: Bad FIFO value @%d", __FILE__, fifo_in->fill);
 		}
 		fifo_write(fifo_in, valuebytes, nbytes);
 	}
@@ -269,7 +268,7 @@ void fifo_pump(struct duplexfifo_t *df, struct fat_pointer *data, char *flag)
 	fifo_status(fifo_out, FIFO_READ, nbytes, flag);
 
 	if (flag[RXE] == HIGH) { // We do at least have 'nbytes' bytes in the FIFO
-		n = fifo_get(fifo_out, valuebytes, nbytes);
+		fifo_get(fifo_out, valuebytes, nbytes);
 		fifo_out->tologic(data->base, nbytes, valuebytes);
 		// printf("n: %d: %02x %02x\n", n, valuebytes[0], valuebytes[1]);
 	} else {
@@ -304,7 +303,7 @@ duplexfifo_t_ghdl sim_fifo_new_wrapped(string_ghdl name, integer_ghdl size,
 	struct duplexfifo_t *df =
 		(struct duplexfifo_t *) malloc(sizeof(struct duplexfifo_t));
 	ghdlname_to_propname(name->base, propname, sizeof(propname));
-	printf("Reserved FIFO '%s' with word size %d, size 0x%x\n", propname,
+	netpp_log(DCLOG_VERBOSE, "Reserved FIFO '%s' with word size %d, size 0x%x", propname,
 		wordsize, size * sizeof(uint16_t));
 
 	error = fifo_init(&df->in, size, wordsize);
@@ -335,7 +334,7 @@ int fifo_blocking_read(Fifo *f, unsigned char *buf, unsigned int n)
 	while (n > 0) {
 		while (!fifo_fill(f)) {
 			USLEEP(g_fifoconfig.timeout);
-			//fprintf(stderr,
+			//netpp_log(DCLOG_ERROR,
 				//"%s(): FIFO retry #%d (requested: %d)\n", __FUNCTION__, retry, n);
 			retry--;
 			if (retry == 0) return DCERR_COMM_TIMEOUT;

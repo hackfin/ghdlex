@@ -78,45 +78,28 @@ def test_blk(r, bufsize, throttle = 1, delay = 0.01):
 	else:
 		print "Buffer ok!"
 
+def run_test(r):
+	enable = r.Enable
+	reset = r.Reset
 
-dev = netpp.connect(SIMULATION_URL)
+	enable.set(0)
+	reset.set(1)
+	time.sleep(0.1)
+	reset.set(0)
 
-r = dev.sync()
-enable = r.Enable
-reset = r.Reset
+	enable.set(1)
 
-enable.set(0)
-reset.set(1)
-time.sleep(0.1)
-reset.set(0)
+	print "read n blocks, accelerated"
+	for i in range(4):
+		test_blk(r, 512, 1, 1.0)
 
-enable.set(1)
+	print "read n blocks, non-throttled"
+	for i in range(4):
+		test_blk(r, 512, 0, 0.0)
 
-print "read n blocks, accelerated"
-for i in range(8 * 64):
-	test_blk(r, 512, 1, 1.0)
+	return True
 
-print "read n blocks, non-throttled"
-for i in range(4):
-	test_blk(r, 512, 0, 0.0)
-
-fifo = getattr(r, ":tb_soc:virtual_fifo:")
-
-print 80 * "-"
-print "Flush..."
-while fifo.InFill.get() > 128:
-	test_blk(r, 128, 1, 0.1)
-
-# Let FIFO flood:
-
-r.SimThrottle.set(0)
-time.sleep(0.2)
-r.SimThrottle.set(1)
-
-print "See if more data coming..."
-try:
-	c = fifo.Buffer.get()
-	print "Had left in buffer:", len(c)
-except TypeError:
-	print "Empty buffer"
-
+if __name__ == "__main__":
+	dev = netpp.connect(SIMULATION_URL)
+	r = dev.sync()
+	run_test(r)

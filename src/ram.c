@@ -21,6 +21,7 @@
 #include "ghpi.h"
 #include "netpp.h"
 #include "netppwrap.h"
+#include "property_protocol.h" // netpp_log
 
 typedef struct RamDesc {
 	unsigned short addrsize;
@@ -59,7 +60,7 @@ rambuf_t_ghdl sim_ram_new_wrapped(string_ghdl name, integer_ghdl bits,
 	int n = 1 << size;
 	int ws = (bits + 7) / 8;
 	if (bits > 32) {
-		fprintf(stderr, "More than 32 bits not supported. Abort.\n");
+		netpp_log(DCLOG_ERROR, "More than 32 bits not supported. Abort.");
 		return NULL;
 	}
 	Ram *r = (Ram *) calloc(1, n * ws + sizeof(Ram));
@@ -69,7 +70,7 @@ rambuf_t_ghdl sim_ram_new_wrapped(string_ghdl name, integer_ghdl bits,
 	r->offset = 0;
 	r->size = n;
 	ghdlname_to_propname(name->base, propname, sizeof(propname));
-	printf("Reserved RAM '%s' with word size 0x%x(%d bytes), width: %d bits\n",
+	netpp_log(DCLOG_NOTICE, "Reserved RAM '%s' with word size 0x%x(%d bytes), width: %d bits",
 		propname,
 		r->size, r->size * ws, bits);
 
@@ -89,7 +90,7 @@ void_ghdl sim_ram_write(rambuf_t_ghdl *ram,
 	logic_to_uint(data, 8 * sizeof(val), &val);
 	logic_to_uint(addr->base, r->addrsize, &i);
 	if (i > r->size) {
-		fprintf(stderr, "write: Bad boundaries; addr = %08x\n", i);
+		netpp_log(DCLOG_ERROR, "write: Bad boundaries; addr = %08x", i);
 		return;
 	}
 #ifdef ENABLE_RAM_TRACE
@@ -108,10 +109,10 @@ void_ghdl sim_ram_read(rambuf_t_ghdl *ram,
 	p = (unsigned char *) &r[1];
 	error = logic_to_uint(addr->base, r->addrsize, &i);
 	if (error < 0) {
-		fprintf(stderr, "RAM content undefined\n");
+		netpp_log(DCLOG_ERROR, "RAM content undefined");
 	}
 	if (i > r->size) {
-		fprintf(stderr, "read: Bad boundaries; addr = %08x\n", i);
+		netpp_log(DCLOG_ERROR, "read: Bad boundaries; addr = %08x", i);
 		return;
 	}
 	endian_safe_value_copy(&val, &p[i * r->width], r->width);
@@ -170,7 +171,6 @@ int get_ram(DEVICE d, DCValue *out)
 		case DC_UNDEFINED:
 		case DC_BUFFER:
 			// You must do a buffer size check here:
-			// netpp_log(DCLOG_VERBOSE, "Set buffer len %d", out->len);
 			if (out->len > size) {
 				out->len = size;
 				ret = DCWARN_PROPERTY_MODIFIED;
@@ -184,6 +184,7 @@ int get_ram(DEVICE d, DCValue *out)
 
 			// Tell engine where the data will come from:
 			out->value.p = &((char *) &r[1])[r->offset];
+
 			break;
 		default:
 			ret = DCERR_PROPERTY_TYPE_MATCH;

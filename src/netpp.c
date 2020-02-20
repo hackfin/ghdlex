@@ -83,7 +83,8 @@ TOKEN local_getroot(DEVICE d)
 {
 	int index = 0;
 	if (!g_initialized) {
-		fprintf(stderr, "netpp not initialized. Use --vpi=netpp.vpi\n");
+		netpp_log(DCLOG_ERROR,
+			"netpp not initialized. Use --vpi=netpp.vpi");
 		return TOKEN_INVALID;
 	}
 
@@ -95,8 +96,7 @@ void handleError(int error)
 {
 	const char *s;
 	s = dcGetErrorString(error);
-
-	fprintf(stderr, "netpp error: %s\n", s);
+	netpp_log(DCLOG_ERROR, "netpp error: %s", s);
 }
 
 int set_property(DEVICE d, const char *name, void *val, int type)
@@ -148,7 +148,6 @@ TOKEN sim_device_gettoken_wrapped(DEVHANDLE handle, struct ghdl_string *id)
 
 	error = dcProperty_ParseName(d, id->base, &t);
 	if (error < 0) {
-		fprintf(stderr, "Fatal: ");
 		handleError(error);
 		exit(-1);
 	}
@@ -354,16 +353,14 @@ int register_fifo(void *entity, char *name)
 	TOKEN root;
 	root = local_getroot(NULL);
 	if (root == TOKEN_INVALID) return -1;
-	printf("Registering FIFO..\n");
 	// Retrieve descriptor for FIFO token (defined externally)
 	t = property_from_entity(root, entity, g_t_ghdlex_fifo, name);
 
 	if (t == TOKEN_INVALID) {
-		printf("Unable to register FIFO, out of properties?\n");
+		netpp_log(DCLOG_ERROR, "Unable to register FIFO, out of properties?");
 		return -1;
 	}
 
-	printf("Registered FIFO property with name '%s'\n", name);
 	return 0;
 }
 
@@ -379,10 +376,9 @@ int register_ram(void *entity, char *name)
 	t = property_from_entity(root, entity, g_t_ghdlex_ram, name);
 
 	if (t == TOKEN_INVALID) {
-		printf("Unable to register ram, out of properties?\n");
+		netpp_log(DCLOG_ERROR, "Unable to register ram, out of properties?");
 		return -1;
 	}
-	printf("Registered RAM property with name '%s'\n", name);
 	return 0;
 }
 
@@ -395,10 +391,9 @@ int register_bus(void *entity, char *name)
 	// Clone a property instance from the buffer template:
 	t = property_from_entity(root, entity, g_t_ghdlex_bus, name);
 	if (t == TOKEN_INVALID) {
-		printf("Unable to register bus, out of properties?\n");
+		netpp_log(DCLOG_ERROR, "Unable to register bus, out of properties?");
 		return -1;
 	}
-	printf("Registered BUS property with name '%s'\n", name);
 	return 0;
 }
 
@@ -422,10 +417,9 @@ int register_pty(void *entity, char *name)
 	t = property_from_entity(root, entity, g_t_pty, name);
 
 	if (t == TOKEN_INVALID) {
-		printf("Unable to register PTY, out of properties?\n");
+		netpp_log(DCLOG_VERBOSE, "Unable to register PTY, out of properties?\n");
 		return -1;
 	}
-	printf("Registered PTY property with name '%s'\n", name);
 	return 0;
 }
 #endif
@@ -487,7 +481,7 @@ THREAD_RETURN THREAD_DECO netpp_thread(void *arg)
 	}
 
 	if (error < 0) {
-		printf("Failed to start server\n");
+		netpp_log(DCLOG_ERROR, "Failed to start server");
 		return 0;
 	}
 
@@ -512,7 +506,7 @@ int create_thread(const char *name, struct local_config *cfg)
 		0, &thid);
 	if (!g_thread) {
 		error = -1;
-		printf("Failed to create thread\n");
+		netpp_log(DCLOG_ERROR, "Failed to create thread");
 	}
 #else
 	error = pthread_create(&g_thread, NULL, &netpp_thread, cfg);
@@ -525,8 +519,6 @@ static struct local_config cfg;
 
 int netpp_server_init(const char *name, int port)
 {
-	int error;
-
 	if (port == 0) {
 		return create_thread(name, NULL);
 	} else {
@@ -540,12 +532,19 @@ integer_ghdl sim_netpp_init_wrapped(struct ghdl_string *name, int port)
 	// we're allowed to live on the stack, cuz we're only used during
 	// configuration
 
+	if (strlen(name->base) == 0) {
+		netpp_log(DCLOG_VERBOSE, "Init netpp master only");
+		g_initialized = 1;
+		return 0;
+	}
+
 #ifndef CONFIG_NETPP_EARLY_INIT
 	int error;
 	error = netpp_root_init(name->base);
 	if (error < 0) return error;
 #else
-	fprintf(stderr, "Ignoring device name '%s' in this implementation\n",
+	netpp_log(DCLOG_ERROR,
+		"Ignoring device name '%s' in this implementation",
 		name->base);
 #endif
 	return netpp_server_init(name->base, port);

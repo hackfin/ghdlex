@@ -16,6 +16,8 @@ DUTIES-$(CONFIG_MINGW32) = $(LIBSIM).a
 DUTIES-$(CONFIG_LINUX)  += $(LIBSIM).$(DLLEXT)
 DUTIES-$(CONFIG_NETPP_VPI)  += netpp.vpi
 
+
+
 all: $(DUTIES-y)
 
 VPIOBJS = vpiwrapper.o

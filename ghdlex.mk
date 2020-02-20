@@ -12,7 +12,7 @@ SIMOBJS = $(GHDLEXSRCS:%.c=%.o)
 PROPLIST ?= proplist.o
 
 $(LIBSIM).so: $(SIMOBJS) $(PROPLIST)
-	$(CC) -o $@ -shared $(SIMOBJS) $(PROPLIST)
+	$(CC) -o $@ -shared $(SIMOBJS) $(PROPLIST) -lpthread
 
 $(LIBSIM).a: $(SIMOBJS) $(PROPLIST)
 	$(AR) ruv $@ $(SIMOBJS) $(PROPLIST)

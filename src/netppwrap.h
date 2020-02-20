@@ -17,6 +17,11 @@
 
 int netpp_is_initialized(void);
 
+/** Netpp explicit master initialization. Call early in your HDL.
+ *
+ */
+int netpp_master_init(const char *name);
+
 /** Netpp root node initialization. Call before registering any
  * properties.
  *
